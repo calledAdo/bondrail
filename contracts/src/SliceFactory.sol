@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -10,135 +11,178 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {SliceTypes, ISliceCovenant} from "./SliceTypes.sol";
 import {SliceBond} from "./SliceBond.sol";
-import {SliceRouter} from "./SliceRouter.sol";
+import {SliceAccount} from "./SliceAccount.sol";
 import {PumpLab} from "./PumpLab.sol";
+import {PumpLabClassic} from "./PumpLabClassic.sol";
 import {FeeGuard} from "./FeeGuard.sol";
 
+/// @notice Creates accounts, recognized revenue sources and bonds; gates activation and the second release.
 contract SliceFactory is EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
     error Unauthorized();
     error InvalidTerms();
     error InvalidAdapter();
     error Unhealthy();
     error InvalidMilestone();
+
     IERC20 public immutable asset;
     address public immutable covenant;
     address public immutable milestoneSigner;
     address public immutable bondImplementation;
-    address public immutable routerImplementation;
+    address public immutable accountImplementation;
     bytes32 public constant MILESTONE_TYPEHASH = keccak256(
         "Milestone(address bond,bytes32 policyHash,uint64 periodStart,uint64 periodEnd,uint256 eligibleRevenue,bytes32 evidenceHash,uint64 expiresAt,uint256 nonce)"
     );
-    mapping(address => bool) public isRouter;
+
+    mapping(address => bool) public isAccount;
     mapping(address => bool) public isBond;
+    /// @notice Native launchpads this factory deployed (their code routes every fee through `collect`).
+    mapping(address => address) public nativeSourceAccount;
+    /// @notice Locked launchpads this factory deployed, and the guard that owns each one.
+    mapping(address => address) public lockedSourceGuard;
     mapping(address => bool) public recognizedGuard;
-    mapping(address => address) public sourceGuard;
-    event RouterCreated(address indexed issuer, address indexed router);
+
+    event AccountCreated(address indexed issuer, address indexed account);
+    event NativeSourceCreated(address indexed issuer, address indexed account, address source, address token);
     event LockedSourceCreated(
-        address indexed issuer, address indexed router, address source, address guard, address token
+        address indexed issuer, address indexed account, address source, address guard, address token
     );
     event BondCreated(
         address indexed issuer,
-        address indexed router,
+        address indexed account,
         address indexed bond,
         SliceTypes.Adapter adapter,
         bytes32 policyHash,
         bytes32 termsHash
     );
-    event MilestoneAccepted(address indexed bond, bytes32 indexed evidenceHash, uint256 eligibleRevenue, uint256 nonce);
+    event SecondReleaseApproved(address indexed bond, SliceTypes.MilestoneMode mode, uint256 eligibleRevenue);
 
     constructor(
         address asset_,
         address covenant_,
         address milestoneSigner_,
         address bondImplementation_,
-        address routerImplementation_
+        address accountImplementation_
     ) EIP712("SliceFactory", "1") {
         if (
             asset_.code.length == 0 || IERC20Metadata(asset_).decimals() != 6 || covenant_.code.length == 0
                 || milestoneSigner_ == address(0) || bondImplementation_.code.length == 0
-                || routerImplementation_.code.length == 0
+                || accountImplementation_.code.length == 0
         ) revert InvalidTerms();
         asset = IERC20(asset_);
         covenant = covenant_;
         milestoneSigner = milestoneSigner_;
         bondImplementation = bondImplementation_;
-        routerImplementation = routerImplementation_;
+        accountImplementation = accountImplementation_;
     }
 
-    function createRouter() external nonReentrant returns (address router) {
-        router = Clones.clone(routerImplementation);
-        isRouter[router] = true;
-        SliceRouter(router).initialize(address(asset), msg.sender, msg.sender);
-        emit RouterCreated(msg.sender, router);
+    // ---------------------------------------------------------------- accounts and sources
+
+    /// @notice A business's revenue account. Create it on day one: history starts at the first payment.
+    function createAccount() external nonReentrant returns (address account) {
+        account = Clones.clone(accountImplementation);
+        isAccount[account] = true;
+        SliceAccount(account).initialize(address(asset), msg.sender);
+        emit AccountCreated(msg.sender, account);
     }
 
-    function createLockedSource(address router, string calldata name_, string calldata symbol_, uint16 maxNameLength)
+    /// @notice Native tier: a launchpad whose every fee is pulled through the account.
+    function createNativeLaunchpad(address account, string calldata name_, string calldata symbol_)
         external
         nonReentrant
-        returns (address source, address guard)
+        returns (address source)
     {
-        _issuerRouter(router);
-        if (SliceRouter(router).activeBond() != address(0)) revert InvalidAdapter();
-        PumpLab p = new PumpLab(address(asset), router, name_, symbol_, maxNameLength);
-        FeeGuard g = new FeeGuard(address(p), msg.sender, router);
+        _issuerAccount(account);
+        if (SliceAccount(account).project() != address(0)) revert InvalidAdapter();
+        PumpLab p = new PumpLab(address(asset), account, name_, symbol_);
+        source = address(p);
+        nativeSourceAccount[source] = account;
+        SliceAccount(account).bindProject(source);
+        emit NativeSourceCreated(msg.sender, account, source, address(p.token()));
+    }
+
+    /// @notice Locked tier: an ordinary owner-administered launchpad, owned by a FeeGuard from birth.
+    function createLockedLaunchpad(
+        address account,
+        string calldata name_,
+        string calldata symbol_,
+        uint16 maxNameLength
+    ) external nonReentrant returns (address source, address guard) {
+        _issuerAccount(account);
+        PumpLabClassic p = new PumpLabClassic(address(asset), account, name_, symbol_, maxNameLength);
+        FeeGuard g = new FeeGuard(address(p), msg.sender, account);
         p.transferOwnership(address(g));
         source = address(p);
         guard = address(g);
         recognizedGuard[guard] = true;
-        sourceGuard[source] = guard;
-        emit LockedSourceCreated(msg.sender, router, source, guard, address(p.token()));
+        lockedSourceGuard[source] = guard;
+        emit LockedSourceCreated(msg.sender, account, source, guard, address(p.token()));
     }
 
+    // ---------------------------------------------------------------- bonds
+
     function createBond(
-        address router,
+        address account,
         SliceTypes.Terms calldata terms_,
         SliceTypes.AdapterConfig calldata config,
         string calldata name_,
         string calldata symbol_
     ) external nonReentrant returns (address bond) {
-        _issuerRouter(router);
+        _issuerAccount(account);
         _validateTerms(terms_);
         if (bytes(name_).length == 0 || bytes(symbol_).length == 0 || bytes(symbol_).length > 16) {
             revert InvalidTerms();
         }
-        if (SliceRouter(router).activeBond() != address(0) || config.policyHash == bytes32(0)) revert InvalidAdapter();
-        if (config.adapter == SliceTypes.Adapter.Locked) {
-            _locked(config.guard, config.source, router, msg.sender);
-        } else if (config.guard != address(0) || terms_.stake == 0) {
+        if (SliceAccount(account).activeBond() != address(0) || config.policyHash == bytes32(0)) {
+            revert InvalidAdapter();
+        }
+        if (config.adapter == SliceTypes.Adapter.Native) {
+            if (config.guard != address(0)) revert InvalidAdapter();
+            _native(config.source, account);
+        } else if (config.adapter == SliceTypes.Adapter.Locked) {
+            _locked(config.guard, config.source, account, msg.sender);
+        } else if (config.guard != address(0) || config.source != address(0) || terms_.stake == 0) {
+            // Watched: nothing on-chain enforces the route, so a slashable stake is mandatory.
             revert InvalidAdapter();
         }
         bond = Clones.clone(bondImplementation);
         isBond[bond] = true;
         SliceBond(bond)
-            .initialize(
-                address(asset),
-                msg.sender,
-                router,
-                covenant,
-                SliceRouter(router).payout(),
-                terms_,
-                config,
-                name_,
-                symbol_
-            );
+            .initialize(address(asset), msg.sender, account, covenant, msg.sender, terms_, config, name_, symbol_);
         if (terms_.stake != 0) {
             uint256 beforeBalance = asset.balanceOf(bond);
             asset.safeTransferFrom(msg.sender, bond, terms_.stake);
             if (asset.balanceOf(bond) - beforeBalance != terms_.stake) revert InvalidTerms();
         }
-        SliceRouter(router).attach(bond);
+        SliceAccount(account).attach(bond);
         if (config.adapter == SliceTypes.Adapter.Watched) {
             ISliceCovenant(covenant).registerBond(bond, config.policyHash);
         }
-        emit BondCreated(msg.sender, router, bond, config.adapter, config.policyHash, keccak256(abi.encode(terms_)));
+        emit BondCreated(msg.sender, account, bond, config.adapter, config.policyHash, keccak256(abi.encode(terms_)));
     }
 
+    /// @notice Issuer activates a fully funded bond: first release; revenue sharing starts now.
     function activate(address bond) external nonReentrant {
         SliceBond b = _issuerBond(bond);
         _healthy(b);
-        SliceRouter(b.router()).flushFunding(bond);
-        b.activateFactoryOnly();
+        SliceAccount account = SliceAccount(b.account());
+        account.settleBeforeActivation(bond);
+        b.activateFactoryOnly(account.cumulativeRevenue());
+    }
+
+    /// @notice Second release, on-chain mode: the account's own revenue counter since activation.
+    function releaseSecond(address bond) external nonReentrant {
+        SliceBond b = _issuerBond(bond);
+        SliceTypes.Terms memory t = b.terms();
+        if (t.milestoneMode != SliceTypes.MilestoneMode.Onchain) revert InvalidMilestone();
+        uint256 earned = SliceAccount(b.account()).cumulativeRevenue() - b.revenueSnapshot();
+        if (earned < t.minRevenue || block.timestamp < uint256(b.activationTime()) + t.minOperatingPeriod) {
+            revert InvalidMilestone();
+        }
+        _healthy(b);
+        b.releaseSecondFactoryOnly(keccak256(abi.encode("onchain", earned)));
+        emit SecondReleaseApproved(bond, SliceTypes.MilestoneMode.Onchain, earned);
     }
 
     function hashMilestone(SliceTypes.Milestone memory m) public view returns (bytes32) {
@@ -159,38 +203,51 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         );
     }
 
-    function releaseSecond(address bond, SliceTypes.Milestone calldata m, bytes calldata signature)
+    /// @notice Second release, signed mode: a wash-adjusted attestation from the disclosed milestone signer.
+    function releaseSecondSigned(address bond, SliceTypes.Milestone calldata m, bytes calldata signature)
         external
         nonReentrant
     {
         SliceBond b = _issuerBond(bond);
         SliceTypes.Terms memory t = b.terms();
         if (
-            m.bond != bond || m.policyHash != b.policyHash() || m.nonce != b.releaseNonce()
-                || m.evidenceHash == bytes32(0) || m.periodStart < b.activationTime() || m.periodEnd > block.timestamp
-                || m.periodEnd < m.periodStart || m.periodEnd - m.periodStart < t.minOperatingPeriod
-                || m.eligibleRevenue < t.minRevenue || m.expiresAt < block.timestamp
-                || uint256(m.expiresAt) > uint256(m.periodEnd) + 300
+            t.milestoneMode != SliceTypes.MilestoneMode.Signed || m.bond != bond || m.policyHash != b.policyHash()
+                || m.nonce != b.releaseNonce() || m.evidenceHash == bytes32(0) || m.periodStart < b.activationTime()
+                || m.periodEnd > block.timestamp || m.periodEnd < m.periodStart
+                || m.periodEnd - m.periodStart < t.minOperatingPeriod || m.eligibleRevenue < t.minRevenue
+                || m.expiresAt < block.timestamp || uint256(m.expiresAt) > uint256(m.periodEnd) + 300
         ) revert InvalidMilestone();
         if (ECDSA.recover(hashMilestone(m), signature) != milestoneSigner) revert Unauthorized();
         _healthy(b);
         b.releaseSecondFactoryOnly(m.evidenceHash);
-        emit MilestoneAccepted(bond, m.evidenceHash, m.eligibleRevenue, m.nonce);
+        emit SecondReleaseApproved(bond, SliceTypes.MilestoneMode.Signed, m.eligibleRevenue);
     }
 
+    // ---------------------------------------------------------------- checks
+
     function _healthy(SliceBond b) private view {
-        if (b.adapter() == SliceTypes.Adapter.Locked) _locked(b.guard(), b.source(), b.router(), b.issuer());
+        SliceTypes.Adapter a = b.adapter();
+        if (a == SliceTypes.Adapter.Native) _native(b.source(), b.account());
+        else if (a == SliceTypes.Adapter.Locked) _locked(b.guard(), b.source(), b.account(), b.issuer());
         else if (!ISliceCovenant(covenant).isHealthy(address(b))) revert Unhealthy();
     }
 
-    function _locked(address guard, address source, address router, address issuer) private view {
-        if (!recognizedGuard[guard] || sourceGuard[source] != guard) revert InvalidAdapter();
-        FeeGuard g = FeeGuard(guard);
-        if (g.target() != source || g.router() != router || g.issuer() != issuer || !g.isLocked()) revert Unhealthy();
+    function _native(address source, address account) private view {
+        if (nativeSourceAccount[source] != account || SliceAccount(account).project() != source) {
+            revert InvalidAdapter();
+        }
     }
 
-    function _issuerRouter(address router) private view {
-        if (!isRouter[router] || SliceRouter(router).issuer() != msg.sender) revert Unauthorized();
+    function _locked(address guard, address source, address account, address issuer) private view {
+        if (!recognizedGuard[guard] || lockedSourceGuard[source] != guard) revert InvalidAdapter();
+        FeeGuard g = FeeGuard(guard);
+        if (g.target() != source || g.account() != account || g.issuer() != issuer || !g.isLocked()) {
+            revert Unhealthy();
+        }
+    }
+
+    function _issuerAccount(address account) private view {
+        if (!isAccount[account] || SliceAccount(account).issuer() != msg.sender) revert Unauthorized();
     }
 
     function _issuerBond(address bond) private view returns (SliceBond b) {

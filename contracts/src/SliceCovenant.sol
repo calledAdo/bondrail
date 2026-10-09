@@ -109,7 +109,7 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
             p == SliceTypes.Phase.Closing
                 && (block.timestamp >= b.settleAfter() || o.observedAt >= b.collectionClosedAt())
         ) revert InvalidObservation();
-        if (o.result == 1 && o.observedPayTo != b.router()) revert InvalidObservation();
+        if (o.result == 1 && o.observedPayTo != b.account()) revert InvalidObservation();
         Slot storage slot = slots[o.bond][uint8(o.epoch % 8)];
         if (slot.observedAt != 0 && slot.epoch == o.epoch) revert DuplicateEpoch();
         // Accepted epochs span at most four buckets; eight bounded slots cannot erase fresh evidence.

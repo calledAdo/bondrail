@@ -21,7 +21,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     IERC20 public asset;
     address public factory;
     address public issuer;
-    address public router;
+    address public account;
     address public covenant;
     address public raiseRecipient;
     address public guard;
@@ -86,15 +86,15 @@ contract SliceBond is ERC20, ReentrancyGuard {
         if (msg.sender != factory) revert Unauthorized();
         _;
     }
-    modifier onlyRouter() {
-        if (msg.sender != router) revert Unauthorized();
+    modifier onlyAccount() {
+        if (msg.sender != account) revert Unauthorized();
         _;
     }
 
     function initialize(
         address asset_,
         address issuer_,
-        address router_,
+        address account_,
         address covenant_,
         address recipient_,
         SliceTypes.Terms calldata terms_,
@@ -103,7 +103,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         string calldata symbol_
     ) external {
         if (
-            initialized || asset_ == address(0) || issuer_ == address(0) || router_ == address(0)
+            initialized || asset_ == address(0) || issuer_ == address(0) || account_ == address(0)
                 || recipient_ == address(0)
         ) revert InvalidState();
         initialized = true;
@@ -112,7 +112,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         factory = msg.sender;
         asset = IERC20(asset_);
         issuer = issuer_;
-        router = router_;
+        account = account_;
         covenant = covenant_;
         raiseRecipient = recipient_;
         _terms = terms_;
@@ -162,7 +162,10 @@ contract SliceBond is ERC20, ReentrancyGuard {
         emit Deposited(msg.sender, amount, fundingEscrow);
     }
 
-    function activateFactoryOnly() external onlyFactory nonReentrant {
+    /// @notice The account's cumulative revenue at activation; the on-chain milestone counts from here.
+    uint256 public revenueSnapshot;
+
+    function activateFactoryOnly(uint256 accountRevenueAtActivation) external onlyFactory nonReentrant {
         if (
             phase != SliceTypes.Phase.Funding || fundingEscrow != _terms.raiseAmount
                 || block.timestamp >= _terms.fundingDeadline
@@ -170,6 +173,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         uint256 first = Math.mulDiv(_terms.raiseAmount, _terms.firstReleaseBps, 10_000);
         if (first == 0) revert InvalidAmount();
         phase = SliceTypes.Phase.Active;
+        revenueSnapshot = accountRevenueAtActivation;
         activationTime = uint64(block.timestamp);
         fundingEscrow = 0;
         releasedPrincipal = first;
@@ -205,7 +209,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         emit UndrawnRecovered(amount, principalRecovery);
     }
 
-    function cancelFundingFromRouter() external onlyRouter nonReentrant {
+    function cancelFundingFromAccount() external onlyAccount nonReentrant {
         if (phase != SliceTypes.Phase.Funding || block.timestamp < _terms.fundingDeadline) revert InvalidState();
         phase = SliceTypes.Phase.Cancelled;
         stakeReturnCredit += stakeHeld;
@@ -222,7 +226,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         emit Refunded(msg.sender, to, amount);
     }
 
-    function onRepayment(uint256 amount) external onlyRouter nonReentrant {
+    function onRepayment(uint256 amount) external onlyAccount nonReentrant {
         if (phase != SliceTypes.Phase.Active || amount == 0 || amount > remainingRevenueCap()) revert InvalidState();
         // Direct donations are surplus; this authenticated callback is the only revenue-credit entry.
         if (asset.balanceOf(address(this)) < accountedBalance() + amount) revert InvalidAmount();
@@ -231,7 +235,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         emit RevenueReceived(amount, totalRevenueCollected, pool);
     }
 
-    function finalizeCollection(SliceTypes.CloseReason reason) external onlyRouter nonReentrant {
+    function finalizeCollection(SliceTypes.CloseReason reason) external onlyAccount nonReentrant {
         if (phase != SliceTypes.Phase.Active || reason == SliceTypes.CloseReason.None) revert InvalidState();
         if (reason == SliceTypes.CloseReason.RevenueCap && remainingRevenueCap() != 0) revert InvalidState();
         if (reason == SliceTypes.CloseReason.Maturity && block.timestamp < _terms.maturity) revert TooEarly();
@@ -314,7 +318,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function _validPayment(uint256 amount, address to) private view {
-        if (amount == 0 || to == address(0) || to == address(this) || to == router) revert InvalidAmount();
+        if (amount == 0 || to == address(0) || to == address(this) || to == account) revert InvalidAmount();
     }
 
     function _update(address from, address to, uint256 amount) internal override {

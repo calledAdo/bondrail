@@ -1,34 +1,102 @@
-# Slice implementation specification v1
+# Slice v1 specification
 
-Frozen for first implementation, 9 October 2026. Product: revenue-financing marketplace for two supported demo businesses. Testnet10143 is default, local31337 supported. Mainnet143 disabled for write scripts unless a future explicit configuration/authorization changes policy.
+Single source of truth for the build. Supersedes everything in `docs/archive/`.
+Decided 9 October 2026 (user + Claude). Network: Monad testnet (10143); local anvil (31337) for tests.
 
-Design references: build-plan.md and testnet-and-staged-release.md. This file resolves the implementation choices below; staged-release amendment overrides obsolete full-release language in references.
+## 1. Idea
 
-## Financial rules
+A business's revenue flows through its **SliceAccount** from day one. The account records every payment
+on-chain, with the real payer, and builds a credit history before the business ever asks for money.
+When the business raises against that revenue, the account starts splitting a fixed share to a
+**SliceBond**. When the bond ends, the account goes back to paying the business 100%.
 
-- Six-decimal USDC-like asset and six-decimal ERC20 claims. Funding mint1:1; ordinary transfer disabled while Funding. No unrestricted burn. Fixed supply after activation until final redemption.
-- Phase Funding, Active, Closing, Closed, Cancelled. Separate default history and close reason. FundingDeadline strict boundary: deposits/activation before; anyone cancel at/after. Refund by holder after cancellation. One reserved issuance per Router.
-- Raise fully filled before issuer activates; preactivation Router receipts wholly issuer credit. Snapshot raiseRecipient. At activation release firstReleaseBps (2500 or5000); rest remains principal escrow. Full-cap scales to actual released principal by floor(fullCap*released/raise). Revenue collected starts at activation; earliest maturity-close semantics, final sweep records cutoff. No receipt timestamp fiction.
-- Second draw requires immutable secondReleaseNotBefore<=now<secondReleaseDeadline<maturity, no default, active phase, healthy supported source, and milestone signature. Choose signed screened-revenue milestone mode for v1. Factory sets immutable milestoneSigner. EIP712 binds bond, policyHash, periodStart, periodEnd, eligibleRevenue, evidenceHash, expiresAt, and release nonce/unique issuance. eligibleRevenue>=terms.minRevenue; period starts at activation or later, ends<=now, covers minOperatingPeriod; expiry bounded. Onchain health rechecked. Dedicated signer is a disclosed trusted evaluator, not autonomous credit proof.
-- Failed release deadline permits anyone to cancel undrawn commitment into investor principal recovery; no stake slash just for missed milestone. Default and collection close also cancel undrawn commitment. Token ownership carries principal recovery; final redemption only. Second draw never mints/burns.
-- Revenue cap excludes slashed stake and recovered undrawn principal. Reaching current effective cap ends collection permanently even if second draw was pending. Set demo gates reachable before cap.
-- Router computes free receipts=balance-issuerCredit; investor percentage uses carried bps numerator remainder. Credit issuer pull balance, transfer investor share, callback Bond, finish collection/detach exactly once. Router is collection coordinator; no reentrant Router→Bond→Router loop. Match expectedBond in lifecycle hooks; old finalization cannot touch new Router bond.
-- Closing for observational covenant lasts120s, observation freshness90s (small skew bounded). Final sweep/detach before Closing. Admit only historical observations strictly before cutoff; then permissionless final settlement regardless monitor availability. Stake pull-credit to issuer if not slashed. Claim transfers allowed during Closing; burns/redemption disabled. Closed fixes pool; final holder takes rounding remainder, zero payout burns only if pool zero.
-- Account separately fundraising escrow, released principal, undrawn principal, principalRecovery, revenue pool, stakeHeld/stakeRecovery/stakeReturnCredit, and unsolicited Bond surplus. Router donations split economically but not automatically classified as business revenue.
+## 2. Contracts
 
-## Enforcement
+### SliceAccount (one per business, clone created by SliceFactory)
+The business's revenue address and payment entrypoint. Replaces the earlier "router".
 
-- Factory-recognized nonupgradeable PumpLab source + authentic FeeGuard. Small allowlist initially bounded setMaxNameLength; block recipient/rate/ownership/upgrades, arbitrary calls and unknown selectors. Post-call invariants. Fee recipient set before ownership transfer. Guard release only no reserved bond.
-- Watched covenant pins mock forwarder AND EIP712 observation signer; no discretionary mutable auth after initialization. Observation fields bond,policyHash,epoch,observedAt,expiresAt,result,observedPayTo,offerHash,evidenceHash. result0Unknown,1Compliant,2Violation.30s epoch,90s freshness. Domain name SliceCovenant version1,chainId,verifyingContract. Bounded slots; same epoch cannot equivocate/replay; two adjacent distinct valid Violation epochs default once, including out-of-order arrivals. Funding observations establish readiness but cannot cause Active default. No post-cutoff observation slashing.
-- Observer independently fetches only allowlisted registry endpoints; no arbitrary caller URLs/verdicts. x402 single v2 exact EIP3009 offer matches token/chain/recipient/price policy. Malformed/outage Unknown. Sender==mock alone is not authentication. Actual CRE path independently checks HTTP then wraps verified observation; simulations do not imply DON security.
+**Bound parties**
+- `issuer`: the business owner; withdraws the business's share, binds the project once.
+- `project`: the Native project contract allowed to call `collect` (zero for Locked and Watched). Bound once by the issuer.
+- `factory`: attaches and detaches bonds.
 
-## Data and application
+**Two ways money arrives**
+1. **Collected (Native).** The project calls `collect(payer, gross, fee)` or `collectWithPermit(...)`.
+   - The account pulls `gross` USDC from `payer` (`transferFrom`; with EIP-2612 permit, no standing approval is needed).
+   - It keeps `fee` and sends `gross − fee` to the project.
+   - The payer is proven by the pull itself. The fee is split immediately; no keeper is needed.
+2. **Received (Locked, Watched).** A plain USDC transfer to the account: a legacy launchpad's fee
+   transfer, or an x402 settlement. Anyone calls `sweep()` to book unrecorded balance as revenue
+   (payer attributed off-chain from the transfer).
 
-- Marketplace, issuer, bond, issue wizard and authenticated demo controls. Clear 50/50or25/75release terms, raised/released/undrawn/recovery/revenue/stake. Wagmi/viem wallet actions; transactions never fake-success. Preview has explicit synthetic-data banner and no fake wallet buttons.
-- Envio receipt IDs chain:blockHash:txHash:logIndex. Trade evidence explains a transfer; never count both. Scoped funding evidence and source provenance. Scoring R recognized fees, E after mutually exclusive exclusions, A=sum(min(payerAmount,floor(E/10))), HHI before clipping.30days required for actual terms recommendation; synthetic only scenario/preview; null for incomplete live evidence. Nansen unavailable on testnet, never silently map to mainnet.
-- x402 agent backed by durable config/idempotency (shared Redis REST for deployed mode; explicit local durable store for local only). Kimi key/model config; no paid answer fabricated when unavailable. Guarded admin switch. Worker loops bounded and supervised, not Vercel request loops.
-- External deployment requires funded testnet wallet and provider keys. Ship environment templates and readiness diagnostics; never invent successful deployments or bounty eligibility. Exact platform bounties remain unknown behind sign-in.
+**Modes**
+- **Passthrough** (no active bond, or bond still Funding): 100% of revenue is credited to the issuer.
+- **Credit** (active bond): `revenueBps` of revenue goes to the bond, capped at the bond's remaining
+  revenue cap. A rounding carry (`splitRemainder`) means micro-payments never round investors to zero.
+  The rest is credited to the issuer.
+- When the bond closes (cap, maturity) or is cancelled, the account detaches it and returns to passthrough.
 
-## Shared boundary
+**Credit history (on-chain, from the first payment)**
+- `cumulativeRevenue`, `paymentCount`, `collectedCount`, `uniquePayers` (collected payers only),
+  `firstRevenueAt`, `lastRevenueAt`.
+- `revenueByDay[day]`.
+- Bonds snapshot `cumulativeRevenue` at activation; the on-chain milestone reads the difference.
 
-Lead owns packages/shared generated ABIs/config/DTOs. Contract agent publishes its actual public API in docs/contract-interface.md or sends lead API summary promptly. Services can use viem ABI fragments and EIP712 schema confirmed with contract agent. Each package declares dependencies; lead performs workspace install. All money APIs use integer decimal strings, never floating values.
+**Business share**: pull credit (`issuerCredit`, `withdraw(to, amount)`). A reverting recipient can
+never block payments or investors.
+
+### SliceBond (one per issuance, clone)
+Vault plus ERC-20 claim (6 decimals, name and symbol per bond).
+- **Funding:** deposits mint claims 1:1 until `raiseAmount`; transfers are locked while Funding; cancel and refund after `fundingDeadline`.
+- **Activation:** issuer (via factory), only when fully funded and the source is healthy.
+  - Releases `firstReleaseBps` (2500 or 5000) to the issuer; the rest stays as undrawn principal.
+  - Snapshots `account.cumulativeRevenue()`.
+- **Second release**, inside `[secondReleaseNotBefore, secondReleaseDeadline)`, source healthy, no default. Mode is fixed in terms:
+  - `Onchain`: `account.cumulativeRevenue() − snapshot ≥ minRevenue` and `now ≥ activation + minOperatingPeriod`. Trustless; counts any revenue, including wash, which still costs the issuer real money.
+  - `Signed`: an EIP-712 milestone from the factory's disclosed `milestoneSigner` (wash-adjusted off-chain).
+- **Undrawn principal** becomes investor recovery if the deadline passes, the bond defaults, or collection closes.
+- **Revenue cap** scales with released principal: `effectiveCap = repayCap × released / raise`.
+- **Redeem at any time after activation** for `tokens × pool / supply`. The last claim waits for Closed.
+- **Default (Watched only):** stake slashed into the pool; undrawn principal goes to recovery.
+- **Closing → Closed:** Watched bonds get a 120 s window for late evidence; Locked and Native close immediately.
+
+### SliceFactory
+- `createAccount(payout)`; the issuer is `msg.sender`.
+- `createNativeLaunchpad(account, name, symbol)`: deploys a **recognized** Native PumpLab bound to the account. Recognition is required because the factory cannot inspect arbitrary bytecode.
+- `createLockedLaunchpad(account, name, symbol)`: deploys a classic launchpad plus FeeGuard; ownership goes to the guard.
+- `createBond(account, terms, config, name, symbol)`.
+- `activate`, `releaseSecond(bond)` (on-chain mode), `releaseSecondSigned(bond, milestone, sig)`.
+- Health check before activation and release:
+  - **Native:** the launchpad is recognized and bound to the account.
+  - **Locked:** the guard is locked.
+  - **Watched:** the covenant reports healthy.
+
+### Adapters (three tiers)
+| Tier | Source | Why fees can't be diverted |
+|---|---|---|
+| Native | `PumpLab`: charges fees through `account.collect`; account is immutable | No other payment path exists in the code |
+| Locked | `PumpLabClassic`: ordinary owner-administered launchpad, owned by `FeeGuard` | The guard refuses recipient, rate, ownership and unknown calls; re-checks the lock after every call |
+| Watched | x402 API whose `payTo` is the account | Chainlink CRE checks `payTo` every 30 s; two adjacent violations default the bond and slash the stake |
+
+### SliceCovenant
+CRE receiver. Only `onReport` from the pinned forwarder, carrying an observation with the pinned
+observer's EIP-712 signature. 30 s epochs, 90 s freshness, replay and equivocation protection.
+Two adjacent Violations after activation trigger `markDefault`.
+
+## 3. Off-chain
+- **Observer:** fetches the x402 offer and signs Compliant, Violation or Unknown.
+- **CRE workflow:** fetches independently, checks agreement with the observer, writes the report.
+- **Agent:** x402 paid API; `payTo` = its SliceAccount.
+- **Envio indexer:** accounts, bonds, payments (Collected events: proven payer; USDC transfers into
+  accounts: x402 payer = transfer `from`; classic launchpad Trade events: trader), treasury funding
+  edges, covenant checks, daily revenue (raw and verified).
+- **Web:** markets, issuer evidence (history since day one, raw vs verified, payers, Nansen
+  screening), bond workspace (deposit, live backing, redeem), passkey wallet.
+- **Kuru:** claim/USDC market. **ERC-8004:** agent identity and default feedback.
+
+## 4. Invariants (tested)
+- Account: `USDC balance ≥ issuerCredit`; revenue booked = to bond + to issuer credit (exactly).
+- Bond: `balance ≥ fundingEscrow + undrawn + pool + stakeHeld + stakeReturnCredit`;
+  `pool + redeemed = revenue + principalRecovery + stakeRecovery`;
+  `released + undrawn + principalRecovery = raise` after activation.
+- Only the bound project can trigger `collect`; only the factory attaches bonds; one active bond per account.

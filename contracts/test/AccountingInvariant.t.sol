@@ -3,7 +3,7 @@ pragma solidity 0.8.28;
 import {TestBase} from "./TestBase.sol";
 import {SliceTypes} from "../src/SliceTypes.sol";
 import {SliceBond} from "../src/SliceBond.sol";
-import {SliceRouter} from "../src/SliceRouter.sol";
+import {SliceAccount} from "../src/SliceAccount.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
@@ -11,7 +11,7 @@ import {MockUSDC} from "../src/MockUSDC.sol";
 contract AccountingHandler is TestBase {
     MockUSDC public asset;
     SliceFactory public factory;
-    SliceRouter public router;
+    SliceAccount public router;
     SliceBond public bond;
     uint256 public receipts;
     uint256 public issuerWithdrawn;
@@ -23,13 +23,26 @@ contract AccountingHandler is TestBase {
         asset = new MockUSDC();
         SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
         factory = new SliceFactory(
-            address(asset), address(c), vm.addr(PK), address(new SliceBond()), address(new SliceRouter())
+            address(asset), address(c), vm.addr(PK), address(new SliceBond()), address(new SliceAccount())
         );
         c.initializeFactory(address(factory));
-        router = SliceRouter(factory.createRouter());
-        (address source, address guard) = factory.createLockedSource(address(router), "Invariant Lab", "INV", 64);
+        router = SliceAccount(factory.createAccount());
+        (address source, address guard) = factory.createLockedLaunchpad(address(router), "Invariant Lab", "INV", 64);
         uint64 now_ = uint64(vm.getBlockTimestamp());
-        t = SliceTypes.Terms(100e6, 120e6, 20e6, 10e6, now_ + 120, now_ + 1200, now_ + 150, now_ + 600, 30, 2000, 5000);
+        t = SliceTypes.Terms(
+            100e6,
+            120e6,
+            20e6,
+            10e6,
+            now_ + 120,
+            now_ + 1200,
+            now_ + 150,
+            now_ + 600,
+            30,
+            2000,
+            5000,
+            SliceTypes.MilestoneMode.Signed
+        );
         asset.mint(address(this), 120e6);
         asset.approve(address(factory), 20e6);
         bond = SliceBond(
@@ -61,7 +74,7 @@ contract AccountingHandler is TestBase {
         uint256 credit = router.issuerCredit();
         if (credit == 0) return;
         uint256 amount = uint256(raw) % credit + 1;
-        router.withdrawIssuerCredit(address(this), amount);
+        router.withdraw(address(this), amount);
         issuerWithdrawn += amount;
     }
 
@@ -91,7 +104,7 @@ contract AccountingHandler is TestBase {
             now_ + 90,
             bond.releaseNonce()
         );
-        factory.releaseSecond(address(bond), m, _sig(PK, factory.hashMilestone(m)));
+        factory.releaseSecondSigned(address(bond), m, _sig(PK, factory.hashMilestone(m)));
     }
 
     function close() external {
@@ -134,7 +147,7 @@ contract AccountingInvariantTest is TestBase {
 
     function invariantAssetsCoverEveryLiability() public view {
         SliceBond b = handler.bond();
-        SliceRouter r = handler.router();
+        SliceAccount r = handler.router();
         MockUSDC a = handler.asset();
         yes(a.balanceOf(address(b)) >= b.accountedBalance());
         yes(a.balanceOf(address(r)) >= r.issuerCredit());

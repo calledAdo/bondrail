@@ -15,8 +15,15 @@ library SliceTypes {
         Maturity
     }
     enum Adapter {
+        Native,
         Locked,
         Watched
+    }
+
+    /// @notice How the second capital release is proven.
+    enum MilestoneMode {
+        Onchain, // account revenue since activation >= minRevenue (trustless; counts all revenue)
+        Signed // EIP-712 attestation from the factory's disclosed milestone signer (wash-adjusted)
     }
 
     struct Terms {
@@ -31,6 +38,7 @@ library SliceTypes {
         uint32 minOperatingPeriod;
         uint16 revenueBps;
         uint16 firstReleaseBps;
+        MilestoneMode milestoneMode;
     }
 
     struct AdapterConfig {
@@ -64,16 +72,26 @@ library SliceTypes {
     }
 }
 
-interface ISliceRouter {
+interface ISliceAccount {
     function issuer() external view returns (address);
     function asset() external view returns (address);
+    function project() external view returns (address);
     function activeBond() external view returns (address);
-    function payout() external view returns (address);
-    function attach(address bond) external;
-    function flushFunding(address expectedBond) external;
+    function cumulativeRevenue() external view returns (uint256);
+    function collect(address payer, uint256 gross, uint256 fee) external returns (uint256 net);
+    function collectWithPermit(
+        address payer,
+        uint256 gross,
+        uint256 fee,
+        uint256 deadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external returns (uint256 net);
     function sweep() external;
-    function closeBondAtMaturity(address expectedBond) external;
-    function cancelFunding(address expectedBond) external;
+    function attach(address bond) external;
+    function settleBeforeActivation(address expectedBond) external;
+    function bindProject(address project) external;
 }
 
 interface ISliceBond {
@@ -83,13 +101,13 @@ interface ISliceBond {
     function remainingRevenueCap() external view returns (uint256);
     function onRepayment(uint256 amount) external;
     function finalizeCollection(SliceTypes.CloseReason reason) external;
-    function cancelFundingFromRouter() external;
+    function cancelFundingFromAccount() external;
     function activationTime() external view returns (uint64);
     function collectionClosedAt() external view returns (uint64);
     function settleAfter() external view returns (uint64);
     function defaultedAt() external view returns (uint64);
     function policyHash() external view returns (bytes32);
-    function router() external view returns (address);
+    function account() external view returns (address);
     function markDefault(bytes32 evidenceHash) external;
 }
 
@@ -101,6 +119,6 @@ interface ISliceCovenant {
 interface IFeeGuard {
     function isLocked() external view returns (bool);
     function issuer() external view returns (address);
-    function router() external view returns (address);
+    function account() external view returns (address);
     function target() external view returns (address);
 }

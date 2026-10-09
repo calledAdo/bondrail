@@ -3,10 +3,10 @@ pragma solidity 0.8.28;
 import {TestBase} from "./TestBase.sol";
 import {SliceTypes} from "../src/SliceTypes.sol";
 import {SliceBond} from "../src/SliceBond.sol";
-import {SliceRouter} from "../src/SliceRouter.sol";
+import {SliceAccount} from "../src/SliceAccount.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLab} from "../src/PumpLab.sol";
+import {PumpLabClassic} from "../src/PumpLabClassic.sol";
 import {FeeGuard} from "../src/FeeGuard.sol";
 import {MockUSDC} from "../src/MockUSDC.sol";
 
@@ -14,8 +14,8 @@ contract SliceTest is TestBase {
     MockUSDC asset;
     SliceFactory factory;
     SliceCovenant covenant;
-    SliceRouter router;
-    PumpLab source;
+    SliceAccount router;
+    PumpLabClassic source;
     FeeGuard guard;
     SliceBond bond;
     address issuer = address(0x111);
@@ -36,15 +36,15 @@ contract SliceTest is TestBase {
             address(covenant),
             vm.addr(MILESTONE_PK),
             address(new SliceBond()),
-            address(new SliceRouter())
+            address(new SliceAccount())
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 10_000_000e6);
         asset.mint(investor, 10_000_000e6);
         vm.startPrank(issuer);
-        router = SliceRouter(factory.createRouter());
-        (address p, address g) = factory.createLockedSource(address(router), "Lab", "LAB", 64);
-        source = PumpLab(p);
+        router = SliceAccount(factory.createAccount());
+        (address p, address g) = factory.createLockedLaunchpad(address(router), "Lab", "LAB", 64);
+        source = PumpLabClassic(p);
         guard = FeeGuard(g);
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
@@ -59,7 +59,8 @@ contract SliceTest is TestBase {
             uint64(vm.getBlockTimestamp() + 600),
             30,
             2000,
-            5000
+            5000,
+            SliceTypes.MilestoneMode.Signed
         );
     }
 
@@ -132,7 +133,7 @@ contract SliceTest is TestBase {
         SliceTypes.Milestone memory m = _milestone();
         bytes memory signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
-        factory.releaseSecond(address(bond), m, signature);
+        factory.releaseSecondSigned(address(bond), m, signature);
     }
 
     function _expectReleaseFailure() internal {
@@ -140,7 +141,7 @@ contract SliceTest is TestBase {
         bytes memory signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
         vm.expectRevert();
-        factory.releaseSecond(address(bond), m, signature);
+        factory.releaseSecondSigned(address(bond), m, signature);
     }
 
     function _solvent() internal view {
@@ -210,12 +211,12 @@ contract SliceTest is TestBase {
         bytes memory wrong = _sig(999, factory.hashMilestone(m));
         vm.prank(issuer);
         vm.expectRevert(SliceFactory.Unauthorized.selector);
-        factory.releaseSecond(address(bond), m, wrong);
+        factory.releaseSecondSigned(address(bond), m, wrong);
         bytes memory valid = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.chainId(10143);
         vm.prank(issuer);
         vm.expectRevert(SliceFactory.Unauthorized.selector);
-        factory.releaseSecond(address(bond), m, valid);
+        factory.releaseSecondSigned(address(bond), m, valid);
     }
 
     function testExpiredAndTooShortMilestoneRejected() public {
@@ -226,13 +227,13 @@ contract SliceTest is TestBase {
         bytes memory signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
         vm.expectRevert(SliceFactory.InvalidMilestone.selector);
-        factory.releaseSecond(address(bond), m, signature);
+        factory.releaseSecondSigned(address(bond), m, signature);
         m = _milestone();
         m.expiresAt = uint64(vm.getBlockTimestamp() - 1);
         signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
         vm.expectRevert(SliceFactory.InvalidMilestone.selector);
-        factory.releaseSecond(address(bond), m, signature);
+        factory.releaseSecondSigned(address(bond), m, signature);
     }
 
     function testReleaseDeadlineRecoversWithoutStakeSlash() public {
@@ -360,7 +361,7 @@ contract SliceTest is TestBase {
         eq(router.activeBond(), address(0));
         uint256 credit = router.issuerCredit();
         vm.prank(issuer);
-        router.withdrawIssuerCredit(buyer, credit);
+        router.withdraw(buyer, credit);
         vm.prank(issuer);
         bond.claimStake(buyer, 20e6);
         _solvent();
@@ -519,7 +520,7 @@ contract SliceTest is TestBase {
         vm.expectRevert(FeeGuard.UnsupportedCall.selector);
         guard.execute(abi.encodeWithSignature("transferOwnership(address)", issuer));
         vm.prank(issuer);
-        guard.execute(abi.encodeCall(PumpLab.setMaxNameLength, (uint16(48))));
+        guard.execute(abi.encodeCall(PumpLabClassic.setMaxNameLength, (uint16(48))));
         eq(source.maxNameLength(), 48);
         yes(guard.isLocked());
         vm.warp(t.fundingDeadline);
@@ -532,15 +533,15 @@ contract SliceTest is TestBase {
     function testGuardBlocksFeeRedirectAndRateCutButAllowsHarmlessAdmin() public {
         vm.startPrank(issuer);
         vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeCall(PumpLab.setFeeRecipient, (issuer)));
+        guard.execute(abi.encodeCall(PumpLabClassic.setFeeRecipient, (issuer)));
         vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeCall(PumpLab.setFeeBps, (0)));
+        guard.execute(abi.encodeCall(PumpLabClassic.setFeeBps, (0)));
         vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeCall(PumpLab.transferOwnership, (issuer)));
+        guard.execute(abi.encodeCall(PumpLabClassic.transferOwnership, (issuer)));
         // The issuer no longer owns the launchpad, so going around the guard fails too.
-        vm.expectRevert(PumpLab.Unauthorized.selector);
+        vm.expectRevert(PumpLabClassic.Unauthorized.selector);
         source.setFeeRecipient(issuer);
-        guard.execute(abi.encodeCall(PumpLab.setMaxNameLength, (32)));
+        guard.execute(abi.encodeCall(PumpLabClassic.setMaxNameLength, (32)));
         vm.stopPrank();
         eq(source.maxNameLength(), 32);
         eq(source.feeRecipient(), address(router));

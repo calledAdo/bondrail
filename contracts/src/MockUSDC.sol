@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Permit.sol";
 
-/// @notice LOCAL TEST ASSET ONLY. Not a substitute for the facilitator's EIP-3009 testnet asset.
-contract MockUSDC is ERC20 {
+/// @notice LOCAL TEST ASSET ONLY (with EIP-2612 permit, like Circle's USDC). Not the facilitator's EIP-3009 asset.
+contract MockUSDC is ERC20, ERC20Permit {
     mapping(address => bool) public blocked;
     address public immutable owner;
 
-    constructor() ERC20("LOCAL TEST USDC", "testUSDC") {
+    constructor() ERC20("LOCAL TEST USDC", "testUSDC") ERC20Permit("LOCAL TEST USDC") {
         owner = msg.sender;
     }
 

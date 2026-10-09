@@ -1,83 +1,51 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ISliceRouter} from "./SliceTypes.sol";
+import {ISliceAccount} from "./SliceTypes.sol";
+import {LaunchToken} from "./PumpLabClassic.sol";
 
-contract PumpLabToken is ERC20 {
-    constructor(string memory name_, string memory symbol_, address holder) ERC20(name_, symbol_) {
-        _mint(holder, 1_000_000_000e18);
-    }
-}
-
-/// @notice Fixed reviewed demo curve. Only administrative name-length metadata is mutable under FeeGuard.
+/// @notice Native tier demo: a launchpad built on Slice from day one.
+///
+/// Every USDC that a trader pays goes through the launchpad's SliceAccount (`account.collect`): the
+/// account pulls the payment from the trader, keeps the 1% fee as revenue and forwards the rest here.
+/// The account is immutable and there is no other fee path, so fees cannot be redirected, and every
+/// fee since launch is in the account's on-chain history with the trader as its proven payer.
+/// Traders approve (or permit) the account, not this contract, for USDC.
 contract PumpLab is ReentrancyGuard {
     using SafeERC20 for IERC20;
-    error Unauthorized();
+
     error InvalidTrade();
     error Slippage();
+
+    uint16 public constant FEE_BPS = 100;
+    uint256 public constant MIN_TRADE = 100;
     IERC20 public immutable asset;
-    PumpLabToken public immutable token;
-    address public owner;
-    address public feeRecipient;
-    uint16 public feeBps = 100;
-    uint16 public maxNameLength;
+    ISliceAccount public immutable account;
+    LaunchToken public immutable token;
     uint256 public virtualUSDC = 1000e6;
     uint256 public virtualToken = 1_073_000_000e18;
     uint256 public realUSDC;
     uint256 public realToken = 1_000_000_000e18;
-    uint256 public constant MIN_TRADE = 100;
-    event Trade(
-        address indexed payer, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee, address indexed router
-    );
-    event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
-    event NameLengthChanged(uint16 value);
-    event FeeRecipientChanged(address recipient);
-    event FeeBpsChanged(uint16 bps);
 
-    constructor(address asset_, address router_, string memory name_, string memory symbol_, uint16 maxNameLength_) {
-        if (
-            asset_ == address(0) || router_ == address(0) || maxNameLength_ < 8 || maxNameLength_ > 128
-                || bytes(name_).length > maxNameLength_
-        ) revert InvalidTrade();
+    event Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee);
+
+    constructor(address asset_, address account_, string memory name_, string memory symbol_) {
+        if (asset_ == address(0) || account_ == address(0)) revert InvalidTrade();
         asset = IERC20(asset_);
-        feeRecipient = router_;
-        owner = msg.sender;
-        maxNameLength = maxNameLength_;
-        token = new PumpLabToken(name_, symbol_, address(this));
+        account = ISliceAccount(account_);
+        token = new LaunchToken(name_, symbol_, address(this));
     }
 
-    function transferOwnership(address next) external {
-        if (msg.sender != owner || next == address(0)) revert Unauthorized();
-        emit OwnershipTransferred(owner, next);
-        owner = next;
-    }
-
-    function setMaxNameLength(uint16 length) external {
-        if (msg.sender != owner || length < 8 || length > 128) revert Unauthorized();
-        maxNameLength = length;
-        emit NameLengthChanged(length);
-    }
-
-    /// @notice Ordinary launchpad admin. Once a FeeGuard owns this contract these are unreachable:
-    /// the guard refuses both selectors, so the fee stream cannot be redirected or cut while a bond is live.
-    function setFeeRecipient(address recipient) external {
-        if (msg.sender != owner || recipient == address(0)) revert Unauthorized();
-        feeRecipient = recipient;
-        emit FeeRecipientChanged(recipient);
-    }
-
-    function setFeeBps(uint16 bps) external {
-        if (msg.sender != owner || bps > 1000) revert Unauthorized();
-        feeBps = bps;
-        emit FeeBpsChanged(bps);
+    function feeBps() external pure returns (uint16) {
+        return FEE_BPS;
     }
 
     function quoteBuy(uint256 gross) public view returns (uint256 out, uint256 fee) {
-        fee = Math.ceilDiv(gross * feeBps, 10_000);
+        fee = Math.ceilDiv(gross * FEE_BPS, 10_000);
         if (gross <= fee) return (0, fee);
         uint256 newY = Math.mulDiv(virtualUSDC, virtualToken, virtualUSDC + gross - fee, Math.Rounding.Ceil);
         out = virtualToken - newY;
@@ -86,28 +54,59 @@ contract PumpLab is ReentrancyGuard {
     function quoteSell(uint256 amount) public view returns (uint256 net, uint256 fee, uint256 gross) {
         uint256 newX = Math.mulDiv(virtualUSDC, virtualToken, virtualToken + amount, Math.Rounding.Ceil);
         gross = virtualUSDC - newX;
-        fee = Math.ceilDiv(gross * feeBps, 10_000);
+        fee = Math.ceilDiv(gross * FEE_BPS, 10_000);
         net = gross - fee;
     }
 
+    /// @notice Buy with USDC. The account pulls `gross` from the trader, keeps the fee, sends the rest here.
+    /// Needs a USDC allowance from the trader to the account.
     function buy(uint256 gross, uint256 minTokensOut, uint64 deadline) external nonReentrant returns (uint256 out) {
+        return _buy(gross, minTokensOut, deadline, false, 0, 0, bytes32(0), bytes32(0));
+    }
+
+    /// @notice Buy in one transaction with an EIP-2612 permit for the account: no standing approval.
+    function buyWithPermit(
+        uint256 gross,
+        uint256 minTokensOut,
+        uint64 deadline,
+        uint256 permitDeadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant returns (uint256 out) {
+        return _buy(gross, minTokensOut, deadline, true, permitDeadline, v, r, s);
+    }
+
+    function _buy(
+        uint256 gross,
+        uint256 minTokensOut,
+        uint64 deadline,
+        bool withPermit,
+        uint256 permitDeadline,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) private returns (uint256 out) {
         if (block.timestamp > deadline || gross < MIN_TRADE) revert InvalidTrade();
         uint256 fee;
         (out, fee) = quoteBuy(gross);
         if (out == 0 || out > realToken) revert InvalidTrade();
         if (out < minTokensOut) revert Slippage();
         uint256 beforeBalance = asset.balanceOf(address(this));
-        asset.safeTransferFrom(msg.sender, address(this), gross);
-        if (asset.balanceOf(address(this)) - beforeBalance != gross) revert InvalidTrade();
-        virtualUSDC += gross - fee;
+        uint256 net = withPermit
+            ? account.collectWithPermit(msg.sender, gross, fee, permitDeadline, v, r, s)
+            : account.collect(msg.sender, gross, fee);
+        if (net != gross - fee || asset.balanceOf(address(this)) - beforeBalance != net) revert InvalidTrade();
+        virtualUSDC += net;
         virtualToken -= out;
-        realUSDC += gross - fee;
+        realUSDC += net;
         realToken -= out;
         IERC20(address(token)).safeTransfer(msg.sender, out);
-        _payFee(fee);
-        emit Trade(msg.sender, true, out, gross, fee, feeRecipient);
+        emit Trade(msg.sender, true, out, gross, fee);
     }
 
+    /// @notice Sell tokens. The launchpad pays the trader the gross proceeds, then the account pulls the
+    /// fee back from the trader: the trader is still the one paying the fee.
     function sell(uint256 amount, uint256 minUSDCOut, uint64 deadline) external nonReentrant returns (uint256 net) {
         if (block.timestamp > deadline || amount == 0) revert InvalidTrade();
         uint256 fee;
@@ -120,13 +119,8 @@ contract PumpLab is ReentrancyGuard {
         virtualUSDC -= gross;
         realToken += amount;
         realUSDC -= gross;
-        asset.safeTransfer(msg.sender, net);
-        _payFee(fee);
-        emit Trade(msg.sender, false, amount, gross, fee, feeRecipient);
-    }
-
-    function _payFee(uint256 fee) private {
-        asset.safeTransfer(feeRecipient, fee);
-        ISliceRouter(feeRecipient).sweep();
+        asset.safeTransfer(msg.sender, gross);
+        account.collect(msg.sender, fee, fee);
+        emit Trade(msg.sender, false, amount, gross, fee);
     }
 }
