@@ -311,8 +311,7 @@ export function LiveContract({ id }: { id: string }) {
         </>
       )}
       <p className="footnote">
-        Live values in this panel come from the configured contract. They are separate from the illustrative
-        scenario on this page.
+        Values in this panel are read straight from the bond contract on every refresh.
       </p>
     </section>
   );
