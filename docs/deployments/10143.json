@@ -40,7 +40,8 @@
       "issuer": "0x5E43C77942ab29BB6239254a17156F698B3C5561",
       "account": "0xe74108A1Cb162Aa10F6dCac376eEbD2c2cF727e8",
       "bond": "0xE9FA3Fe3A8a90F26f9Df0d1223D2F00fd57497F8",
-      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health"
+      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health",
+      "agentId": "2091"
     }
   },
   "watchPolicy": {
