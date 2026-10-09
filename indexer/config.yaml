@@ -59,6 +59,9 @@ contracts:
 chains:
   - id: 10143
     start_block: 69557425
+    rpc:
+      - url: https://testnet-rpc.monad.xyz
+        for: sync
     contracts:
       - name: SliceFactory
         address: "0x4c71c74a7544015008fd3951b823a87633b44424"
