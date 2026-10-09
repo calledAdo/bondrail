@@ -12,7 +12,8 @@ const env: AgentEnvironment = {
   asset: '0x534b2f3A21130d7a60830c2Df862319e593943A3',
   publicURL: 'https://agent.example',
   facilitatorURL: 'https://facilitator.example',
-  model: 'kimi-k3',
+  modelBaseURL: 'https://api.groq.com/openai/v1',
+  model: 'llama-3.1-8b-instant',
   apiKey: 'test-only',
 };
 const config: AgentConfig = {

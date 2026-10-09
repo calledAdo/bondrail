@@ -12,6 +12,8 @@ export interface AgentEnvironment {
   asset: Address;
   publicURL: string;
   facilitatorURL: string;
+  /** Any OpenAI-compatible chat-completions endpoint (Groq, OpenRouter, Moonshot/Kimi, ...). */
+  modelBaseURL: string;
   model: string;
   apiKey?: string;
 }
@@ -39,8 +41,9 @@ export function environment(env: NodeJS.ProcessEnv = process.env): AgentEnvironm
     asset,
     publicURL: u.origin,
     facilitatorURL,
-    model: env.KIMI_MODEL ?? 'kimi-k3',
-    apiKey: env.KIMI_API_KEY,
+    modelBaseURL: (env.MODEL_BASE_URL ?? 'https://api.groq.com/openai/v1').replace(/\/$/, ''),
+    model: env.MODEL_ID ?? 'llama-3.1-8b-instant',
+    apiKey: env.MODEL_API_KEY,
   };
 }
 const KEY = 'agent:config:v1';

@@ -11,7 +11,7 @@ export async function GET() {
     checks.push({ name: 'payment_environment', ready: false });
   }
   checks.push(
-    { name: 'kimi_credentials', ready: !!env?.apiKey },
+    { name: 'model_credentials', ready: !!env?.apiKey },
     {
       name: 'admin_token',
       ready: (process.env.AGENT_ADMIN_TOKEN?.length ?? 0) >= 32,

@@ -233,7 +233,7 @@ export function realBackend(env: AgentEnvironment): PaymentBackend {
     verify: async (p, r) => (await ready()).verifyPayment(p, r),
     settle: async (p, r) => (await ready()).settlePayment(p, r),
     answer: async (question) => {
-      const res = await fetch('https://api.moonshot.ai/v1/chat/completions', {
+      const res = await fetch(`${env.modelBaseURL}/chat/completions`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${env.apiKey}`,
