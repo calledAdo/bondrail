@@ -529,6 +529,24 @@ contract SliceTest is TestBase {
         eq(source.owner(), issuer);
     }
 
+    function testGuardBlocksFeeRedirectAndRateCutButAllowsHarmlessAdmin() public {
+        vm.startPrank(issuer);
+        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
+        guard.execute(abi.encodeCall(PumpLab.setFeeRecipient, (issuer)));
+        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
+        guard.execute(abi.encodeCall(PumpLab.setFeeBps, (0)));
+        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
+        guard.execute(abi.encodeCall(PumpLab.transferOwnership, (issuer)));
+        // The issuer no longer owns the launchpad, so going around the guard fails too.
+        vm.expectRevert(PumpLab.Unauthorized.selector);
+        source.setFeeRecipient(issuer);
+        guard.execute(abi.encodeCall(PumpLab.setMaxNameLength, (32)));
+        vm.stopPrank();
+        eq(source.maxNameLength(), 32);
+        eq(source.feeRecipient(), address(router));
+        yes(guard.isLocked());
+    }
+
     function testFakeGuardRejected() public {
         SliceTypes.AdapterConfig memory c =
             SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, address(source), buyer, keccak256("fake"));

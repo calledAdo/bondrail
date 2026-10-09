@@ -23,7 +23,7 @@ contract PumpLab is ReentrancyGuard {
     PumpLabToken public immutable token;
     address public owner;
     address public feeRecipient;
-    uint16 public constant feeBps = 100;
+    uint16 public feeBps = 100;
     uint16 public maxNameLength;
     uint256 public virtualUSDC = 1000e6;
     uint256 public virtualToken = 1_073_000_000e18;
@@ -35,6 +35,8 @@ contract PumpLab is ReentrancyGuard {
     );
     event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
     event NameLengthChanged(uint16 value);
+    event FeeRecipientChanged(address recipient);
+    event FeeBpsChanged(uint16 bps);
 
     constructor(address asset_, address router_, string memory name_, string memory symbol_, uint16 maxNameLength_) {
         if (
@@ -60,8 +62,22 @@ contract PumpLab is ReentrancyGuard {
         emit NameLengthChanged(length);
     }
 
+    /// @notice Ordinary launchpad admin. Once a FeeGuard owns this contract these are unreachable:
+    /// the guard refuses both selectors, so the fee stream cannot be redirected or cut while a bond is live.
+    function setFeeRecipient(address recipient) external {
+        if (msg.sender != owner || recipient == address(0)) revert Unauthorized();
+        feeRecipient = recipient;
+        emit FeeRecipientChanged(recipient);
+    }
+
+    function setFeeBps(uint16 bps) external {
+        if (msg.sender != owner || bps > 1000) revert Unauthorized();
+        feeBps = bps;
+        emit FeeBpsChanged(bps);
+    }
+
     function quoteBuy(uint256 gross) public view returns (uint256 out, uint256 fee) {
-        fee = Math.ceilDiv(gross, 100);
+        fee = Math.ceilDiv(gross * feeBps, 10_000);
         if (gross <= fee) return (0, fee);
         uint256 newY = Math.mulDiv(virtualUSDC, virtualToken, virtualUSDC + gross - fee, Math.Rounding.Ceil);
         out = virtualToken - newY;
@@ -70,7 +86,7 @@ contract PumpLab is ReentrancyGuard {
     function quoteSell(uint256 amount) public view returns (uint256 net, uint256 fee, uint256 gross) {
         uint256 newX = Math.mulDiv(virtualUSDC, virtualToken, virtualToken + amount, Math.Rounding.Ceil);
         gross = virtualUSDC - newX;
-        fee = Math.ceilDiv(gross, 100);
+        fee = Math.ceilDiv(gross * feeBps, 10_000);
         net = gross - fee;
     }
 
