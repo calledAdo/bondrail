@@ -1,4 +1,4 @@
-// The Locked-adapter moment: PumpLab's owner tries to redirect launchpad fees to a private wallet.
+// The Locked-adapter moment: PumpLab Classic's owner tries to redirect launchpad fees to a private wallet.
 // FeeGuard owns the launchpad and refuses the call; a harmless admin change still goes through.
 //
 //   pnpm tsx scripts/demo-locked.ts
@@ -7,8 +7,8 @@ import { account, artifact, publicClient, readDeployment, write } from './lib.ts
 
 async function main() {
   const d = readDeployment();
-  const p = d.issuers.pumplab!;
-  const owner = account('pumplab-issuer');
+  const p = d.issuers.classic!;
+  const owner = account('classic-issuer');
   const guard = artifact('FeeGuard').abi;
   const lab = parseAbi([
     'function setFeeRecipient(address)',
@@ -18,7 +18,7 @@ async function main() {
   ]);
 
   console.log(
-    `Fee recipient today: ${await publicClient.readContract({ address: p.source!, abi: lab, functionName: 'feeRecipient' })} (the Slice router)`,
+    `Fee recipient today: ${await publicClient.readContract({ address: p.source!, abi: lab, functionName: 'feeRecipient' })} (the SliceAccount)`,
   );
   console.log('1. Owner calls guard.execute(setFeeRecipient(ownerWallet))');
   try {

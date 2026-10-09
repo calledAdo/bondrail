@@ -1,13 +1,16 @@
-// Sets up the two demo issuers on an existing deployment (scripts/deploy.ts first).
+// Sets up the three demo businesses on a deployment (run scripts/deploy.ts first). Resumable: every
+// created piece is saved to docs/deployments/<chain>.json before the next step.
 //
-//   PumpLab      Locked adapter: router -> PumpLab launchpad owned by a FeeGuard -> bond, funded and activated.
-//   Oracle Agent Watched adapter: router (the x402 payTo) -> bond, funded; activation waits for the first
-//                compliant CRE report (scripts/activate-watched.ts).
+//   pumplab  Native  : account -> PumpLab bound to it (every fee via account.collect) -> bond (on-chain milestone)
+//   classic  Locked  : account -> PumpLabClassic owned by a FeeGuard -> bond (signed milestone)
+//   agent    Watched : account (the x402 payTo) -> bond with stake; activation waits for a CRE report
 //
-//   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts
+//   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts [pumplab|classic|agent ...]
 //
 // Amounts are small on purpose (testnet USDC comes from a rate-limited faucet). Override with
 // RAISE_USDC / CAP_USDC / STAKE_USDC. Every wallet here is team-controlled demo activity.
+import os from 'node:os';
+import path from 'node:path';
 import {
   decodeEventLog,
   getContractAddress,
@@ -18,7 +21,7 @@ import {
   stringToHex,
   type Address,
 } from 'viem';
-import { policyHash, PARSER_VERSION, type WatchPolicy } from '../services/observer/src/protocol.ts';
+import { PARSER_VERSION, policyHash, type WatchPolicy } from '../services/observer/src/protocol.ts';
 import {
   account,
   artifact,
@@ -28,15 +31,15 @@ import {
   saveDeployment,
   wallet,
   write,
+  type IssuerRecord,
 } from './lib.ts';
-import os from 'node:os';
-import path from 'node:path';
 
 const usdc = (x: string) => parseUnits(x, 6);
-const RAISE = usdc(process.env.RAISE_USDC ?? '10');
-const CAP = usdc(process.env.CAP_USDC ?? '12');
-const STAKE = usdc(process.env.STAKE_USDC ?? '2');
+const RAISE = usdc(process.env.RAISE_USDC ?? '2');
+const CAP = usdc(process.env.CAP_USDC ?? '2.4');
+const STAKE = usdc(process.env.STAKE_USDC ?? '0.5');
 const HOUR = 3600n;
+const ZERO: Address = '0x0000000000000000000000000000000000000000';
 
 const erc20 = parseAbi([
   'function transfer(address,uint256) returns (bool)',
@@ -47,11 +50,7 @@ const erc20 = parseAbi([
 const factoryAbi = artifact('SliceFactory').abi;
 const bondAbi = artifact('SliceBond').abi;
 
-const deployer = account('deployer', {
-  fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
-});
-const pumplabIssuer = account('pumplab-issuer', { create: true });
-const agentIssuer = account('agent-issuer', { create: true });
+const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
 const investor = account('investor', { create: true });
 
 async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address) {
@@ -72,13 +71,13 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
   }
 }
 
-function terms(now: bigint) {
-  // Funding window 1 day; second release opens after 1 h of operation and closes at 5 days; matures at 7 days.
+function terms(now: bigint, milestoneMode: 0 | 1) {
+  // Funding 1 day; second release opens after 1 h of operation, closes at 5 days; matures at 7 days.
   return {
     raiseAmount: RAISE,
     repayCap: CAP,
     stake: STAKE,
-    minRevenue: usdc('0.05'),
+    minRevenue: usdc('0.01'),
     fundingDeadline: now + 24n * HOUR,
     maturity: now + 7n * 24n * HOUR,
     secondReleaseNotBefore: now + 25n * HOUR,
@@ -86,10 +85,11 @@ function terms(now: bigint) {
     minOperatingPeriod: 3600,
     revenueBps: 2500,
     firstReleaseBps: 5000,
+    milestoneMode,
   };
 }
 
-async function routerFrom(receipt: Awaited<ReturnType<typeof write>>, eventName: string) {
+async function eventArgs(receipt: Awaited<ReturnType<typeof write>>, eventName: string) {
   for (const log of receipt.logs) {
     try {
       const e = decodeEventLog({ abi: factoryAbi, data: log.data, topics: log.topics });
@@ -99,84 +99,128 @@ async function routerFrom(receipt: Awaited<ReturnType<typeof write>>, eventName:
   throw new Error(`${eventName} not found`);
 }
 
-async function main() {
+const phase = (bond: Address) =>
+  publicClient.readContract({ address: bond, abi: bondAbi, functionName: 'phase' }) as Promise<number>;
+
+/** Creates the account first: from here on every payment builds this business's history. */
+async function ensureAccount(id: string, name: string, tier: IssuerRecord['tier']) {
   const d = readDeployment();
-  const now = (await publicClient.getBlock()).timestamp;
-  console.log(`Setting up demo issuers on ${d.network}`);
+  if (d.issuers[id]?.account) return d;
+  const issuer = account(`${id}-issuer`, { create: true });
+  await fund(issuer.address, '1', STAKE, d.asset);
+  const r = await write(issuer, d.factory, factoryAbi, 'createAccount');
+  const { account: acct } = await eventArgs(r, 'AccountCreated');
+  d.issuers[id] = { name, tier, issuer: issuer.address, account: acct };
+  saveDeployment(d);
+  console.log(`  ${name}: account ${acct}`);
+  return d;
+}
 
-  // Gas and test USDC for the team wallets.
-  await fund(pumplabIssuer.address, '1', STAKE, d.asset);
-  await fund(agentIssuer.address, '1', STAKE, d.asset);
-  await fund(investor.address, '0.2', RAISE, d.asset); // enough for the next raise; tops up only the shortfall
-
-  // ---------- PumpLab (Locked) ----------
-  if (!d.issuers.pumplab?.bond) {
-    // Resumable: each created piece is saved before the next step.
-    let partial = d.issuers.pumplab ?? ({ name: 'PumpLab', issuer: pumplabIssuer.address } as any);
-    if (!partial.router) {
-      const r1 = await write(pumplabIssuer, d.factory, factoryAbi, 'createRouter');
-      partial.router = (await routerFrom(r1, 'RouterCreated')).router;
-      d.issuers.pumplab = partial;
-      saveDeployment(d);
-    }
-    if (!partial.source) {
-      const r2 = await write(pumplabIssuer, d.factory, factoryAbi, 'createLockedSource', [
-        partial.router,
-        'PumpLab Meme',
-        'PLMEME',
-        64,
-      ]);
-      Object.assign(partial, await routerFrom(r2, 'LockedSourceCreated'));
-      saveDeployment(d);
-    }
-    const { router, source, guard, token } = partial;
-    await write(pumplabIssuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
-    const r3 = await write(pumplabIssuer, d.factory, factoryAbi, 'createBond', [
-      router,
-      terms(now),
-      { adapter: 0, source, guard, policyHash: keccak('slice-locked-pumplab-v1') },
-      'PumpLab Revenue Claim',
-      'PLAB-RC',
-    ]);
-    const { bond } = await routerFrom(r3, 'BondCreated');
-    d.issuers.pumplab = {
-      name: 'PumpLab',
-      issuer: pumplabIssuer.address,
-      router,
-      source,
-      guard,
-      token,
-      bond,
-    };
-    saveDeployment(d);
-    console.log(`  PumpLab   router ${router}  bond ${bond}`);
+async function fundAndActivate(id: string) {
+  const d = readDeployment();
+  const rec = d.issuers[id]!;
+  if ((await phase(rec.bond!)) !== 0) return;
+  const raised = (await publicClient.readContract({
+    address: rec.bond!,
+    abi: bondAbi,
+    functionName: 'fundingEscrow',
+  })) as bigint;
+  if (raised < RAISE) {
+    await fund(investor.address, '0.5', RAISE - raised, d.asset);
+    await write(investor, d.asset, erc20, 'approve', [rec.bond!, RAISE - raised]);
+    await write(investor, rec.bond!, bondAbi, 'deposit', [RAISE - raised]);
   }
-  const p = d.issuers.pumplab!;
-  const phase = (b: Address) =>
-    publicClient.readContract({ address: b, abi: bondAbi, functionName: 'phase' }) as Promise<number>;
-  if ((await phase(p.bond!)) === 0) {
-    await write(investor, d.asset, erc20, 'approve', [p.bond!, RAISE]);
-    await write(investor, p.bond!, bondAbi, 'deposit', [RAISE]);
-    await write(pumplabIssuer, d.factory, factoryAbi, 'activate', [p.bond!]);
-    console.log('  PumpLab bond funded and activated (50% released, 50% escrowed)');
-  }
-
-  // ---------- Oracle Agent (Watched) ----------
-  // The router exists before the agent is deployed: it is the agent's x402 payTo.
-  if (!d.issuers.agent?.router) {
-    const r1 = await write(agentIssuer, d.factory, factoryAbi, 'createRouter');
-    const { router } = await routerFrom(r1, 'RouterCreated');
-    d.issuers.agent = { name: 'Oracle Agent', issuer: agentIssuer.address, router };
-    saveDeployment(d);
-    console.log(`  Agent     router ${router} (use as AGENT_INITIAL_PAY_TO)`);
-  }
-  const agentUrl = process.env.AGENT_URL;
-  if (!agentUrl) {
-    console.log('  Oracle Agent bond skipped: set AGENT_URL to the deployed agent endpoint.');
+  if (rec.tier === 'watched') {
+    console.log(`  ${rec.name}: funded; activate after a compliant CRE report (scripts/activate-watched.ts)`);
     return;
   }
-  if (!d.issuers.agent.bond) {
-    const router = d.issuers.agent.router;
+  await write(account(`${id}-issuer`), d.factory, factoryAbi, 'activate', [rec.bond!]);
+  console.log(`  ${rec.name}: funded and activated (50% released, 50% escrowed)`);
+}
+
+async function createBond(id: string, config: object, name: string, symbol: string, milestoneMode: 0 | 1) {
+  const d = readDeployment();
+  const rec = d.issuers[id]!;
+  if (rec.bond) return;
+  const issuer = account(`${id}-issuer`);
+  const now = (await publicClient.getBlock()).timestamp;
+  await write(issuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
+  const r = await write(issuer, d.factory, factoryAbi, 'createBond', [
+    rec.account,
+    terms(now, milestoneMode),
+    config,
+    name,
+    symbol,
+  ]);
+  rec.bond = (await eventArgs(r, 'BondCreated')).bond;
+  saveDeployment(d);
+  console.log(`  ${rec.name}: bond ${rec.bond} (${symbol})`);
+}
+
+async function setupPumpLab() {
+  const d = await ensureAccount('pumplab', 'PumpLab', 'native');
+  const rec = d.issuers.pumplab!;
+  if (!rec.source) {
+    const r = await write(account('pumplab-issuer'), d.factory, factoryAbi, 'createNativeLaunchpad', [
+      rec.account,
+      'PumpLab Meme',
+      'PLMEME',
+    ]);
+    const e = await eventArgs(r, 'NativeSourceCreated');
+    rec.source = e.source;
+    rec.token = e.token;
+    saveDeployment(d);
+    console.log(`  PumpLab: native launchpad ${rec.source}`);
+  }
+  await createBond(
+    'pumplab',
+    { adapter: 0, source: rec.source, guard: ZERO, policyHash: keccak256(stringToHex('slice-native-pumplab-v1')) },
+    'PumpLab Revenue Claim',
+    'PLAB-RC',
+    0,
+  );
+  await fundAndActivate('pumplab');
+}
+
+async function setupClassic() {
+  const d = await ensureAccount('classic', 'PumpLab Classic', 'locked');
+  const rec = d.issuers.classic!;
+  if (!rec.source) {
+    const r = await write(account('classic-issuer'), d.factory, factoryAbi, 'createLockedLaunchpad', [
+      rec.account,
+      'Classic Meme',
+      'CLMEME',
+      64,
+    ]);
+    const e = await eventArgs(r, 'LockedSourceCreated');
+    rec.source = e.source;
+    rec.guard = e.guard;
+    rec.token = e.token;
+    saveDeployment(d);
+    console.log(`  PumpLab Classic: launchpad ${rec.source}, FeeGuard ${rec.guard}`);
+  }
+  await createBond(
+    'classic',
+    {
+      adapter: 1,
+      source: rec.source,
+      guard: rec.guard,
+      policyHash: keccak256(stringToHex('slice-locked-classic-v1')),
+    },
+    'Classic Revenue Claim',
+    'CLAB-RC',
+    1,
+  );
+  await fundAndActivate('classic');
+}
+
+async function setupAgent() {
+  const d = await ensureAccount('agent', 'Oracle Agent', 'watched');
+  const rec = d.issuers.agent!;
+  console.log(`  Oracle Agent: x402 payTo = ${rec.account}`);
+  const agentUrl = process.env.AGENT_URL;
+  if (!agentUrl) return console.log('  Oracle Agent bond skipped: deploy the agent, then set AGENT_URL');
+  if (!rec.bond) {
     // The policy commits to the bond address, which the factory creates next with CREATE.
     const nonce = await publicClient.getTransactionCount({ address: d.factory });
     const bond = getContractAddress({ from: d.factory, nonce: BigInt(nonce) });
@@ -191,52 +235,37 @@ async function main() {
       headers: { accept: 'application/json' },
       network: `eip155:${chainId}`,
       asset: d.asset,
-      expectedPayTo: router,
+      expectedPayTo: rec.account,
       amount: '10000',
       maxTimeoutSeconds: 300,
       parserVersion: PARSER_VERSION,
       epochSeconds: 30,
       freshnessSeconds: 90,
     };
-    await write(agentIssuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
-    const r2 = await write(agentIssuer, d.factory, factoryAbi, 'createBond', [
-      router,
-      terms(now),
-      {
-        adapter: 1,
-        source: '0x0000000000000000000000000000000000000000',
-        guard: '0x0000000000000000000000000000000000000000',
-        policyHash: policyHash(policy),
-      },
+    await createBond(
+      'agent',
+      { adapter: 2, source: ZERO, guard: ZERO, policyHash: policyHash(policy) },
       'Oracle Agent Revenue Claim',
       'ORCL-RC',
-    ]);
-    const created = await routerFrom(r2, 'BondCreated');
-    if (created.bond.toLowerCase() !== bond.toLowerCase()) throw new Error('Predicted bond address mismatch');
-    d.issuers.agent = { name: 'Oracle Agent', issuer: agentIssuer.address, router, bond, endpoint: agentUrl };
-    (d as any).watchPolicy = policy;
-    saveDeployment(d);
-    console.log(`  Agent     router ${router}  bond ${bond}`);
-  }
-  const a = d.issuers.agent!;
-  if ((await phase(a.bond!)) === 0) {
-    const raised = (await publicClient.readContract({
-      address: a.bond!,
-      abi: bondAbi,
-      functionName: 'fundingEscrow',
-    })) as bigint;
-    if (raised < RAISE) {
-      await write(investor, d.asset, erc20, 'approve', [a.bond!, RAISE - raised]);
-      await write(investor, a.bond!, bondAbi, 'deposit', [RAISE - raised]);
-    }
-    console.log(
-      '  Agent bond funded. Activate after the first compliant CRE report: pnpm tsx scripts/activate-watched.ts',
+      0,
     );
+    const after = readDeployment();
+    if (after.issuers.agent!.bond!.toLowerCase() !== bond.toLowerCase()) throw new Error('Predicted bond mismatch');
+    after.issuers.agent!.endpoint = agentUrl;
+    after.watchPolicy = policy;
+    saveDeployment(after);
   }
+  await fundAndActivate('agent');
 }
 
-// Locked bonds still carry a policy commitment; it names the guard policy version.
-const keccak = (s: string) => keccak256(stringToHex(s));
+async function main() {
+  const which = process.argv.slice(2);
+  const all = which.length === 0;
+  console.log(`Setting up demo businesses on ${readDeployment().network}`);
+  if (all || which.includes('pumplab')) await setupPumpLab();
+  if (all || which.includes('classic')) await setupClassic();
+  if (all || which.includes('agent')) await setupAgent();
+}
 
 main().catch((e) => {
   console.error(e instanceof Error ? e.message : e);

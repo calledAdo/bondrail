@@ -1,14 +1,14 @@
 # Slice on-chain history, indexed by Envio HyperIndex.
 # Ids for event-derived rows are chain:block:tx:logIndex, so re-orgs and replays never double count.
 
-# One revenue stream (a SliceRouter) and the business behind it.
+# One business's SliceAccount: its revenue address and payment entrypoint from day one.
 type Issuer {
-  id: ID! # router address
+  id: ID! # account address
   chainId: Int!
   issuer: String! @index
-  payout: String!
-  adapter: Int # 0 Locked, 1 Watched; set when the first bond is created
-  source: String # PumpLab launchpad (Locked)
+  tier: Int # 0 Native, 1 Locked, 2 Watched; known once a source or bond is created
+  project: String # Native launchpad bound to the account
+  source: String # Locked launchpad
   guard: String # FeeGuard (Locked)
   activeBond: String
   grossRevenue: BigInt!
@@ -16,25 +16,26 @@ type Issuer {
   toIssuer: BigInt!
   payments: Int!
   createdAt: BigInt!
+  firstRevenueAt: BigInt
 }
 
-# An issuer's treasury wallets (issuer and payout addresses) -> their router.
+# An issuer's treasury wallet -> its account.
 type Treasury {
   id: ID! # address
-  router: String!
+  account: String! # account address
 }
 
 # Wallets the indexer has learned something about (issuer treasury links).
 type Wallet {
   id: ID! # address
-  fundedByRouter: String # set when an issuer's treasury sent this wallet USDC
+  fundedByAccount: String # set when an issuer's treasury sent this wallet USDC
   fundedAmount: BigInt!
 }
 
 type Bond {
   id: ID! # bond address
   chainId: Int!
-  router: String! @index
+  account: String! @index
   issuer: String!
   adapter: Int!
   policyHash: String!
@@ -60,11 +61,11 @@ type Holder {
   balance: BigInt!
 }
 
-# A USDC transfer into a router (the raw receipt behind an x402 payment).
+# A USDC transfer into an account (the raw receipt behind an x402 payment).
 type Receipt {
   id: ID!
   chainId: Int!
-  router: String! @index
+  account: String! @index
   sender: String!
   amount: BigInt!
   block: BigInt!
@@ -74,18 +75,19 @@ type Receipt {
   timestamp: BigInt!
 }
 
-# A revenue payment attributed to a payer. x402 payments come from USDC transfers into the
-# router; launchpad payments come from PumpLab Trade events (the fee transfer itself is from
-# the launchpad, so the trader is the payer). Never both for the same money.
+# A revenue payment attributed to a payer, exactly once per payment:
+#   native    account Revenue event from collect(): the payer is proven by the pull
+#   launchpad PumpLabClassic Trade event (Locked): the fee transfer is from the launchpad, so the trader is the payer
+#   x402      USDC transfer into a Watched account: the facilitator moves funds from the payer
 type Payment {
   id: ID!
   chainId: Int!
-  router: String! @index
+  account: String! @index
   receiptId: String!
   payer: String! @index
   amount: BigInt!
   timestamp: BigInt! @index
-  source: String! # x402 | launchpad
+  source: String! # native | launchpad | x402
   synthetic: Boolean!
   related: Boolean!
   evidenceComplete: Boolean!
@@ -97,7 +99,7 @@ type Payment {
 type FundingEdge {
   id: ID!
   chainId: Int!
-  issuerRouter: String! @index
+  issuerAccount: String! @index
   sender: String!
   recipient: String! @index
   amount: BigInt!
@@ -105,10 +107,13 @@ type FundingEdge {
   txHash: String!
 }
 
-type Sweep {
+# How one booked payment was divided (account Revenue event).
+type Split {
   id: ID!
-  router: String! @index
+  account: String! @index
   bond: String!
+  payer: String!
+  collected: Boolean!
   gross: BigInt!
   toBond: BigInt!
   toIssuer: BigInt!
@@ -146,7 +151,7 @@ type SourceTrade {
   id: ID!
   chainId: Int!
   source: String! @index
-  router: String!
+  account: String!
   trader: String!
   fee: BigInt!
   usdcAmount: BigInt!
@@ -156,8 +161,8 @@ type SourceTrade {
 }
 
 type DailyRevenue {
-  id: ID! # router-day
-  router: String! @index
+  id: ID! # account-day
+  account: String! @index
   day: Int!
   gross: BigInt!
   verified: BigInt!

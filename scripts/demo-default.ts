@@ -6,7 +6,7 @@
 //   3. An independent reporter posts negative ERC-8004 feedback for the agent.
 //
 //   pnpm tsx scripts/demo-default.ts --yes          run it
-//   pnpm tsx scripts/demo-default.ts restore        point payTo back at the router (bond stays defaulted)
+//   pnpm tsx scripts/demo-default.ts restore        point payTo back at the account (bond stays defaulted)
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
@@ -62,7 +62,7 @@ const nextEpoch = () =>
 
 async function main() {
   const [arg] = process.argv.slice(2);
-  if (arg === 'restore') return setPayTo(agent.router);
+  if (arg === 'restore') return setPayTo(agent.account);
   if (arg !== '--yes') throw new Error('This defaults the Oracle Agent bond permanently. Re-run with --yes.');
 
   console.log('1. Operator diverts the x402 payTo to their own wallet');

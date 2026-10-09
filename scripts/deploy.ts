@@ -1,4 +1,4 @@
-// Deploys the Slice core: bond + router implementations, SliceCovenant (CRE receiver), SliceFactory.
+// Deploys the Slice core: bond + account implementations, SliceCovenant (CRE receiver), SliceFactory.
 //   SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts     local anvil (deploys MockUSDC too)
 //   pnpm tsx scripts/deploy.ts                          Monad testnet (Circle test USDC, CRE mock forwarder)
 // Writes docs/deployments/<chainId>.json. Demo issuers are set up separately by scripts/setup-demo.ts.
@@ -41,14 +41,14 @@ async function main() {
   }
 
   const bondImplementation = await deploy(deployer, 'SliceBond');
-  const routerImplementation = await deploy(deployer, 'SliceRouter');
+  const accountImplementation = await deploy(deployer, 'SliceAccount');
   const covenant = await deploy(deployer, 'SliceCovenant', [forwarder, observer.address]);
   const factory = await deploy(deployer, 'SliceFactory', [
     asset,
     covenant,
     milestone.address,
     bondImplementation,
-    routerImplementation,
+    accountImplementation,
   ]);
   await write(deployer, covenant, parseAbi(['function initializeFactory(address)']), 'initializeFactory', [
     factory,
@@ -67,7 +67,7 @@ async function main() {
     observer: observer.address,
     milestoneSigner: milestone.address,
     bondImplementation,
-    routerImplementation,
+    accountImplementation,
     issuers: {},
   });
   console.log(`Saved docs/deployments/${chainId}.json (start block ${startBlock})`);

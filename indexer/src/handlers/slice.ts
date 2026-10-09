@@ -1,38 +1,40 @@
-// Slice event handlers: revenue streams, payments and payer attribution, bond lifecycle, covenant checks.
+// Slice event handlers: accounts and their revenue history, payer attribution, bond lifecycle, covenant.
 import { indexer } from 'envio';
+import { FACTORY } from '../deployment';
 
 const low = (a: string) => a.toLowerCase();
 const rowId = (e: any) => `${e.chainId}:${e.block.number}:${e.transaction?.hash ?? e.block.hash}:${e.logIndex}`;
 const DAY = 86_400;
-// The factory address comes from the deployment the config was generated from.
-import { FACTORY } from '../deployment';
+const NATIVE = 0;
+const LOCKED = 1;
+const WATCHED = 2;
 
 // ---------- dynamic contracts: everything the factory creates gets indexed ----------
 
-indexer.contractRegister({ contract: 'SliceFactory', event: 'RouterCreated' }, async ({ event, context }) => {
-  context.chain.SliceRouter.add(event.params.router);
+indexer.contractRegister({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ event, context }) => {
+  context.chain.SliceAccount.add(event.params.account);
 });
 indexer.contractRegister({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
   context.chain.SliceBond.add(event.params.bond);
 });
-indexer.contractRegister(
-  { contract: 'SliceFactory', event: 'LockedSourceCreated' },
-  async ({ event, context }) => {
-    context.chain.PumpLab.add(event.params.source);
-  },
-);
+indexer.contractRegister({ contract: 'SliceFactory', event: 'NativeSourceCreated' }, async ({ event, context }) => {
+  context.chain.PumpLab.add(event.params.source);
+});
+indexer.contractRegister({ contract: 'SliceFactory', event: 'LockedSourceCreated' }, async ({ event, context }) => {
+  context.chain.PumpLabClassic.add(event.params.source);
+});
 
-// ---------- issuers ----------
+// ---------- accounts ----------
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'RouterCreated' }, async ({ event, context }) => {
-  const router = low(event.params.router);
+indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ event, context }) => {
+  const account = low(event.params.account);
   const issuer = low(event.params.issuer);
   context.Issuer.set({
-    id: router,
+    id: account,
     chainId: event.chainId,
     issuer,
-    payout: issuer, // the factory sets payout = issuer at creation
-    adapter: undefined,
+    tier: undefined,
+    project: undefined,
     source: undefined,
     guard: undefined,
     activeBond: undefined,
@@ -41,27 +43,33 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'RouterCreated' }, async ({ e
     toIssuer: 0n,
     payments: 0,
     createdAt: BigInt(event.block.timestamp),
+    firstRevenueAt: undefined,
   });
-  context.Treasury.set({ id: issuer, router });
+  context.Treasury.set({ id: issuer, account });
+});
+
+indexer.onEvent({ contract: 'SliceFactory', event: 'NativeSourceCreated' }, async ({ event, context }) => {
+  const i = await context.Issuer.get(low(event.params.account));
+  if (i) context.Issuer.set({ ...i, tier: NATIVE, project: low(event.params.source) });
 });
 
 indexer.onEvent({ contract: 'SliceFactory', event: 'LockedSourceCreated' }, async ({ event, context }) => {
-  const i = await context.Issuer.get(low(event.params.router));
-  if (!i) return;
-  context.Issuer.set({ ...i, source: low(event.params.source), guard: low(event.params.guard) });
+  const i = await context.Issuer.get(low(event.params.account));
+  if (i) context.Issuer.set({ ...i, tier: LOCKED, source: low(event.params.source), guard: low(event.params.guard) });
 });
 
 indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
-  const router = low(event.params.router);
+  const account = low(event.params.account);
   const bond = low(event.params.bond);
-  const i = await context.Issuer.get(router);
-  if (i) context.Issuer.set({ ...i, adapter: Number(event.params.adapter), activeBond: bond });
+  const adapter = Number(event.params.adapter);
+  const i = await context.Issuer.get(account);
+  if (i) context.Issuer.set({ ...i, tier: adapter, activeBond: bond });
   context.Bond.set({
     id: bond,
     chainId: event.chainId,
-    router,
+    account,
     issuer: low(event.params.issuer),
-    adapter: Number(event.params.adapter),
+    adapter,
     policyHash: event.params.policyHash,
     phase: 0,
     raised: 0n,
@@ -80,38 +88,50 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ eve
   log(context, event, bond, 'Created', event.params.issuer, 0n);
 });
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'MilestoneAccepted' }, async ({ event, context }) => {
-  log(context, event, low(event.params.bond), 'MilestoneAccepted', '', event.params.eligibleRevenue);
+indexer.onEvent({ contract: 'SliceFactory', event: 'SecondReleaseApproved' }, async ({ event, context }) => {
+  log(
+    context,
+    event,
+    low(event.params.bond),
+    Number(event.params.mode) === 0 ? 'MilestoneOnchain' : 'MilestoneSigned',
+    '',
+    event.params.eligibleRevenue,
+  );
 });
 
-// ---------- router: sweeps split revenue between investors and the issuer ----------
-
-indexer.onEvent({ contract: 'SliceRouter', event: 'Swept' }, async ({ event, context }) => {
-  const router = low(event.srcAddress);
-  context.Sweep.set({
+// Every booked payment: how it was split, and (for Native collects) the proven payer.
+indexer.onEvent({ contract: 'SliceAccount', event: 'Revenue' }, async ({ event, context }) => {
+  const account = low(event.srcAddress);
+  const payer = low(event.params.payer);
+  context.Split.set({
     id: rowId(event),
-    router,
+    account,
     bond: low(event.params.bond),
-    gross: event.params.gross,
-    toBond: event.params.investorAmount,
-    toIssuer: event.params.issuerAmount,
+    payer,
+    collected: event.params.collected,
+    gross: event.params.amount,
+    toBond: event.params.toBond,
+    toIssuer: event.params.toIssuer,
     timestamp: BigInt(event.block.timestamp),
     txHash: event.transaction.hash,
   });
-  const i = await context.Issuer.get(router);
+  const i = await context.Issuer.get(account);
   if (i)
     context.Issuer.set({
       ...i,
-      toInvestors: i.toInvestors + event.params.investorAmount,
-      toIssuer: i.toIssuer + event.params.issuerAmount,
+      toInvestors: i.toInvestors + event.params.toBond,
+      toIssuer: i.toIssuer + event.params.toIssuer,
+      firstRevenueAt: i.firstRevenueAt ?? BigInt(event.block.timestamp),
     });
+  if (event.params.collected)
+    await recordPayment(context, event, account, payer, event.params.amount, 'native', rowId(event));
 });
 
-indexer.onEvent({ contract: 'SliceRouter', event: 'Attached' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'SliceAccount', event: 'Attached' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.srcAddress));
   if (i) context.Issuer.set({ ...i, activeBond: low(event.params.bond) });
 });
-indexer.onEvent({ contract: 'SliceRouter', event: 'Detached' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'SliceAccount', event: 'Detached' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.srcAddress));
   if (i) context.Issuer.set({ ...i, activeBond: undefined });
 });
@@ -121,24 +141,24 @@ indexer.onEvent({ contract: 'SliceRouter', event: 'Detached' }, async ({ event, 
 async function recordPayment(
   context: any,
   event: any,
-  router: string,
+  account: string,
   payer: string,
   amount: bigint,
-  source: 'x402' | 'launchpad',
+  source: 'native' | 'launchpad' | 'x402',
   receiptId: string,
 ) {
-  const issuer = await context.Issuer.get(router);
+  const issuer = await context.Issuer.get(account);
   if (!issuer) return;
   const wallet = await context.Wallet.get(payer);
   const reasons: string[] = [];
-  if (payer === issuer.issuer || payer === issuer.payout) reasons.push('issuer_wallet');
-  if (wallet?.fundedByRouter === router) reasons.push('funded_by_issuer_treasury');
+  if (payer === issuer.issuer) reasons.push('issuer_wallet');
+  if (wallet?.fundedByAccount === account) reasons.push('funded_by_issuer_treasury');
   const related = reasons.length > 0;
   const ts = BigInt(event.block.timestamp);
   context.Payment.set({
-    id: rowId(event),
+    id: `${rowId(event)}:${source}`,
     chainId: event.chainId,
-    router,
+    account,
     receiptId,
     payer,
     amount,
@@ -152,8 +172,15 @@ async function recordPayment(
   });
   context.Issuer.set({ ...issuer, grossRevenue: issuer.grossRevenue + amount, payments: issuer.payments + 1 });
   const day = Math.floor(Number(ts) / DAY);
-  const dayId = `${router}-${day}`;
-  const d = (await context.DailyRevenue.get(dayId)) ?? { id: dayId, router, day, gross: 0n, verified: 0n, payments: 0 };
+  const dayId = `${account}-${day}`;
+  const d = (await context.DailyRevenue.get(dayId)) ?? {
+    id: dayId,
+    account,
+    day,
+    gross: 0n,
+    verified: 0n,
+    payments: 0,
+  };
   context.DailyRevenue.set({
     ...d,
     gross: d.gross + amount,
@@ -168,34 +195,35 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
   const value = event.params.value;
   if (value === 0n) return;
 
-  // Treasury funding: issuer or payout wallet sending USDC to someone else (wash-trading detector input).
-  // Transfers inside Slice calls (stake posted through the factory, deposits) are not funding edges.
+  // Treasury funding: the issuer's wallet sending USDC to someone else (wash-trading detector input).
+  // Transfers made inside Slice calls (stake through the factory, deposits into bonds) don't count.
   const viaSlice = low(event.transaction.to ?? '') === FACTORY || !!(await context.Bond.get(to));
   const treasury = await context.Treasury.get(from);
   if (treasury && !viaSlice && !(await context.Issuer.get(to))) {
     context.FundingEdge.set({
       id: rowId(event),
       chainId: event.chainId,
-      issuerRouter: treasury.router,
+      issuerAccount: treasury.account,
       sender: from,
       recipient: to,
       amount: value,
       timestamp: BigInt(event.block.timestamp),
       txHash: event.transaction.hash,
     });
-    const w = (await context.Wallet.get(to)) ?? { id: to, fundedByRouter: undefined, fundedAmount: 0n };
-    context.Wallet.set({ ...w, fundedByRouter: treasury.router, fundedAmount: w.fundedAmount + value });
+    const w = (await context.Wallet.get(to)) ?? { id: to, fundedByAccount: undefined, fundedAmount: 0n };
+    context.Wallet.set({ ...w, fundedByAccount: treasury.account, fundedAmount: w.fundedAmount + value });
   }
 
-  // Receipts into a router. Launchpad fee transfers come from the PumpLab contract and are attributed
-  // to the trader by the Trade handler instead; everything else is a direct (x402) payment by `from`.
+  // Plain receipts into a Watched account are x402 settlements: the facilitator moves funds from the payer.
+  // Native accounts receive pulls (attributed by Revenue); Locked accounts receive launchpad fees
+  // (attributed by the launchpad's Trade event).
   const issuer = await context.Issuer.get(to);
   if (!issuer) return;
   const id = rowId(event);
   context.Receipt.set({
     id,
     chainId: event.chainId,
-    router: to,
+    account: to,
     sender: from,
     amount: value,
     block: BigInt(event.block.number),
@@ -204,18 +232,32 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
     logIndex: event.logIndex,
     timestamp: BigInt(event.block.timestamp),
   });
-  if (issuer.source && from === issuer.source) return;
-  await recordPayment(context, event, to, from, value, 'x402', id);
+  if (issuer.tier === WATCHED) await recordPayment(context, event, to, from, value, 'x402', id);
 });
 
 indexer.onEvent({ contract: 'PumpLab', event: 'Trade' }, async ({ event, context }) => {
-  const router = low(event.params.router);
+  context.SourceTrade.set({
+    id: rowId(event),
+    chainId: event.chainId,
+    source: low(event.srcAddress),
+    account: '',
+    trader: low(event.params.trader),
+    fee: event.params.fee,
+    usdcAmount: event.params.grossUSDC,
+    isBuy: event.params.isBuy,
+    txHash: event.transaction.hash,
+    timestamp: BigInt(event.block.timestamp),
+  });
+});
+
+indexer.onEvent({ contract: 'PumpLabClassic', event: 'Trade' }, async ({ event, context }) => {
+  const account = low(event.params.recipient);
   const trader = low(event.params.payer);
   context.SourceTrade.set({
     id: rowId(event),
     chainId: event.chainId,
     source: low(event.srcAddress),
-    router,
+    account,
     trader,
     fee: event.params.fee,
     usdcAmount: event.params.grossUSDC,
@@ -223,7 +265,8 @@ indexer.onEvent({ contract: 'PumpLab', event: 'Trade' }, async ({ event, context
     txHash: event.transaction.hash,
     timestamp: BigInt(event.block.timestamp),
   });
-  if (event.params.fee > 0n) await recordPayment(context, event, router, trader, event.params.fee, 'launchpad', rowId(event));
+  if (event.params.fee > 0n)
+    await recordPayment(context, event, account, trader, event.params.fee, 'launchpad', rowId(event));
 });
 
 // ---------- bonds ----------
@@ -310,7 +353,7 @@ indexer.onEvent({ contract: 'SliceBond', event: 'DefaultRecorded' }, async ({ ev
 
 indexer.onEvent({ contract: 'SliceBond', event: 'CollectionClosed' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
-  // Watched bonds enter Closing (2) for the evidence window; Locked bonds close straight away (3).
+  // Watched bonds enter Closing (2) for the evidence window; Native and Locked close straight away (3).
   if (b) context.Bond.set({ ...b, phase: event.params.settleAfter > 0n ? 2 : 3, pool: event.params.pool });
   log(context, event, low(event.srcAddress), 'CollectionClosed', '', event.params.pool);
 });
@@ -355,7 +398,7 @@ indexer.onEvent({ contract: 'SliceBond', event: 'Transfer' }, async ({ event, co
     context.Bond.set({ ...b, totalSupply: b.totalSupply + (from === zero ? v : -v) });
 });
 
-// ---------- covenant (Watched adapter) ----------
+// ---------- covenant (Watched) ----------
 
 indexer.onEvent({ contract: 'SliceCovenant', event: 'ObservationAccepted' }, async ({ event, context }) => {
   context.CovenantCheck.set({

@@ -101,6 +101,20 @@ export async function write(
 }
 
 export const deploymentFile = path.join(ROOT, 'docs/deployments', `${chainId}.json`);
+export type IssuerRecord = {
+  name: string;
+  tier: 'native' | 'locked' | 'watched';
+  issuer: Address;
+  account: Address;
+  bond?: Address;
+  source?: Address;
+  guard?: Address;
+  token?: Address;
+  endpoint?: string;
+  agentId?: string;
+  kuruMarket?: Address;
+  kuruVault?: Address;
+};
 export type DeploymentFile = {
   schemaVersion: 1;
   chainId: number;
@@ -114,21 +128,9 @@ export type DeploymentFile = {
   observer: Address;
   milestoneSigner: Address;
   bondImplementation: Address;
-  routerImplementation: Address;
-  issuers: Record<
-    string,
-    {
-      name: string;
-      issuer: Address;
-      router: Address;
-      bond?: Address;
-      source?: Address;
-      guard?: Address;
-      token?: Address;
-      endpoint?: string;
-      agentId?: string;
-    }
-  >;
+  accountImplementation: Address;
+  issuers: Record<string, IssuerRecord>;
+  watchPolicy?: unknown;
 };
 export function readDeployment(): DeploymentFile {
   return JSON.parse(fs.readFileSync(deploymentFile, 'utf8'));

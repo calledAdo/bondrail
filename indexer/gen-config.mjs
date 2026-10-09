@@ -28,13 +28,14 @@ description: Slice revenue bonds on Monad
 contracts:
   - name: SliceFactory
     events:
-      - event: "RouterCreated(address indexed issuer, address indexed router)"
-      - event: "LockedSourceCreated(address indexed issuer, address indexed router, address source, address guard, address token)"
-      - event: "BondCreated(address indexed issuer, address indexed router, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)"${tx}
-      - event: "MilestoneAccepted(address indexed bond, bytes32 indexed evidenceHash, uint256 eligibleRevenue, uint256 nonce)"${tx}
-  - name: SliceRouter
+      - event: "AccountCreated(address indexed issuer, address indexed account)"
+      - event: "NativeSourceCreated(address indexed issuer, address indexed account, address source, address token)"
+      - event: "LockedSourceCreated(address indexed issuer, address indexed account, address source, address guard, address token)"
+      - event: "BondCreated(address indexed issuer, address indexed account, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)"${tx}
+      - event: "SecondReleaseApproved(address indexed bond, uint8 mode, uint256 eligibleRevenue)"${tx}
+  - name: SliceAccount
     events:
-      - event: "Swept(address indexed bond, uint256 gross, uint256 investorAmount, uint256 issuerAmount, uint256 remainder)"${tx}
+      - event: "Revenue(address indexed bond, address indexed payer, uint256 amount, uint256 toBond, uint256 toIssuer, bool collected)"${tx}
       - event: "Attached(address indexed bond)"
       - event: "Detached(address indexed bond)"
   - name: SliceBond
@@ -57,7 +58,10 @@ contracts:
       - event: "CovenantDefault(address indexed bond, uint64 firstEpoch, uint64 secondEpoch, bytes32 evidenceHash)"${tx}
   - name: PumpLab
     events:
-      - event: "Trade(address indexed payer, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee, address indexed router)"${tx}
+      - event: "Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee)"${tx}
+  - name: PumpLabClassic
+    events:
+      - event: "Trade(address indexed payer, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee, address indexed recipient)"${tx}
   - name: USDC
     events:
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
@@ -72,9 +76,10 @@ chains:
         address: "${dep.covenant}"
       - name: USDC
         address: "${dep.asset}"
-      - name: SliceRouter
+      - name: SliceAccount
       - name: SliceBond
       - name: PumpLab
+      - name: PumpLabClassic
 `,
 );
 fs.writeFileSync(
