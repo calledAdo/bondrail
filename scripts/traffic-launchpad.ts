@@ -33,8 +33,10 @@ const treasury = account('pumplab-issuer');
 
 async function topUp(funder: PrivateKeyAccount, to: Address, asset: Address) {
   // Gas always comes from the deployer; the USDC funder is what defines the cohort.
-  if ((await publicClient.getBalance({ address: to })) < parseEther('0.02')) {
-    const hash = await wallet(deployer).sendTransaction({ to, value: parseEther('0.05'), gas: 21_000n });
+  // Monad bills the gas limit: a buy (which also sweeps the router) reserves ~0.09 MON at testnet prices.
+  const have = await publicClient.getBalance({ address: to });
+  if (have < parseEther('0.2')) {
+    const hash = await wallet(deployer).sendTransaction({ to, value: parseEther('0.25') - have, gas: 21_000n });
     await publicClient.waitForTransactionReceipt({ hash });
   }
   const bal = (await publicClient.readContract({ address: asset, abi: erc20, functionName: 'balanceOf', args: [to] })) as bigint;
