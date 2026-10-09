@@ -20,7 +20,9 @@
       "account": "0x04319a0dFd177f70226E9D71F92F599f457f807c",
       "source": "0xA531e3D34e6dF05eE5dEA0beBc5C19351B05a743",
       "token": "0xf9586fBC843b6e9736944B6fad3Fb95a6B9dA610",
-      "bond": "0xc9F074793fe1E2f8Fa863386cD799Aaba22fC652"
+      "bond": "0xc9F074793fe1E2f8Fa863386cD799Aaba22fC652",
+      "kuruMarket": "0xBb5d25B18A988D39De9669a2F65B30dc45E1410A",
+      "kuruVault": "0x0aa28475a14908fDf2a519a6C2A7C4712371c4cA"
     },
     "classic": {
       "name": "PumpLab Classic",
