@@ -127,7 +127,6 @@ async function main() {
         64,
       ]);
       Object.assign(partial, await routerFrom(r2, 'LockedSourceCreated'));
-      delete partial.issuer_;
       saveDeployment(d);
     }
     const { router, source, guard, token } = partial;

@@ -50,7 +50,7 @@ async function main() {
     for (const log of r.logs) {
       try {
         const e = decodeEventLog({ abi: routerAbi, data: log.data, topics: log.topics });
-        if (e.eventName === 'MarketRegistered') issuer.kuruMarket = (e.args as { market: Address }).market;
+        if (e.eventName === 'MarketRegistered') issuer.kuruMarket = (e.args as unknown as { market: Address }).market;
       } catch {}
     }
     if (!issuer.kuruMarket) throw new Error(`Market address not found in ${r.transactionHash}`);

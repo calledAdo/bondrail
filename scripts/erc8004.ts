@@ -35,7 +35,9 @@ async function main() {
       try {
         const e = decodeEventLog({ abi: identityAbi, data: log.data, topics: log.topics });
         if (e.eventName === 'Transfer' || e.eventName === 'Registered')
-          agent.agentId = String('agentId' in e.args ? e.args.agentId : (e.args as { tokenId: bigint }).tokenId);
+          agent.agentId = String(
+            'agentId' in e.args ? e.args.agentId : (e.args as { tokenId: bigint }).tokenId,
+          );
       } catch {}
     }
     if (!agent.agentId) throw new Error(`agentId not found in ${r.transactionHash}`);
@@ -53,7 +55,9 @@ async function main() {
     })) as bigint;
     if (defaultedAt === 0n) throw new Error('Bond has not defaulted; no feedback to post');
     // The deployer acts as an independent reporter: it neither owns nor operates the agent.
-    const reporter = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
+    const reporter = account('deployer', {
+      fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
+    });
     const evidence = `slice:covenant-default:${agent.bond}:${defaultedAt}`;
     const r = await write(reporter, REPUTATION, reputationAbi, 'giveFeedback', [
       BigInt(agent.agentId),
