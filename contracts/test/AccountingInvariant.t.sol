@@ -4,9 +4,10 @@ import {TestBase} from "./TestBase.sol";
 import {SliceTypes} from "../src/SliceTypes.sol";
 import {SliceBond} from "../src/SliceBond.sol";
 import {SliceAccount} from "../src/SliceAccount.sol";
+import {PumpLabClassic} from "@slice-demo/PumpLabClassic.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {MockUSDC} from "../src/MockUSDC.sol";
+import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 contract AccountingHandler is TestBase {
     MockUSDC public asset;
@@ -23,11 +24,28 @@ contract AccountingHandler is TestBase {
         asset = new MockUSDC();
         SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
         factory = new SliceFactory(
-            address(asset), address(c), vm.addr(PK), address(new SliceBond()), address(new SliceAccount())
+            address(asset),
+            address(c),
+            vm.addr(PK),
+            address(new SliceBond()),
+            address(new SliceAccount()),
+            address(0x777)
         );
         c.initializeFactory(address(factory));
         router = SliceAccount(factory.createAccount());
-        (address source, address guard) = factory.createLockedLaunchpad(address(router), "Invariant Lab", "INV", 64);
+        PumpLabClassic lab = new PumpLabClassic(address(asset), address(router), "Invariant Lab", "INV", 64);
+        bytes4[] memory allowed = new bytes4[](1);
+        allowed[0] = PumpLabClassic.setMaxNameLength.selector;
+        address guard = factory.createGuard(
+            address(router),
+            address(lab),
+            bytes4(keccak256("feeRecipient()")),
+            bytes4(keccak256("feeBps()")),
+            100,
+            allowed
+        );
+        lab.transferOwnership(guard);
+        address source = address(lab);
         uint64 now_ = uint64(vm.getBlockTimestamp());
         t = SliceTypes.Terms(
             100e6,

@@ -72,6 +72,11 @@ library SliceTypes {
     }
 }
 
+/// @notice Implemented by Native projects (see SliceEarner): the account they pay every fee through.
+interface ISliceEarner {
+    function sliceAccount() external view returns (address);
+}
+
 interface ISliceAccount {
     function issuer() external view returns (address);
     function asset() external view returns (address);

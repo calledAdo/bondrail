@@ -9,14 +9,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {SliceTypes, ISliceCovenant} from "./SliceTypes.sol";
+import {SliceTypes, ISliceCovenant, ISliceEarner} from "./SliceTypes.sol";
 import {SliceBond} from "./SliceBond.sol";
 import {SliceAccount} from "./SliceAccount.sol";
-import {PumpLab} from "./PumpLab.sol";
-import {PumpLabClassic} from "./PumpLabClassic.sol";
 import {FeeGuard} from "./FeeGuard.sol";
 
-/// @notice Creates accounts, recognized revenue sources and bonds; gates activation and the second release.
+/// @notice Creates accounts, guards and bonds; gates activation and the second release.
+/// Projects deploy their own contracts: a Native project inherits SliceEarner, a Locked project keeps
+/// its existing contract and hands ownership to a FeeGuard created here.
 contract SliceFactory is EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -31,23 +31,22 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     address public immutable milestoneSigner;
     address public immutable bondImplementation;
     address public immutable accountImplementation;
+    /// @notice Disclosed reviewer who approves Native projects' code (pays fees only via its account).
+    address public immutable reviewer;
     bytes32 public constant MILESTONE_TYPEHASH = keccak256(
         "Milestone(address bond,bytes32 policyHash,uint64 periodStart,uint64 periodEnd,uint256 eligibleRevenue,bytes32 evidenceHash,uint64 expiresAt,uint256 nonce)"
     );
 
     mapping(address => bool) public isAccount;
     mapping(address => bool) public isBond;
-    /// @notice Native launchpads this factory deployed (their code routes every fee through `collect`).
-    mapping(address => address) public nativeSourceAccount;
-    /// @notice Locked launchpads this factory deployed, and the guard that owns each one.
-    mapping(address => address) public lockedSourceGuard;
+    /// @notice Native projects whose code the reviewer has checked routes every fee through `collect`.
+    mapping(address => bool) public nativeApproved;
+    /// @notice Guards this factory created (their code is known).
     mapping(address => bool) public recognizedGuard;
 
     event AccountCreated(address indexed issuer, address indexed account);
-    event NativeSourceCreated(address indexed issuer, address indexed account, address source, address token);
-    event LockedSourceCreated(
-        address indexed issuer, address indexed account, address source, address guard, address token
-    );
+    event NativeApproval(address indexed project, bool approved);
+    event GuardCreated(address indexed issuer, address indexed account, address indexed target, address guard);
     event BondCreated(
         address indexed issuer,
         address indexed account,
@@ -63,18 +62,20 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         address covenant_,
         address milestoneSigner_,
         address bondImplementation_,
-        address accountImplementation_
+        address accountImplementation_,
+        address reviewer_
     ) EIP712("SliceFactory", "1") {
         if (
             asset_.code.length == 0 || IERC20Metadata(asset_).decimals() != 6 || covenant_.code.length == 0
                 || milestoneSigner_ == address(0) || bondImplementation_.code.length == 0
-                || accountImplementation_.code.length == 0
+                || accountImplementation_.code.length == 0 || reviewer_ == address(0)
         ) revert InvalidTerms();
         asset = IERC20(asset_);
         covenant = covenant_;
         milestoneSigner = milestoneSigner_;
         bondImplementation = bondImplementation_;
         accountImplementation = accountImplementation_;
+        reviewer = reviewer_;
     }
 
     // ---------------------------------------------------------------- accounts and sources
@@ -87,37 +88,29 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         emit AccountCreated(msg.sender, account);
     }
 
-    /// @notice Native tier: a launchpad whose every fee is pulled through the account.
-    function createNativeLaunchpad(address account, string calldata name_, string calldata symbol_)
-        external
-        nonReentrant
-        returns (address source)
-    {
-        _issuerAccount(account);
-        if (SliceAccount(account).project() != address(0)) revert InvalidAdapter();
-        PumpLab p = new PumpLab(address(asset), account, name_, symbol_);
-        source = address(p);
-        nativeSourceAccount[source] = account;
-        SliceAccount(account).bindProject(source);
-        emit NativeSourceCreated(msg.sender, account, source, address(p.token()));
+    /// @notice Reviewer marks a Native project as checked: its code pays every fee through `collect`.
+    function setNativeApproval(address project, bool approved) external {
+        if (msg.sender != reviewer) revert Unauthorized();
+        nativeApproved[project] = approved;
+        emit NativeApproval(project, approved);
     }
 
-    /// @notice Locked tier: an ordinary owner-administered launchpad, owned by a FeeGuard from birth.
-    function createLockedLaunchpad(
+    /// @notice Locked tier: a guard for an existing owner-administered fee contract. After creating it,
+    /// the issuer points the target's fee recipient at the account and transfers ownership to the guard.
+    function createGuard(
         address account,
-        string calldata name_,
-        string calldata symbol_,
-        uint16 maxNameLength
-    ) external nonReentrant returns (address source, address guard) {
+        address target,
+        bytes4 recipientGetter,
+        bytes4 feeGetter,
+        uint256 minFee,
+        bytes4[] calldata allowedSelectors
+    ) external nonReentrant returns (address guard) {
         _issuerAccount(account);
-        PumpLabClassic p = new PumpLabClassic(address(asset), account, name_, symbol_, maxNameLength);
-        FeeGuard g = new FeeGuard(address(p), msg.sender, account);
-        p.transferOwnership(address(g));
-        source = address(p);
-        guard = address(g);
+        guard = address(
+            new FeeGuard(target, msg.sender, account, recipientGetter, feeGetter, minFee, allowedSelectors)
+        );
         recognizedGuard[guard] = true;
-        lockedSourceGuard[source] = guard;
-        emit LockedSourceCreated(msg.sender, account, source, guard, address(p.token()));
+        emit GuardCreated(msg.sender, account, target, guard);
     }
 
     // ---------------------------------------------------------------- bonds
@@ -233,13 +226,14 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     }
 
     function _native(address source, address account) private view {
-        if (nativeSourceAccount[source] != account || SliceAccount(account).project() != source) {
-            revert InvalidAdapter();
-        }
+        if (
+            !nativeApproved[source] || SliceAccount(account).project() != source
+                || ISliceEarner(source).sliceAccount() != account
+        ) revert InvalidAdapter();
     }
 
     function _locked(address guard, address source, address account, address issuer) private view {
-        if (!recognizedGuard[guard] || lockedSourceGuard[source] != guard) revert InvalidAdapter();
+        if (!recognizedGuard[guard]) revert InvalidAdapter();
         FeeGuard g = FeeGuard(guard);
         if (g.target() != source || g.account() != account || g.issuer() != issuer || !g.isLocked()) {
             revert Unhealthy();

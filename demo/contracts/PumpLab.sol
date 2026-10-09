@@ -5,17 +5,17 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ISliceAccount} from "./SliceTypes.sol";
+import {SliceEarner} from "@slice/SliceEarner.sol";
 import {LaunchToken} from "./PumpLabClassic.sol";
 
-/// @notice Native tier demo: a launchpad built on Slice from day one.
+/// @notice DEMO, Native tier: a launchpad built on Slice from day one (inherits SliceEarner).
 ///
-/// Every USDC that a trader pays goes through the launchpad's SliceAccount (`account.collect`): the
+/// Every USDC that a trader pays goes through the launchpad's SliceAccount (`_collect`, via SliceEarner): the
 /// account pulls the payment from the trader, keeps the 1% fee as revenue and forwards the rest here.
 /// The account is immutable and there is no other fee path, so fees cannot be redirected, and every
 /// fee since launch is in the account's on-chain history with the trader as its proven payer.
 /// Traders approve (or permit) the account, not this contract, for USDC.
-contract PumpLab is ReentrancyGuard {
+contract PumpLab is SliceEarner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error InvalidTrade();
@@ -24,7 +24,6 @@ contract PumpLab is ReentrancyGuard {
     uint16 public constant FEE_BPS = 100;
     uint256 public constant MIN_TRADE = 100;
     IERC20 public immutable asset;
-    ISliceAccount public immutable account;
     LaunchToken public immutable token;
     uint256 public virtualUSDC = 1000e6;
     uint256 public virtualToken = 1_073_000_000e18;
@@ -33,10 +32,11 @@ contract PumpLab is ReentrancyGuard {
 
     event Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee);
 
-    constructor(address asset_, address account_, string memory name_, string memory symbol_) {
-        if (asset_ == address(0) || account_ == address(0)) revert InvalidTrade();
+    constructor(address asset_, address account_, string memory name_, string memory symbol_)
+        SliceEarner(account_)
+    {
+        if (asset_ == address(0)) revert InvalidTrade();
         asset = IERC20(asset_);
-        account = ISliceAccount(account_);
         token = new LaunchToken(name_, symbol_, address(this));
     }
 
@@ -94,8 +94,8 @@ contract PumpLab is ReentrancyGuard {
         if (out < minTokensOut) revert Slippage();
         uint256 beforeBalance = asset.balanceOf(address(this));
         uint256 net = withPermit
-            ? account.collectWithPermit(msg.sender, gross, fee, permitDeadline, v, r, s)
-            : account.collect(msg.sender, gross, fee);
+            ? _collectWithPermit(msg.sender, gross, fee, permitDeadline, v, r, s)
+            : _collect(msg.sender, gross, fee);
         if (net != gross - fee || asset.balanceOf(address(this)) - beforeBalance != net) revert InvalidTrade();
         virtualUSDC += net;
         virtualToken -= out;
@@ -120,7 +120,7 @@ contract PumpLab is ReentrancyGuard {
         realToken += amount;
         realUSDC -= gross;
         asset.safeTransfer(msg.sender, gross);
-        account.collect(msg.sender, fee, fee);
+        _collect(msg.sender, fee, fee);
         emit Trade(msg.sender, false, amount, gross, fee);
     }
 }

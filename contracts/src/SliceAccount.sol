@@ -6,7 +6,7 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceTypes, ISliceBond} from "./SliceTypes.sol";
+import {SliceTypes, ISliceBond, ISliceEarner} from "./SliceTypes.sol";
 
 /// @notice A business's revenue address and payment entrypoint, from day one.
 ///
@@ -69,9 +69,11 @@ contract SliceAccount is ReentrancyGuard {
     }
 
     /// @notice One-time binding of the Native project that may pull payments through this account.
+    /// The project must already point at this account (ISliceEarner), which it cannot change later.
     function bindProject(address project_) external {
-        if (msg.sender != issuer && msg.sender != factory) revert Unauthorized();
+        if (msg.sender != issuer) revert Unauthorized();
         if (project != address(0) || project_.code.length == 0) revert InvalidState();
+        if (ISliceEarner(project_).sliceAccount() != address(this)) revert InvalidState();
         project = project_;
         emit ProjectBound(project_);
     }

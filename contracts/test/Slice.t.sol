@@ -6,9 +6,9 @@ import {SliceBond} from "../src/SliceBond.sol";
 import {SliceAccount} from "../src/SliceAccount.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLabClassic} from "../src/PumpLabClassic.sol";
+import {PumpLabClassic} from "@slice-demo/PumpLabClassic.sol";
 import {FeeGuard} from "../src/FeeGuard.sol";
-import {MockUSDC} from "../src/MockUSDC.sol";
+import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 contract SliceTest is TestBase {
     MockUSDC asset;
@@ -24,6 +24,7 @@ contract SliceTest is TestBase {
     address forwarder = address(0x444);
     uint256 constant OBSERVER_PK = 12345;
     uint256 constant MILESTONE_PK = 67890;
+    address constant REVIEWER = address(0x777);
     SliceTypes.Terms t;
 
     function setUp() public {
@@ -36,16 +37,29 @@ contract SliceTest is TestBase {
             address(covenant),
             vm.addr(MILESTONE_PK),
             address(new SliceBond()),
-            address(new SliceAccount())
+            address(new SliceAccount()),
+            REVIEWER
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 10_000_000e6);
         asset.mint(investor, 10_000_000e6);
         vm.startPrank(issuer);
         router = SliceAccount(factory.createAccount());
-        (address p, address g) = factory.createLockedLaunchpad(address(router), "Lab", "LAB", 64);
-        source = PumpLabClassic(p);
-        guard = FeeGuard(g);
+        // Locked tier: the issuer's own existing contract, guarded by a factory-made FeeGuard.
+        source = new PumpLabClassic(address(asset), address(router), "Lab", "LAB", 64);
+        bytes4[] memory allowed = new bytes4[](1);
+        allowed[0] = PumpLabClassic.setMaxNameLength.selector;
+        guard = FeeGuard(
+            factory.createGuard(
+                address(router),
+                address(source),
+                bytes4(keccak256("feeRecipient()")),
+                bytes4(keccak256("feeBps()")),
+                100,
+                allowed
+            )
+        );
+        source.transferOwnership(address(guard));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
         t = SliceTypes.Terms(
@@ -546,6 +560,16 @@ contract SliceTest is TestBase {
         eq(source.maxNameLength(), 32);
         eq(source.feeRecipient(), address(router));
         yes(guard.isLocked());
+    }
+
+    function testGuardNeverAllowlistsOwnershipMoves() public {
+        bytes4[] memory allowed = new bytes4[](1);
+        allowed[0] = bytes4(keccak256("transferOwnership(address)"));
+        vm.prank(issuer);
+        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
+        factory.createGuard(
+            address(router), address(source), bytes4(keccak256("feeRecipient()")), bytes4(0), 0, allowed
+        );
     }
 
     function testFakeGuardRejected() public {

@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {ISliceAccount} from "./SliceTypes.sol";
+import {ISliceAccount} from "@slice/SliceTypes.sol";
 
 contract LaunchToken is ERC20 {
     constructor(string memory name_, string memory symbol_, address holder) ERC20(name_, symbol_) {
@@ -13,7 +13,7 @@ contract LaunchToken is ERC20 {
     }
 }
 
-/// @notice Locked tier demo: an ordinary owner-administered launchpad that pays fees to a recipient
+/// @notice DEMO, Locked tier: an ordinary owner-administered launchpad that pays fees to a recipient
 /// address. Under Slice its owner is a FeeGuard, which refuses recipient, rate and ownership changes.
 contract PumpLabClassic is ReentrancyGuard {
     using SafeERC20 for IERC20;

@@ -7,8 +7,8 @@ import {SliceBond} from "../src/SliceBond.sol";
 import {SliceAccount} from "../src/SliceAccount.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLab} from "../src/PumpLab.sol";
-import {MockUSDC} from "../src/MockUSDC.sol";
+import {PumpLab} from "@slice-demo/PumpLab.sol";
+import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 /// @notice Native tier: revenue history from day one, proven payers, passthrough -> credit -> passthrough.
 contract NativeTest is TestBase {
@@ -19,6 +19,7 @@ contract NativeTest is TestBase {
     SliceBond bond;
     address issuer = address(0x111);
     address investor = address(0x222);
+    address constant REVIEWER = address(0x777);
     uint256 constant TRADER_PK = 0xA11CE;
     address trader;
     SliceTypes.Terms t;
@@ -30,7 +31,12 @@ contract NativeTest is TestBase {
         asset = new MockUSDC();
         SliceCovenant covenant = new SliceCovenant(address(0x444), vm.addr(12345));
         factory = new SliceFactory(
-            address(asset), address(covenant), vm.addr(67890), address(new SliceBond()), address(new SliceAccount())
+            address(asset),
+            address(covenant),
+            vm.addr(67890),
+            address(new SliceBond()),
+            address(new SliceAccount()),
+            REVIEWER
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 1_000e6);
@@ -38,9 +44,13 @@ contract NativeTest is TestBase {
         asset.mint(trader, 100_000e6);
         vm.startPrank(issuer);
         account = SliceAccount(factory.createAccount());
-        lab = PumpLab(factory.createNativeLaunchpad(address(account), "Lab", "LAB"));
+        // The project deploys itself on top of SliceEarner, pointed at its account, then binds it.
+        lab = new PumpLab(address(asset), address(account), "Lab", "LAB");
+        account.bindProject(address(lab));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
+        vm.prank(REVIEWER);
+        factory.setNativeApproval(address(lab), true);
         // Traders approve the account, not the launchpad: the account is the payment entrypoint.
         vm.prank(trader);
         asset.approve(address(account), type(uint256).max);
@@ -208,6 +218,37 @@ contract NativeTest is TestBase {
             "X",
             "X-RC"
         );
+    }
+
+    function testUnreviewedProjectBuildsHistoryButCannotRaise() public {
+        vm.prank(REVIEWER);
+        factory.setNativeApproval(address(lab), false);
+        _buy(100e6);
+        eq(account.cumulativeRevenue(), 1e6); // history accrues regardless of review
+        vm.prank(issuer);
+        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        factory.createBond(
+            address(account),
+            t,
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), address(0), keccak256("native")),
+            "Lab Revenue Claim",
+            "LAB-RC"
+        );
+    }
+
+    function testOnlyTheReviewerApproves() public {
+        vm.prank(issuer);
+        vm.expectRevert(SliceFactory.Unauthorized.selector);
+        factory.setNativeApproval(address(lab), true);
+    }
+
+    function testAccountRefusesAProjectThatDoesNotPointAtIt() public {
+        vm.startPrank(issuer);
+        SliceAccount other = SliceAccount(factory.createAccount());
+        PumpLab stranger = new PumpLab(address(asset), address(account), "X", "X"); // points at another account
+        vm.expectRevert(SliceAccount.InvalidState.selector);
+        other.bindProject(address(stranger));
+        vm.stopPrank();
     }
 
     function _balance(address token, address who) internal view returns (uint256 b) {
