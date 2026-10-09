@@ -96,6 +96,13 @@ All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json
 - Revenue-bond claims trade on a Kuru order book against USDC, with an AMM vault seeded at 1:1.
 - [`scripts/kuru-market.ts`](scripts/kuru-market.ts): `deployProxy` on the Kuru router, then a vault deposit.
 
+### Nansen: payer screening
+- On the issuer page, **Screen top payers with Nansen** sends up to 10 payer addresses to a server
+  route, [`apps/web/src/app/api/nansen/route.ts`](apps/web/src/app/api/nansen/route.ts).
+- The route calls Nansen `profiler/address/labels` for Monad mainnet and shows each payer's labels next
+  to its verified or excluded status.
+- The key stays server-side, and results are cached. Empty lookups cost 0 credits.
+
 ### Monad
 - About 600 ms finality makes repayment visible live: the bond page polls backing-per-claim every 2 s.
 - Per-call micro-revenue ($0.01 x402 payments) is only viable with fast, cheap transactions.
@@ -138,8 +145,9 @@ All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json
   only in who funded them, which is exactly what the wash detector looks at.
 - **CRE runs as a local simulation** that broadcasts real reports, not a deployed DON. The observer is
   a single disclosed signer.
-- **Nansen enrichment** is not enabled: it covers Monad mainnet, and we didn't map mainnet labels onto
-  testnet wallets.
+- **Nansen screening** uses Monad **mainnet** labels (Nansen doesn't cover testnet). Our team-controlled
+  demo payers are fresh wallets, so they come back unlabelled; the integration is real but has little
+  to find on testnet.
 - The second-release milestone is attested by a disclosed evaluator key, not proven onchain.
 
 ## Repository
