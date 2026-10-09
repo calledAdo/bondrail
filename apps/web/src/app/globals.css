@@ -1779,3 +1779,9 @@ footer > span:nth-child(2) {
 .status-dot.good { background: var(--teal, #217c70); }
 .status-dot.danger { background: #c2412d; }
 @media (max-width: 640px) { .payer-table th:nth-child(2), .payer-table td:nth-child(2) { display: none; } }
+
+/* Wallet menu: passkey sign-in, passkey create, browser wallet */
+.wallet-control { position: relative; }
+.wallet-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: grid; min-width: 220px; padding: 6px; background: #fff; border: 1px solid var(--line, #dfe5ee); border-radius: 10px; box-shadow: 0 10px 30px rgba(21, 43, 74, 0.12); }
+.wallet-menu button { text-align: left; padding: 10px 12px; min-height: 44px; border: 0; background: none; border-radius: 8px; font: inherit; color: inherit; cursor: pointer; }
+.wallet-menu button:hover, .wallet-menu button:focus-visible { background: var(--canvas, #f3f6fa); }

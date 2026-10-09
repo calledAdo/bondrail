@@ -1,5 +1,6 @@
 import { createConfig, http } from 'wagmi';
 import { injected } from 'wagmi/connectors';
+import { passkey } from './passkey-connector';
 import { defineChain, isAddress, type Address } from 'viem';
 const configuredId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 10143);
 export const safeNetwork = configuredId === 10143 || configuredId === 31337;
@@ -23,7 +24,8 @@ export const chain = defineChain({
 });
 export const walletConfig = createConfig({
   chains: [chain],
-  connectors: [injected()],
+  // Passkey (Mera) first: works with no extension. Browser wallets still connect if installed.
+  connectors: [passkey(process.env.NEXT_PUBLIC_RPC_URL || undefined), injected()],
   transports: { [chain.id]: http() } as Record<(typeof chain)['id'], ReturnType<typeof http>>,
   ssr: true,
 });

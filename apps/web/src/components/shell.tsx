@@ -5,6 +5,7 @@ import { useAccount, useConnect, useDisconnect, useSwitchChain } from 'wagmi';
 import { ArrowUpRight, ChevronDown, FlaskConical, Wallet, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { chain, safeNetwork } from '@/lib/wallet';
+import { setPasskeyMode } from '@/lib/passkey-connector';
 import { shortAddress } from '@/lib/data';
 import { liveConfigured } from '@/lib/live';
 export function WalletButton() {
@@ -13,6 +14,24 @@ export function WalletButton() {
   const { disconnect } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
   const [error, setError] = useState('');
+  const [menu, setMenu] = useState(false);
+  async function connectWith(kind: 'signin' | 'create' | 'extension') {
+    setError('');
+    setMenu(false);
+    try {
+      if (kind === 'extension') {
+        const ext = connectors.find((c) => c.id !== 'passkey');
+        if (!ext || !(await ext.getProvider().catch(() => null)))
+          throw new Error('No browser wallet found. Use a passkey instead.');
+        await connectAsync({ connector: ext });
+        return;
+      }
+      setPasskeyMode(kind);
+      await connectAsync({ connector: connectors.find((c) => c.id === 'passkey')! });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Wallet connection failed.');
+    }
+  }
   async function connect() {
     setError('');
     try {
@@ -24,9 +43,7 @@ export function WalletButton() {
         await navigator.clipboard.writeText(address);
         return;
       }
-      const connector = connectors[0];
-      if (!connector) throw new Error('Install an Ethereum-compatible browser wallet, then reload.');
-      await connectAsync({ connector });
+      setMenu((m) => !m);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Wallet connection failed.');
     }
@@ -53,6 +70,19 @@ export function WalletButton() {
         <button className="icon-button" aria-label="Disconnect wallet" onClick={() => disconnect()}>
           <LogOut size={16} />
         </button>
+      )}
+      {menu && !address && (
+        <div className="wallet-menu" role="menu">
+          <button role="menuitem" onClick={() => connectWith('signin')}>
+            Sign in with passkey
+          </button>
+          <button role="menuitem" onClick={() => connectWith('create')}>
+            Create passkey account
+          </button>
+          <button role="menuitem" onClick={() => connectWith('extension')}>
+            Browser wallet
+          </button>
+        </div>
       )}
       {error && (
         <p className="wallet-error" role="alert">
