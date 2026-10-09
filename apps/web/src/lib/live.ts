@@ -171,13 +171,18 @@ export function useMarkets() {
   const q = useQuery({
     queryKey: ['markets', liveConfigured],
     enabled: liveConfigured && !!client,
-    refetchInterval: 4000,
-    queryFn: async () =>
-      Promise.all(
+    refetchInterval: 10_000,
+    // Each market loads independently: one failed read doesn't hide the others.
+    queryFn: async () => {
+      const results = await Promise.allSettled(
         fixtures
           .filter((m) => deployment.bonds[m.id])
           .map((m) => loadMarket(client!, m, deployment.bonds[m.id]!)),
-      ),
+      );
+      const ok = results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : []));
+      if (!ok.length && results.length) throw (results[0] as PromiseRejectedResult).reason;
+      return ok;
+    },
   });
   if (!liveConfigured) return { markets: fixtures, live: false, loading: false, error: null as Error | null };
   return { markets: q.data ?? [], live: true, loading: q.isLoading, error: q.error as Error | null };

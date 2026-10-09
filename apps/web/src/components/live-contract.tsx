@@ -40,7 +40,7 @@ export function LiveContract({ id }: { id: string }) {
       ? fields.map((functionName) => ({ address: bond, abi: bondAbi, functionName, chainId: chain.id }))
       : [],
     // Fast polling keeps the backing-per-claim figure moving with each routed payment (Monad ~0.6 s finality).
-    query: { enabled: !!bond, refetchInterval: 2000 },
+    query: { enabled: !!bond, refetchInterval: 3000 },
   });
   const phase = reads.data?.[0]?.status === 'success' ? Number(reads.data[0].result) : undefined;
   const issuer = reads.data?.[11]?.result as Address | undefined;

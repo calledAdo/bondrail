@@ -16,6 +16,11 @@ export const chain = defineChain({
       ],
     },
   },
+  // Multicall3 lets wagmi/viem fold many reads into one eth_call (Monad's public RPC rate-limits bursts).
+  contracts:
+    configuredId === 31337
+      ? undefined
+      : { multicall3: { address: '0xcA11bde05977b3631167028862bE2a173976CA11', blockCreated: 251449 } },
   blockExplorers:
     configuredId === 31337
       ? undefined
@@ -26,7 +31,12 @@ export const walletConfig = createConfig({
   chains: [chain],
   // Passkey (Mera) first: works with no extension. Browser wallets still connect if installed.
   connectors: [passkey(process.env.NEXT_PUBLIC_RPC_URL || undefined), injected()],
-  transports: { [chain.id]: http() } as Record<(typeof chain)['id'], ReturnType<typeof http>>,
+  // Concurrent reads are coalesced: multicall for contract reads, JSON-RPC batching for the rest.
+  batch: { multicall: { wait: 32 } },
+  transports: { [chain.id]: http(undefined, { batch: { wait: 32 } }) } as Record<
+    (typeof chain)['id'],
+    ReturnType<typeof http>
+  >,
   ssr: true,
 });
 function address(value: string | undefined): Address | undefined {
