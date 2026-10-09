@@ -42,7 +42,7 @@ export function environment(env: NodeJS.ProcessEnv = process.env): AgentEnvironm
     publicURL: u.origin,
     facilitatorURL,
     modelBaseURL: (env.MODEL_BASE_URL ?? 'https://api.groq.com/openai/v1').replace(/\/$/, ''),
-    model: env.MODEL_ID ?? 'llama-3.1-8b-instant',
+    model: env.MODEL_ID ?? 'openai/gpt-oss-20b',
     apiKey: env.MODEL_API_KEY,
   };
 }
