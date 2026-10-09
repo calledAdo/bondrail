@@ -13,3 +13,4 @@ runs = 256
 [invariant]
 runs = 128
 depth = 64
+fail_on_revert = true

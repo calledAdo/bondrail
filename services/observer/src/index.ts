@@ -12,6 +12,7 @@ export async function loadRegistry(path:string,local=false):Promise<WatchPolicy[
   const ids=new Set();
   for(const p of data as WatchPolicy[]){
     if(!/^[a-z0-9-]{1,64}$/.test(p.id)||ids.has(p.id)||![10143,31337].includes(p.chainId)||!/^\d+$/.test(p.chainSelector)||![p.covenant,p.bond,p.asset,p.expectedPayTo].every(address)||p.method!=='GET'||p.network!==`eip155:${p.chainId}`||! /^(0|[1-9][0-9]*)$/.test(p.amount)||BigInt(p.amount)<=0n||p.parserVersion!==PARSER_VERSION||p.epochSeconds!==30||p.freshnessSeconds!==90||!Number.isSafeInteger(p.maxTimeoutSeconds)||p.maxTimeoutSeconds<1||p.maxTimeoutSeconds>300)throw new Error('Invalid watch policy');
+    if([p.covenant,p.bond,p.asset,p.expectedPayTo].some(v=>/^0x0{40}$/i.test(v)))throw new Error('Replace zero-address registry placeholders');
     validateURL(p.url,local&&p.chainId===31337);
     if(!p.headers||Object.entries(p.headers).some(([k,v])=>!['accept','x-slice-probe'].includes(k.toLowerCase())||typeof v!=='string'||v.length>256||/[\r\n]/.test(v)))throw new Error('Unsupported request headers');
     ids.add(p.id);

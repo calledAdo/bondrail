@@ -22,8 +22,7 @@ contract AccountingHandler is TestBase {
     constructor() {
         asset = new MockUSDC();
         SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
-        factory =
-            new SliceFactory(
+        factory = new SliceFactory(
             address(asset), address(c), vm.addr(PK), address(new SliceBond()), address(new SliceRouter())
         );
         c.initializeFactory(address(factory));

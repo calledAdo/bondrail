@@ -16,7 +16,7 @@ export function environment(env:NodeJS.ProcessEnv=process.env):AgentEnvironment{
 const KEY='agent:config:v1';
 export async function getConfig(store:DurableStore):Promise<AgentConfig>{
   const raw=await store.get(KEY);if(raw)return JSON.parse(raw) as AgentConfig;
-  const payTo=process.env.AGENT_INITIAL_PAY_TO;if(!address(payTo))throw new Error('AGENT_INITIAL_PAY_TO missing');
+  const payTo=process.env.AGENT_INITIAL_PAY_TO;if(!address(payTo)||/^0x0{40}$/i.test(payTo))throw new Error('AGENT_INITIAL_PAY_TO missing');
   const updatedAt=new Date().toISOString(),config:AgentConfig={revision:0,payTo,updatedAt,audit:[{revision:0,payTo,at:updatedAt}]};
   if(await store.cas(KEY,null,JSON.stringify(config)))return config;
   const committed=await store.get(KEY);if(!committed)throw new Error('Config initialization busy');return JSON.parse(committed) as AgentConfig;

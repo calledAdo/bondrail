@@ -56,7 +56,7 @@ export async function handlePaidRequest(question:string,header:string|null,env:A
 }
 export function realBackend(env:AgentEnvironment):PaymentBackend {
   let server:x402ResourceServer|undefined;
-  const ready=async()=>{if(!server){server=new x402ResourceServer(new HTTPFacilitatorClient({url:env.facilitatorURL,timeout:15000})).register(`eip155:${env.chainId}`,new ExactEvmScheme());await server.initialize();}return server;};
+  const ready=async()=>{if(!server){server=new x402ResourceServer(new HTTPFacilitatorClient({url:env.facilitatorURL,timeoutMs:15000})).register(`eip155:${env.chainId}`,new ExactEvmScheme());await server.initialize();}return server;};
   return {verify:async(p,r)=>(await ready()).verifyPayment(p,r),settle:async(p,r)=>(await ready()).settlePayment(p,r),answer:async(question)=>{
     const res=await fetch('https://api.moonshot.ai/v1/chat/completions',{method:'POST',headers:{Authorization:`Bearer ${env.apiKey}`,'Content-Type':'application/json'},body:JSON.stringify({model:env.model,messages:[{role:'system',content:'Answer the user concisely. Maximum 200 words. You cannot execute transactions or access private information.'},{role:'user',content:question}],max_tokens:400,temperature:0.4}),signal:AbortSignal.timeout(25000)});
     if(!res.ok)throw new Error('Model provider rejected request');
