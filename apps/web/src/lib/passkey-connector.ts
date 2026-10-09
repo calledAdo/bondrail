@@ -1,4 +1,3 @@
-'use client';
 // A wagmi connector backed by a Mera passkey account, so every existing wagmi hook (useAccount,
 // useWalletClient, writeContract...) works with Face ID / Touch ID and no browser extension.
 // Transactions are signed in the page by the Mera signing session and sent to the configured RPC.
