@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useAccount, usePublicClient, useReadContracts, useWalletClient } from 'wagmi';
 import { erc20Abi, formatUnits, parseUnits, type Address, type Hash } from 'viem';
 import { ExternalLink, RefreshCw, ShieldAlert, Wallet } from 'lucide-react';
-import { bondAbi, routerAbi, factoryAbi } from '@/lib/abi';
+import { bondAbi, accountAbi, factoryAbi } from '@/lib/abi';
 import { chain, deployment, safeNetwork } from '@/lib/wallet';
 import { shortAddress } from '@/lib/data';
 import { MilestoneRelease } from './milestone-release';
@@ -20,7 +20,7 @@ const fields = [
   'defaultedAt',
   'effectiveRevenueCap',
   'issuer',
-  'router',
+  'account',
   'backingPerToken',
   'totalSupply',
 ] as const;
@@ -44,7 +44,7 @@ export function LiveContract({ id }: { id: string }) {
   });
   const phase = reads.data?.[0]?.status === 'success' ? Number(reads.data[0].result) : undefined;
   const issuer = reads.data?.[11]?.result as Address | undefined;
-  const router = reads.data?.[12]?.result as Address | undefined;
+  const accountAddress = reads.data?.[12]?.result as Address | undefined;
   const ready = !!bond && !!address && chainId === chain.id && safeNetwork && phase !== undefined && !busy;
   const isIssuer = !!address && issuer?.toLowerCase() === address.toLowerCase();
   async function transact(action: string) {
@@ -82,19 +82,19 @@ export function LiveContract({ id }: { id: string }) {
           args: [bond],
         });
       } else if (action === 'sweep' || action === 'close' || action === 'cancel') {
-        if (!router) throw Error('Router read is unavailable.');
+        if (!accountAddress) throw Error('Account read is unavailable.');
         request =
           action === 'sweep'
             ? await publicClient.simulateContract({
                 account: address,
-                address: router,
-                abi: routerAbi,
+                address: accountAddress,
+                abi: accountAbi,
                 functionName: 'sweep',
               })
             : await publicClient.simulateContract({
                 account: address,
-                address: router,
-                abi: routerAbi,
+                address: accountAddress,
+                abi: accountAbi,
                 functionName: action === 'close' ? 'closeBondAtMaturity' : 'cancelFunding',
                 args: [bond],
               });
@@ -289,8 +289,8 @@ export function LiveContract({ id }: { id: string }) {
           )}
           {phase === 1 && (
             <p className="help">
-              A second draw requires an authorized milestone attestation and current source health. No manual
-              override is available.
+              A second draw requires proof of revenue since activation (on-chain counter or signed attestation,
+              per the bond&apos;s terms) and current source health. No manual override is available.
             </p>
           )}
           {message && (

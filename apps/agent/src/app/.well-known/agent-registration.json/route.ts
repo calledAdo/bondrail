@@ -10,7 +10,7 @@ export function GET() {
       type: 'https://eips.ethereum.org/EIPS/eip-8004#registration-v1',
       name: 'Oracle Agent',
       description:
-        'Paid Q&A API. Each call costs 0.01 test USDC via x402 and is paid to a Slice revenue router, which shares revenue with bondholders.',
+        'Paid Q&A API. Each call costs 0.01 test USDC via x402 and is paid to its SliceAccount, which shares revenue with bondholders while a bond is active.',
       services: [{ name: 'x402', endpoint: `${base}/api/oracle`, version: '2' }],
       x402Support: true,
       active: true,

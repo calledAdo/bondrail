@@ -7,10 +7,10 @@ import {
   type RevenueWindow,
   type RevenuePayment,
 } from './index.ts';
-const router = '0x123';
+const account = '0x123';
 const base: RevenueWindow = {
   chainId: 10143,
-  router,
+  account,
   from: 0,
   to: 2592000,
   block: '123',
@@ -21,7 +21,7 @@ const base: RevenueWindow = {
 const payment = (id: string, amount: string, extras: Partial<RevenuePayment> = {}): RevenuePayment => ({
   id,
   chainId: 10143,
-  router,
+  account,
   payer: id,
   amount,
   timestamp: 86401,
@@ -64,7 +64,7 @@ test('synthetic and related exclusion uses one bucket and preserves reasons', ()
 test('replay and issuer scoping', () => {
   const a = payment('a', '1000000');
   assert.equal(calculateScore({ ...base, payments: [a, a] }).rawRevenue, '1000000');
-  assert.throws(() => calculateScore({ ...base, payments: [{ ...a, router: 'another' }] }));
+  assert.throws(() => calculateScore({ ...base, payments: [{ ...a, account: 'another' }] }));
 });
 test('known-control cluster does not gain address diversification', () => {
   const payments = Array.from({ length: 10 }, (_, i) =>
@@ -96,7 +96,7 @@ test('5 recognized fees,9 receipts; attribution and duplicate prevention', () =>
   const receipts = [2, 3, 4].map((n, i) => ({
     id: String(i),
     chainId: 10143,
-    router,
+    account,
     from: 'payer',
     amount: String(n * 1e6),
     txHash: 'tx',

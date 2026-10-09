@@ -32,7 +32,7 @@ export interface Deployment {
   forwarder: Address;
   issuers: Array<{
     name: string;
-    router: Address;
+    account: Address;
     issuer: Address;
     bond?: Address;
     guard?: Address;

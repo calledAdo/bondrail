@@ -50,7 +50,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
       </Link>
       <div className="page-heading detail-heading">
         <div className="business-icon large blue">
-          {market.adapter === 'Locked' ? <ShieldCheck size={29} /> : <Radio size={29} />}
+          {market.adapter === 'Watched' ? <Radio size={29} /> : <ShieldCheck size={29} />}
         </div>
         <div className="detail-title">
           <div className="crumb">{issuer ? 'Business profile' : `Revenue claim / ${market.symbol}`}</div>
@@ -169,8 +169,9 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                       Second release <span>{100 - m.firstRelease}% conditional</span>
                     </h3>
                     <p>
-                      Within the fixed release window, with a healthy source and a signed revenue milestone
-                      from the disclosed evaluator.
+                      Within the fixed release window, with a healthy source and proof of revenue since
+                      activation: either the SliceAccount&apos;s own on-chain counter or a signed, wash-adjusted
+                      attestation, as fixed in the bond&apos;s terms.
                     </p>
                     <div className="mini-gates">
                       <span>
@@ -207,12 +208,15 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                   <span className="badge neutral">{m.adapter}</span>
                 </div>
                 <p>
-                  {m.adapter === 'Locked'
-                    ? 'A recognized PumpLab source commits its fee route through a restricted guard. Unknown calls, route changes and ownership changes are blocked while a bond is reserved.'
-                    : 'The monitor observes one registered x402 payment offer. Signed reports can identify a mismatch at that endpoint; they cannot prove the absence of other, unobserved payment routes.'}
+                  {m.adapter === 'Native'
+                    ? 'Built on Slice: every fee is pulled through this business\'s SliceAccount, which is fixed into its contract forever. There is no other fee path, so revenue cannot be diverted.'
+                    : m.adapter === 'Locked'
+                      ? 'An existing contract whose owner key is held by a FeeGuard. Fee-recipient, fee-rate, ownership and unknown calls are refused while a bond is live.'
+                      : 'Paid over x402. Chainlink CRE checks the advertised payTo every 30 seconds; two adjacent violations default the bond and slash the issuer\'s stake. Payments between a switch and its detection are at risk.'}
                 </p>
                 <SourceHealth market={m} />
               </section>
+              {m.live && m.credit && <CreditHistory market={m} />}
             </>
           )}
           {tab === 'Revenue & evidence' && (
@@ -462,6 +466,13 @@ function SourceHealth({ market: m }: { market: Market }) {
         Synthetic scenario only<span>Live monitoring status unavailable</span>
       </div>
     );
+  if (m.adapter === 'Native')
+    return (
+      <div className="source-health">
+        <span className="status-dot good" />
+        Fees pulled through the SliceAccount<span>No other fee path exists in the launchpad&apos;s code</span>
+      </div>
+    );
   if (m.adapter === 'Locked')
     return (
       <div className="source-health">
@@ -481,5 +492,41 @@ function SourceHealth({ market: m }: { market: Market }) {
           : 'Waiting for the first covenant report'}
       </span>
     </div>
+  );
+}
+
+/** The SliceAccount's own on-chain record: every booked payment since its first one, bond or no bond. */
+function CreditHistory({ market: m }: { market: Market }) {
+  const c = m.credit!;
+  const since = c.since ? new Date(c.since * 1000).toISOString().slice(0, 10) : '—';
+  return (
+    <section className="panel">
+      <div className="section-heading">
+        <h2>Revenue history since day one</h2>
+        <span className="badge neutral">On-chain · SliceAccount</span>
+      </div>
+      <dl className="fact-list">
+        <div>
+          <dt>Total revenue booked</dt>
+          <dd>{money(c.cumulative, 4)}</dd>
+        </div>
+        <div>
+          <dt>Payments</dt>
+          <dd>{c.payments}</dd>
+        </div>
+        <div>
+          <dt>Distinct proven payers</dt>
+          <dd>{m.adapter === 'Native' ? c.uniquePayers : 'Off-chain attribution'}</dd>
+        </div>
+        <div>
+          <dt>First revenue</dt>
+          <dd>{since}</dd>
+        </div>
+      </dl>
+      <p className="footnote">
+        The account counts revenue from its first payment, whether or not a bond exists, so the record that
+        underwrites a raise predates the raise. On-chain milestones read the same counter.
+      </p>
+    </section>
   );
 }

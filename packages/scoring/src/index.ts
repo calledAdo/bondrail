@@ -2,7 +2,7 @@ export type Exclusion = 'synthetic' | 'related' | 'incomplete';
 export interface RevenuePayment {
   id: string;
   chainId: number;
-  router: string;
+  account: string;
   payer: string;
   amount: string;
   timestamp: number;
@@ -16,7 +16,7 @@ export interface RevenuePayment {
 }
 export interface RevenueWindow {
   chainId: number;
-  router: string;
+  account: string;
   from: number;
   to: number;
   coverageComplete: boolean;
@@ -52,7 +52,7 @@ export function calculateScore(window: RevenueWindow, policy = scorePolicy) {
     incomplete = 0n;
   const assessments: Array<{ id: string; exclusion: Exclusion | null; reasons: string[] }> = [];
   for (const payment of window.payments) {
-    if (payment.chainId !== window.chainId || normalize(payment.router) !== normalize(window.router))
+    if (payment.chainId !== window.chainId || normalize(payment.account) !== normalize(window.account))
       throw new Error('Payment belongs to another stream or network');
     if (seen.has(payment.id)) continue;
     seen.add(payment.id);
@@ -111,7 +111,7 @@ export function calculateScore(window: RevenueWindow, policy = scorePolicy) {
   return {
     policyVersion: policy.version,
     chainId: window.chainId,
-    router: window.router,
+    account: window.account,
     asOfBlock: window.block,
     asOfBlockHash: window.blockHash,
     from: window.from,
@@ -166,7 +166,7 @@ export function suggestRaise(
 export interface Receipt {
   id: string;
   chainId: number;
-  router: string;
+  account: string;
   from: string;
   amount: string;
   txHash: string;

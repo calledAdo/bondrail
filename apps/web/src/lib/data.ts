@@ -13,7 +13,7 @@ export type Market = {
   symbol: string;
   description: string;
   category: string;
-  adapter: 'Locked' | 'Watched';
+  adapter: 'Native' | 'Locked' | 'Watched';
   phase: Phase;
   raised: number;
   target: number;
@@ -36,7 +36,9 @@ export type Market = {
   /** true only for values read from the chain and the indexer */
   live?: boolean;
   bond?: string;
-  router?: string;
+  account?: string;
+  /** On-chain credit history kept by the SliceAccount since its first payment. */
+  credit?: { cumulative: number; payments: number; uniquePayers: number; since: number };
   claimName?: string;
   daily?: { day: number; raw: number; verified: number }[];
   payers?: PayerRow[];
@@ -52,9 +54,9 @@ export const markets: Market[] = [
     id: 'pumplab',
     name: 'PumpLab',
     symbol: 'PUMP-01',
-    description: 'Token launches with a committed share of every trading fee.',
+    description: 'A launchpad built on Slice: every trading fee is pulled through its SliceAccount.',
     category: 'Launchpad',
-    adapter: 'Locked',
+    adapter: 'Native',
     phase: 'Active',
     raised: 10000,
     target: 10000,
@@ -73,6 +75,33 @@ export const markets: Market[] = [
     days: 14,
     history: [18, 30, 24, 42, 37, 50, 47, 68, 52, 78, 63, 90, 73, 100],
     accent: 'blue',
+    defaulted: false,
+  },
+  {
+    id: 'classic',
+    name: 'PumpLab Classic',
+    symbol: 'CLAB-01',
+    description: 'An existing launchpad whose owner key is held by a FeeGuard while the bond is live.',
+    category: 'Launchpad',
+    adapter: 'Locked',
+    phase: 'Active',
+    raised: 6000,
+    target: 6000,
+    released: 3000,
+    undrawn: 3000,
+    recovery: 0,
+    revenue: 410,
+    stake: 1000,
+    share: 25,
+    cap: 7200,
+    firstRelease: 50,
+    term: 60,
+    observed: 2100,
+    eligible: 1640,
+    adjusted: 1310,
+    days: 11,
+    history: [22, 30, 28, 41, 39, 47, 55, 52, 66, 71, 80],
+    accent: 'amber',
     defaulted: false,
   },
   {
@@ -103,11 +132,12 @@ export const markets: Market[] = [
     defaulted: false,
   },
 ];
+/** USD formatting; sub-dollar testnet amounts keep four decimals so they don't read as $0.00. */
 export const money = (n: number, decimals = 0) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
-    maximumFractionDigits: decimals,
+    maximumFractionDigits: n !== 0 && Math.abs(n) < 1 ? Math.max(decimals, 4) : decimals,
   }).format(n);
 export const findMarket = (id: string) => markets.find((m) => m.id === id);
 export const shortAddress = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;

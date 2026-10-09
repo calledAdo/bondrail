@@ -39,6 +39,7 @@ export const deployment = {
   factory: address(process.env.NEXT_PUBLIC_FACTORY_ADDRESS),
   bonds: {
     pumplab: address(process.env.NEXT_PUBLIC_PUMPLAB_BOND_ADDRESS),
+    classic: address(process.env.NEXT_PUBLIC_CLASSIC_BOND_ADDRESS),
     'oracle-agent': address(process.env.NEXT_PUBLIC_AGENT_BOND_ADDRESS),
   } as Record<string, Address | undefined>,
 };

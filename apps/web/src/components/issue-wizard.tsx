@@ -9,7 +9,8 @@ import { money } from '@/lib/data';
 import { SourceSetup } from './source-setup';
 export function IssueWizard() {
   const [step, setStep] = useState(0);
-  const [adapter, setAdapter] = useState<'Locked' | 'Watched'>('Locked');
+  const [adapter, setAdapter] = useState<'Native' | 'Locked' | 'Watched'>('Native');
+  const [milestoneMode, setMilestoneMode] = useState<'Onchain' | 'Signed'>('Onchain');
   const [ratio, setRatio] = useState('50');
   const [fields, setFields] = useState({
     claimName: 'PumpLab Revenue Claim',
@@ -20,7 +21,7 @@ export function IssueWizard() {
     share: '20',
     minimum: '5',
     interval: '60',
-    router: '',
+    account: '',
     source: '',
     guard: '',
     policy: '',
@@ -56,8 +57,9 @@ export function IssueWizard() {
     if (!fields.claimName.trim() || !/^[A-Z0-9-]{2,16}$/.test(fields.claimSymbol.trim()))
       throw Error('Give the claim token a name and a 2-16 character symbol (A-Z, 0-9, -).');
     if (all) {
-      for (const key of ['router', 'source', 'guard'] as const) {
-        if (key === 'guard' && adapter === 'Watched' && !fields.guard) continue;
+      for (const key of ['account', 'source', 'guard'] as const) {
+        if (key === 'guard' && adapter !== 'Locked') continue;
+        if (key === 'source' && adapter === 'Watched') continue;
         if (!isAddress(fields[key])) throw Error(`Enter a valid ${key} address from your source setup.`);
       }
       if (!/^0x[\da-fA-F]{64}$/.test(fields.policy) || /^0x0{64}$/.test(fields.policy))
@@ -139,7 +141,7 @@ export function IssueWizard() {
           abi: factoryAbi,
           functionName: 'createBond',
           args: [
-            fields.router as Address,
+            fields.account as Address,
             {
               raiseAmount: parseUnits(fields.raise, 6),
               repayCap: parseUnits(fields.cap, 6),
@@ -152,10 +154,11 @@ export function IssueWizard() {
               minOperatingPeriod: Number(fields.interval),
               revenueBps: Number(fields.share) * 100,
               firstReleaseBps: Number(ratio) * 100,
+              milestoneMode: milestoneMode === 'Onchain' ? 0 : 1,
             },
             {
-              adapter: adapter === 'Locked' ? 0 : 1,
-              source: fields.source as Address,
+              adapter: adapter === 'Native' ? 0 : adapter === 'Locked' ? 1 : 2,
+              source: (adapter === 'Watched' ? '0x0000000000000000000000000000000000000000' : fields.source) as Address,
               guard: (fields.guard || '0x0000000000000000000000000000000000000000') as Address,
               policyHash: fields.policy as Hash,
             },
@@ -208,34 +211,40 @@ export function IssueWizard() {
                 configuration.
               </p>
               <div className="source-options">
-                {(['Locked', 'Watched'] as const).map((a) => (
+                {(['Native', 'Locked', 'Watched'] as const).map((a) => (
                   <button
                     key={a}
                     className={`source-option ${adapter === a ? 'selected' : ''}`}
                     onClick={() => setAdapter(a)}
                     aria-pressed={adapter === a}
                   >
-                    {a === 'Locked' ? <ShieldCheck size={25} /> : <Radio size={25} />}
-                    <strong>{a === 'Locked' ? 'PumpLab fee source' : 'x402 service offer'}</strong>
+                    {a === 'Watched' ? <Radio size={25} /> : <ShieldCheck size={25} />}
+                    <strong>
+                      {a === 'Native' ? 'Built on Slice' : a === 'Locked' ? 'Existing contract' : 'x402 service'}
+                    </strong>
                     <small>
-                      {a === 'Locked'
-                        ? 'Recognized source and guard constrain fee routing.'
-                        : 'Signed observations monitor the registered payment offer.'}
+                      {a === 'Native'
+                        ? 'Every fee is pulled through your SliceAccount. Diversion is impossible by construction.'
+                        : a === 'Locked'
+                          ? 'A FeeGuard holds your contract and refuses fee-route changes while a bond is live.'
+                          : 'Chainlink CRE checks your payTo every 30 s; a diversion defaults the bond and slashes your stake.'}
                     </small>
                   </button>
                 ))}
               </div>
               <SourceSetup
-                router={fields.router}
+                account={fields.account}
                 adapter={adapter}
                 onCreated={(values) => setFields((f) => ({ ...f, ...values }))}
               />
               <div className="form-grid">
-                {(['router', 'source', 'guard', 'policy'] as const).map((k) => (
+                {(['account', 'source', 'guard', 'policy'] as const).map((k) => (
                   <label className="field-label wide" key={k}>
                     {k === 'policy'
                       ? 'Immutable policy hash'
-                      : `${k[0].toUpperCase() + k.slice(1)} address${k === 'guard' && adapter === 'Watched' ? ' (optional for Watched)' : ''}`}
+                      : k === 'account'
+                        ? 'SliceAccount address'
+                        : `${k[0].toUpperCase() + k.slice(1)} address${(k === 'guard' && adapter !== 'Locked') || (k === 'source' && adapter === 'Watched') ? ' (not used)' : ''}`}
                     <input
                       value={fields[k]}
                       onChange={(e) => update(k, e.target.value)}
@@ -283,6 +292,16 @@ export function IssueWizard() {
                     />
                   </label>
                 ))}
+                <label className="field-label wide">
+                  How the second release is proven
+                  <select
+                    value={milestoneMode}
+                    onChange={(e) => setMilestoneMode(e.target.value as 'Onchain' | 'Signed')}
+                  >
+                    <option value="Onchain">On-chain: my account's own revenue counter (trustless)</option>
+                    <option value="Signed">Signed: wash-adjusted revenue attested by the evaluator</option>
+                  </select>
+                </label>
                 <label className="field-label wide">
                   Capital release split
                   <select value={ratio} onChange={(e) => setRatio(e.target.value)}>
@@ -339,8 +358,12 @@ export function IssueWizard() {
                   <dd>{fields.share}%</dd>
                 </div>
                 <div>
-                  <dt>Signed milestone threshold</dt>
-                  <dd>{fields.minimum} USDC</dd>
+                  <dt>Second-release proof</dt>
+                  <dd>
+                    {milestoneMode === 'Onchain'
+                      ? `Account revenue ≥ ${fields.minimum} USDC since activation (on-chain)`
+                      : `Signed, wash-adjusted revenue ≥ ${fields.minimum} USDC`}
+                  </dd>
                 </div>
                 <div>
                   <dt>Minimum operating interval</dt>

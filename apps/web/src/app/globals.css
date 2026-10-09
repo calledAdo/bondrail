@@ -684,7 +684,7 @@ a:hover {
 }
 .adapter-explain {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   border-top: 1px solid var(--line);
   padding-top: 25px;
   gap: 38px;

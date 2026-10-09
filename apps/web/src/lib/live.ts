@@ -5,7 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { formatUnits, type Address } from 'viem';
-import { bondAbi } from './abi';
+import { accountAbi, bondAbi } from './abi';
 import { markets as fixtures, type Market, type PayerRow, type Phase } from './data';
 import { deployment } from './wallet';
 
@@ -55,14 +55,14 @@ async function gql<T>(query: string, variables: Record<string, unknown>): Promis
 }
 
 const QUERY = `
-query Market($bond: String!, $router: String!) {
+query Market($bond: String!, $account: String!) {
   Bond(where: { id: { _eq: $bond } }) {
-    id router phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool
+    id account phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool
     totalSupply effectiveCap defaulted
   }
-  Issuer(where: { id: { _eq: $router } }) { grossRevenue toInvestors payments issuer payout }
-  DailyRevenue(where: { router: { _eq: $router } }, order_by: { day: asc }) { day gross verified payments }
-  Payment(where: { router: { _eq: $router } }, order_by: { timestamp: desc }, limit: 1000) {
+  Issuer(where: { id: { _eq: $account } }) { grossRevenue toInvestors payments issuer tier }
+  DailyRevenue(where: { account: { _eq: $account } }, order_by: { day: asc }) { day gross verified payments }
+  Payment(where: { account: { _eq: $account } }, order_by: { timestamp: desc }, limit: 1000) {
     payer amount related reasons source timestamp
   }
   CovenantCheck(where: { bond: { _eq: $bond } }, order_by: { observedAt: desc }, limit: 20) {
@@ -89,8 +89,17 @@ async function loadMarket(
     client.readContract({ address: bond, abi: bondAbi, functionName: 'symbol' }),
     client.readContract({ address: bond, abi: bondAbi, functionName: 'backingPerToken' }),
   ]);
-  const router = (await client.readContract({ address: bond, abi: bondAbi, functionName: 'router' })) as Address;
-  const d = await gql<Row>(QUERY, { bond: bond.toLowerCase(), router: router.toLowerCase() });
+  const account = (await client.readContract({ address: bond, abi: bondAbi, functionName: 'account' })) as Address;
+  const read = (functionName: 'cumulativeRevenue' | 'paymentCount' | 'uniquePayers' | 'firstRevenueAt') =>
+    client.readContract({ address: account, abi: accountAbi, functionName });
+  const [cumulative, paymentCount, uniquePayers, firstRevenueAt, adapter] = await Promise.all([
+    read('cumulativeRevenue'),
+    read('paymentCount'),
+    read('uniquePayers'),
+    read('firstRevenueAt'),
+    client.readContract({ address: bond, abi: bondAbi, functionName: 'adapter' }),
+  ]);
+  const d = await gql<Row>(QUERY, { bond: bond.toLowerCase(), account: account.toLowerCase() });
   const b = d.Bond[0];
   const issuer = d.Issuer[0];
 
@@ -117,7 +126,15 @@ async function loadMarket(
     ...base,
     live: true,
     bond,
-    router,
+    account,
+    adapter: (['Native', 'Locked', 'Watched'] as const)[Number(adapter)] ?? base.adapter,
+    history: daily.length ? daily.map((x) => (x.raw / peak) * 100) : [0],
+    credit: {
+      cumulative: usd(cumulative as bigint),
+      payments: Number(paymentCount),
+      uniquePayers: Number(uniquePayers),
+      since: Number(firstRevenueAt),
+    },
     name: base.name,
     symbol: String(symbol),
     claimName: String(name),
@@ -137,7 +154,6 @@ async function loadMarket(
     eligible,
     adjusted,
     days: daily.length,
-    history: daily.length ? daily.map((x) => (x.raw / peak) * 100) : [0],
     daily,
     payers,
     payments: issuer?.payments ?? 0,

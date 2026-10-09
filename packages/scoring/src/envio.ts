@@ -38,7 +38,7 @@ export async function indexedScore(options: EnvioOptions, window: Omit<RevenueWi
       Payment: Array<{
         id: string;
         chainId: number;
-        router: string;
+        account: string;
         payer: string;
         amount: string;
         timestamp: string;
@@ -51,10 +51,10 @@ export async function indexedScore(options: EnvioOptions, window: Omit<RevenueWi
     }>(
       options,
       `
-        query Revenue($router: String!, $chain: Int!, $from: BigInt!, $to: BigInt!, $cursor: String!) {
+        query Revenue($account: String!, $chain: Int!, $from: BigInt!, $to: BigInt!, $cursor: String!) {
           Payment(
             where: {
-              router: { _eq: $router }
+              account: { _eq: $account }
               chainId: { _eq: $chain }
               timestamp: { _gte: $from, _lt: $to }
               id: { _gt: $cursor }
@@ -64,7 +64,7 @@ export async function indexedScore(options: EnvioOptions, window: Omit<RevenueWi
           ) {
             id
             chainId
-            router
+            account
             payer
             amount
             timestamp
@@ -77,7 +77,7 @@ export async function indexedScore(options: EnvioOptions, window: Omit<RevenueWi
         }
       `,
       {
-        router: window.router.toLowerCase(),
+        account: window.account.toLowerCase(),
         chain: window.chainId,
         from: String(window.from),
         to: String(window.to),

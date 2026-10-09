@@ -18,14 +18,14 @@ import { nextOperation } from './plan.js';
 import { runCRE } from './cre.js';
 const bondABI = parseAbi([
   'function phase() view returns (uint8)',
-  'function router() view returns (address)',
+  'function account() view returns (address)',
   'function undrawnPrincipal() view returns (uint256)',
   'function settleAfter() view returns (uint64)',
   'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps))',
   'function expireUndrawn()',
   'function finalizeSettlement()',
 ]);
-const routerABI = parseAbi([
+const accountABI = parseAbi([
   'function issuerCredit() view returns (uint256)',
   'function activeBond() view returns (address)',
   'function sweep()',
@@ -38,7 +38,7 @@ const observationABI = parseAbi([
 ]);
 interface Target {
   bond: Address;
-  router: Address;
+  account: Address;
   covenant?: Address;
   creWorkflow?: string;
 }
@@ -51,10 +51,10 @@ const targets = JSON.parse(await readFile(WORKER_TARGETS_FILE, 'utf8')) as Targe
 if (
   !Array.isArray(targets) ||
   targets.length > 16 ||
-  targets.some((t) => !address(t.bond) || !address(t.router) || (t.covenant && !address(t.covenant)))
+  targets.some((t) => !address(t.bond) || !address(t.account) || (t.covenant && !address(t.covenant)))
 )
   throw new Error('Invalid bounded worker targets');
-if (targets.some((t) => [t.bond, t.router, t.covenant].some((v) => v && /^0x0{40}$/i.test(v))))
+if (targets.some((t) => [t.bond, t.account, t.covenant].some((v) => v && /^0x0{40}$/i.test(v))))
   throw new Error('Replace zero-address worker placeholders');
 const chain = defineChain({
   id: chainId,
@@ -181,12 +181,12 @@ try {
           abi: bondABI,
           functionName: 'phase',
         });
-        const router = await client.readContract({
+        const account = await client.readContract({
           address: target.bond,
           abi: bondABI,
-          functionName: 'router',
+          functionName: 'account',
         });
-        if (router.toLowerCase() !== target.router.toLowerCase()) throw new Error('Target router mismatch');
+        if (account.toLowerCase() !== target.account.toLowerCase()) throw new Error('Target account mismatch');
         // CRE is the only operational report transport; local mode exercises contract maintenance only.
         if (
           chainId === 10143 &&
@@ -256,11 +256,11 @@ try {
             address: WORKER_ASSET,
             abi: tokenABI,
             functionName: 'balanceOf',
-            args: [router],
+            args: [account],
           }),
           client.readContract({
-            address: router,
-            abi: routerABI,
+            address: account,
+            abi: accountABI,
             functionName: 'issuerCredit',
           }),
           client.readContract({
@@ -292,16 +292,16 @@ try {
           tx = await submitMaintenance(operation, target.bond, () => wallet.writeContract(request));
         } else if (operation === 'sweep') {
           const active = await client.readContract({
-            address: router,
-            abi: routerABI,
+            address: account,
+            abi: accountABI,
             functionName: 'activeBond',
           });
           if (active.toLowerCase() !== target.bond.toLowerCase())
-            throw new Error('Router reserved for another bond');
+            throw new Error('Account reserved for another bond');
           const { request } = await client.simulateContract({
             account,
-            address: router,
-            abi: routerABI,
+            address: account,
+            abi: accountABI,
             functionName: 'sweep',
             gas: 1000000n,
             gasPrice: maxGasPrice,
@@ -310,8 +310,8 @@ try {
         } else {
           const { request } = await client.simulateContract({
             account,
-            address: router,
-            abi: routerABI,
+            address: account,
+            abi: accountABI,
             functionName: operation,
             args: [target.bond],
             gas: 1000000n,

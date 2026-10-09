@@ -138,7 +138,7 @@ export function Marketplace() {
                 </h3>
                 <p>
                   {m.category} <span className="inline-dot" />{' '}
-                  {m.adapter === 'Locked' ? <ShieldCheck size={13} /> : <Radio size={13} />} {m.adapter}{' '}
+                  {m.adapter === 'Watched' ? <Radio size={13} /> : <ShieldCheck size={13} />} {m.adapter}{' '}
                   source
                 </p>
               </div>
@@ -204,6 +204,14 @@ export function Marketplace() {
         <span>Know the collection boundary</span>
       </div>
       <div className="adapter-explain">
+        <div>
+          <ShieldCheck size={23} />
+          <h3>Native source</h3>
+          <p>
+            Built on Slice from day one: fees are pulled through the business&apos;s SliceAccount, so they
+            cannot be diverted, and its revenue history starts with its first payment.
+          </p>
+        </div>
         <div>
           <ShieldCheck size={23} />
           <h3>Locked source</h3>

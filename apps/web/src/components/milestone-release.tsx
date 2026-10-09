@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, usePublicClient, useReadContract, useWalletClient } from 'wagmi';
 import { isAddress, type Address, type Hash } from 'viem';
-import { factoryAbi } from '@/lib/abi';
+import { bondAbi, factoryAbi } from '@/lib/abi';
 import { chain, deployment, safeNetwork } from '@/lib/wallet';
 export function MilestoneRelease({ bond, onComplete }: { bond: Address; onComplete: () => void }) {
   const [input, setInput] = useState('');
@@ -13,6 +13,43 @@ export function MilestoneRelease({ bond, onComplete }: { bond: Address; onComple
   const { address, chainId } = useAccount();
   const client = usePublicClient();
   const { data: wallet } = useWalletClient();
+  const terms = useReadContract({ address: bond, abi: bondAbi, functionName: 'terms', chainId: chain.id });
+  const onchain = terms.data ? Number(terms.data.milestoneMode) === 0 : undefined;
+
+  /** On-chain mode: the factory reads the account's own revenue counter; no signature involved. */
+  async function releaseOnchain() {
+    setError('');
+    setMessage('');
+    setHash(undefined);
+    setBusy(true);
+    try {
+      if (!safeNetwork || chainId !== chain.id || !address || !client || !wallet || !deployment.factory)
+        throw Error('Connect the issuer wallet on the configured test network.');
+      const simulation = await client.simulateContract({
+        account: address,
+        address: deployment.factory,
+        abi: factoryAbi,
+        functionName: 'releaseSecond',
+        args: [bond],
+      });
+      setMessage('Confirm the second-release transaction in your wallet.');
+      const tx = await wallet.writeContract(simulation.request as Parameters<typeof wallet.writeContract>[0]);
+      setHash(tx);
+      const receipt = await client.waitForTransactionReceipt({ hash: tx });
+      if (receipt.status !== 'success') throw Error('Release reverted; no draw was recorded.');
+      setMessage('Second release confirmed: the account had earned enough since activation.');
+      onComplete();
+    } catch (e) {
+      setError(
+        e instanceof Error
+          ? e.message.slice(0, 360)
+          : 'Not yet: revenue since activation or the operating period is below the bond terms.',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
   async function release() {
     setError('');
     setMessage('');
@@ -55,11 +92,11 @@ export function MilestoneRelease({ bond, onComplete }: { bond: Address; onComple
         account: address,
         address: deployment.factory,
         abi: factoryAbi,
-        functionName: 'releaseSecond',
+        functionName: 'releaseSecondSigned',
         args: [bond, milestone, signature as Hash],
       });
       setMessage('Confirm the second-release transaction in your wallet.');
-      const tx = await wallet.writeContract(simulation.request);
+      const tx = await wallet.writeContract(simulation.request as Parameters<typeof wallet.writeContract>[0]);
       setHash(tx);
       setMessage('Waiting for the actual release receipt…');
       const receipt = await client.waitForTransactionReceipt({ hash: tx });
@@ -72,6 +109,28 @@ export function MilestoneRelease({ bond, onComplete }: { bond: Address; onComple
       setBusy(false);
     }
   }
+  if (onchain)
+    return (
+      <div className="milestone-details">
+        <p className="help">
+          This bond proves its milestone on-chain: the second release unlocks once the SliceAccount has
+          earned the minimum revenue since activation and the operating period has passed.
+        </p>
+        <button className="button full" disabled={busy} onClick={releaseOnchain}>
+          Request second release
+        </button>
+        {error && (
+          <p className="notice danger" role="alert">
+            {error}
+          </p>
+        )}
+        {message && (
+          <p className="notice" role="status">
+            {message}
+          </p>
+        )}
+      </div>
+    );
   return (
     <details className="milestone-details">
       <summary>Issuer: submit a signed second-draw milestone</summary>
