@@ -16,7 +16,7 @@ const rpc =
     ? '\n    rpc: http://127.0.0.1:8545'
     : process.env.ENVIO_API_TOKEN
       ? ''
-      : `\n    rpc:\n      - url: ${process.env.MONAD_RPC ?? 'https://testnet-rpc.monad.xyz'}\n        for: sync`;
+      : `\n    rpc:\n      - url: ${process.env.MONAD_RPC ?? 'https://testnet-rpc.monad.xyz'}\n        for: sync\n        # Monad's public RPC caps eth_getLogs at 100 blocks.\n        initial_block_interval: 100\n        interval_ceiling: 100`;
 const tx = '\n        field_selection: { transaction_fields: [hash] }';
 
 fs.writeFileSync(
