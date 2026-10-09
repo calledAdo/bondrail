@@ -9,7 +9,7 @@ business either cannot route around or gets punished for routing around.
 
 - App: https://slice-flame.vercel.app (Monad testnet)
 - Demo issuer, a paid x402 AI API: https://slice-agent.vercel.app/api/oracle
-- Indexer (Envio HyperIndex): https://indexer.dev.hyperindex.xyz/db35311/v1/graphql
+- Indexer (Envio HyperIndex): https://indexer.dev.hyperindex.xyz/b912a23/v1/graphql
 - Specification: [`docs/SPEC.md`](docs/SPEC.md)
 
 Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
@@ -44,8 +44,8 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 
 | Tier | For | Why revenue can't be diverted | Demo |
 |---|---|---|---|
-| **Native** | New projects built on Slice | Every fee is pulled through the account, which is fixed into the project's contract. No other fee path exists: **impossible by construction** | PumpLab launchpad |
-| **Locked** | Existing contracts with an owner-set fee recipient | Ownership is held by a `FeeGuard`, which refuses recipient, rate, ownership and unknown calls while a bond is live: **impossible while locked** | PumpLab Classic |
+| **Native** | New projects built on Slice: inherit `SliceEarner` | Every fee is pulled through the account, which is fixed into the project's contract. A disclosed Slice reviewer checks the code before the project can raise; history accrues before review: **impossible by construction** | PumpLab launchpad |
+| **Locked** | Any existing owner-administered fee contract | Ownership is held by a generic `FeeGuard` (configured with the contract's fee-recipient getter, optional fee-rate floor and an allowlist of harmless admin calls); everything else is refused while a bond is live: **impossible while locked** | PumpLab Classic |
 | **Watched** | Revenue paid over HTTP (x402 agents) | **Chainlink CRE** checks the advertised `payTo` every 30 s; two adjacent violations default the bond and slash the issuer's stake: **caught and punished** | Oracle Agent |
 
 ```
@@ -62,24 +62,41 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 
 | What | Address |
 |---|---|
-| SliceFactory | `0xb4620109307835d4a52a781470279155a1bfbc09` |
-| SliceCovenant (CRE receiver) | `0xb1c85a5dad3d619e5ef5a090c1eb1c1c9437d37a` |
+| SliceFactory | `0x14160bb3838714fed6842214ca29e66b39d756e1` |
+| SliceCovenant (CRE receiver) | `0x599c8397c64b22794847f8644c0916064abbf780` |
 | CRE MockKeystoneForwarder | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` |
-| PumpLab (Native): account / launchpad / bond `PLAB-RC` | `0x04319a0dFd177f70226E9D71F92F599f457f807c` / `0xA531e3D34e6dF05eE5dEA0beBc5C19351B05a743` / `0xc9F074793fe1E2f8Fa863386cD799Aaba22fC652` |
-| PumpLab Classic (Locked): account / launchpad / FeeGuard / bond `CLAB-RC` | `0x57B42c0C9003A8b4659e0B8b2bcDeE5C297CeEF9` / `0x6DeaE3c4d0B677709D8Bf3DdD2CB3d7127a6dB75` / `0xcc1B19f5372FfCDde5a698F5f9dc366c8477493D` / `0x4dB03668B734f649f058ddC00569B5318615848c` |
-| Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0xe74108A1Cb162Aa10F6dCac376eEbD2c2cF727e8` / `0xE9FA3Fe3A8a90F26f9Df0d1223D2F00fd57497F8` |
-| Kuru `PLAB-RC`/USDC market / AMM vault | `0xBb5d25B18A988D39De9669a2F65B30dc45E1410A` / `0x0aa28475a14908fDf2a519a6C2A7C4712371c4cA` |
+| Native reviewer (disclosed) | `0x10Be6883Ebbd9B610C43a97f338512a5e66f5893` |
+| PumpLab (Native): account / project / bond `PLAB-RC` | `0xD4e4959e39787bbDb448d7437f67ca32AbD204B2` / `0x700d8a4e125e3a32dd2be9f727cab4d2a5d2f59d` / `0x121a1294Ced6c90c25bB823e72416E89677a717F` |
+| PumpLab Classic (Locked): account / contract / FeeGuard / bond `CLAB-RC` | `0x2BA8145ebc85feB8A7E8Ebf55A03B37E8fB42A75` / `0x297b0fb25ffe786a88bf20c100c4476ea82dd8c7` / `0x04744483190D4373Ee55cE065c69374cc0f5C38B` / `0x9fcA536a68f0a47d029f93D1a28549288Ba163b5` |
+| Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0xa4a870a3b5Bc457266416C84441011e879141a26` / `0xaDF2916EFd32A4F603E00423Cd9fB5c453a16630` |
+| Kuru `PLAB-RC`/USDC market / AMM vault | `0xEd980DA024b1f5dcaaF3F103275F7a660ED00813` / `0x862f1372307162469DFc2bFe845bDCF0F634515E` |
 | ERC-8004 agentId | `2091` (Identity Registry `0x8004A818BFB912233c491871b3d84c89A494BD9e`) |
 
 | Transaction | Hash |
 |---|---|
-| CRE report that gated the Watched bond's activation | `0xc7f73342df8f577398fda34dbccd36891fb485e16fa9c415a27bd15e70d456b2` |
-| Watched bond activated | `0x7b0dc237cb9c87dc22dd5941fb9caeaaebcc015db781fc0683a966a30bb8c246` |
-| Paid x402 call settled to the agent's account | `0x5edf3ff5e434404d7d92e433b1e9f41c01ee1938508e2a0369a5d0cd2d1a80d3` |
-| x402 receipts booked and split (`sweep`) | `0x6c50f88633cee7efe0757cc8baa176c7d4391d78b014a663049b26ae3988ad03` |
-| Kuru market deployed / vault seeded | `0xc893dbba1fb729f43ca5759d3549eb9359a53660ca22a539d1661fe4597ddd10` / `0xc69fc36973f51cbc6a399d5f3dcd884708619d13835c664a9ccac5e201d5a877` |
+| CRE report that gated the Watched bond's activation | `0xd8d14065168c5f823f612c1108937b4dd9a6a1c72913f0ee7a69e72ba2f6c52f` |
+| Watched bond activated | `0xb7242d699e57a189d3dca80b5c988631f0d36c493b3ddea093582c59f41c3857` |
+| Paid x402 call settled to the agent's account | `0x895fda501203a0ef87aca1dc2cba77fbe0a77bdbabeb35401dcf7911ccc06bab` |
+| Kuru market deployed / vault seeded | `0x1d92020bf951d4f8f937d3ae868d536475c4ac1951607025e19ad0706141f28b` / `0x5b9ac046684a23d350ca11992d56f821feffedf07fabbce5bc7d58e5a764352c` |
 
 All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json).
+
+## Product vs demo
+
+Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
+
+| Product | |
+|---|---|
+| [`contracts/src`](contracts/src) | SliceAccount, SliceBond, SliceFactory, SliceCovenant, FeeGuard, **SliceEarner** (inherit it to be Native) |
+| [`packages/sdk`](packages/sdk) (`@slice/sdk`) | Typed ABIs and client (accounts, guards, bonds, credit history), EIP-2612 permit for Native payments, **x402 handler** that pays a SliceAccount, revenue data and scoring |
+| [`services`](services), [`cre`](cre), [`indexer`](indexer), [`apps/web`](apps/web) | Observer, keeper, Chainlink CRE covenant workflow, Envio indexer (protocol events only), the app |
+
+| Demo ([`demo/`](demo)) | Built on |
+|---|---|
+| PumpLab | `SliceEarner`; bound to its account and reviewer-approved |
+| PumpLab Classic | An ordinary Ownable launchpad, guarded by a generic `FeeGuard` |
+| Oracle Agent | `@slice/sdk/x402` (about 60 lines of its own code) |
+| `demo/scripts` | Setup, traffic, Kuru listing, ERC-8004, demo moments |
 
 ## Sponsor integrations
 
@@ -113,7 +130,7 @@ All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json
 
 ### Kuru: a new asset class
 - Revenue-bond claims trade on a Kuru order book against USDC, with an AMM vault.
-- [`scripts/kuru-market.ts`](scripts/kuru-market.ts): `deployProxy` on the Kuru router, then a vault deposit.
+- [`demo/scripts/kuru-market.ts`](demo/scripts/kuru-market.ts): `deployProxy` on the Kuru router, then a vault deposit.
 
 ### Nansen: payer screening
 - On the issuer page, **Screen top payers with Nansen** checks payers against Nansen labels on Monad
@@ -126,20 +143,20 @@ All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json
 - The x402 facilitator settles on Monad and pays the gas, so payers need only USDC.
 
 ### Also used
-- **x402:** the Oracle Agent is a real paid API ([`apps/agent`](apps/agent)).
+- **x402:** `@slice/sdk/x402` makes any paid API pay its SliceAccount; the Oracle Agent ([`demo/agent`](demo/agent)) is a real paid API built on it.
 - **ERC-8004:** the agent is registered (agentId 2091). A default triggers negative reputation feedback
-  from an independent reporter ([`scripts/erc8004.ts`](scripts/erc8004.ts)).
+  from an independent reporter ([`demo/scripts/erc8004.ts`](demo/scripts/erc8004.ts)).
 - **Mera:** passkey accounts (Face ID / Touch ID) as a wagmi connector, so no wallet extension is needed.
 
 ## Demo commands
 
 | Step | Command |
 |---|---|
-| Native launchpad revenue, organic and wash | `pnpm tsx scripts/traffic-launchpad.ts pumplab organic 1` · `… pumplab wash 1` |
-| Locked launchpad revenue | `pnpm tsx scripts/traffic-launchpad.ts classic organic 1` |
-| Paid API traffic | `pnpm tsx scripts/traffic-agent.ts 10` |
-| Locked: the guard blocks a fee redirect | `pnpm tsx scripts/demo-locked.ts` |
-| Watched: payTo diversion → CRE default → ERC-8004 feedback | `pnpm tsx scripts/demo-default.ts --yes` (irreversible) |
+| Native launchpad revenue, organic and wash | `pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1` · `… pumplab wash 1` |
+| Locked launchpad revenue | `pnpm tsx demo/scripts/traffic-launchpad.ts classic organic 1` |
+| Paid API traffic | `pnpm tsx demo/scripts/traffic-agent.ts 10` |
+| Locked: the guard blocks a fee redirect | `pnpm tsx demo/scripts/demo-locked.ts` |
+| Watched: payTo diversion → CRE default → ERC-8004 feedback | `pnpm tsx demo/scripts/demo-default.ts --yes` (irreversible) |
 
 ## Security
 
@@ -153,7 +170,7 @@ All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |
 
-- Foundry: 45 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
+- Foundry: 49 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
 - TypeScript: tests for scoring, observer, worker, agent and web (`pnpm -r test`).
 
 ## Limits, stated plainly
@@ -162,25 +179,26 @@ All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json
   differ only in who funded them, which is exactly what the wash detector looks at.
 - **CRE runs as a local simulation** that broadcasts real reports, not a deployed DON. The observer is a
   single disclosed signer.
-- **Native recognition.** The factory recognises launchpads it deployed itself. Third-party Native
-  projects would need a code review or allowlist, because a contract can't verify arbitrary bytecode.
+- **Native trust is a disclosed reviewer.** A contract can't verify arbitrary bytecode, so a reviewer
+  approves Native projects' code; approved templates (code-hash registry) are the planned next step.
 - **Nansen** covers Monad mainnet, not testnet. Our fresh demo payers come back unlabelled.
 
 ## Repository
 
 ```
-contracts/   Foundry: SliceFactory, SliceAccount, SliceBond, FeeGuard, SliceCovenant, PumpLab, PumpLabClassic
-apps/web/    Next.js app: markets, issuer evidence and credit history, bond workspace, issue wizard, passkeys
-apps/agent/  Paid x402 Oracle Agent (Vercel, Upstash-backed payment journal)
-services/    observer (signs payTo observations), worker (sweeps, closes, CRE loop)
-cre/         Chainlink CRE covenant workflow
-indexer/     Envio HyperIndex
-scripts/     deploy, demo setup, traffic, Kuru, ERC-8004, demo controls
+contracts/src     PROTOCOL  SliceFactory, SliceAccount, SliceBond, FeeGuard, SliceCovenant, SliceEarner
+packages/sdk      PRODUCT   @slice/sdk: ABIs, client, permit, x402 handler, revenue data
+apps/web          PRODUCT   markets, issuer evidence and credit history, bond workspace, onboarding, passkeys
+services/         PRODUCT   observer (signs payTo observations), worker (sweeps, closes, CRE loop)
+cre/              PRODUCT   Chainlink CRE covenant workflow
+indexer/          PRODUCT   Envio HyperIndex (protocol events only)
+scripts/          PRODUCT   protocol deploy
+demo/             DEMO      contracts (PumpLab, PumpLabClassic), agent (Oracle Agent), scripts
 ```
 
 Run locally: `pnpm install`; `forge test --root contracts`; `pnpm -r test`; start
 `anvil --code-size-limit 131072`, then run `SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts` and
-`scripts/setup-demo.ts`.
+`demo/scripts/setup-demo.ts`.
 
 Built during the hackathon by calledAdo, with AI pair-programming (OpenAI Codex, then Claude Code).
 MIT licensed.

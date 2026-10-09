@@ -61,13 +61,14 @@ Vault plus ERC-20 claim (6 decimals, name and symbol per bond).
 - **Closing → Closed:** Watched bonds get a 120 s window for late evidence; Locked and Native close immediately.
 
 ### SliceFactory
-- `createAccount(payout)`; the issuer is `msg.sender`.
-- `createNativeLaunchpad(account, name, symbol)`: deploys a **recognized** Native PumpLab bound to the account. Recognition is required because the factory cannot inspect arbitrary bytecode.
-- `createLockedLaunchpad(account, name, symbol)`: deploys a classic launchpad plus FeeGuard; ownership goes to the guard.
+- `createAccount()`; the issuer is `msg.sender`.
+- `setNativeApproval(project, bool)`: the disclosed `reviewer` approves a Native project's code (it pays every fee through `collect`). History accrues before review; review is required to raise.
+- `createGuard(account, target, recipientGetter, feeGetter, minFee, allowedSelectors)`: a generic FeeGuard for any owner-administered fee contract; the issuer then points the fee recipient at the account and transfers ownership to the guard.
+- The factory never deploys projects: Native projects inherit `SliceEarner` and bind themselves (`account.bindProject`, issuer only, the project must point at the account).
 - `createBond(account, terms, config, name, symbol)`.
 - `activate`, `releaseSecond(bond)` (on-chain mode), `releaseSecondSigned(bond, milestone, sig)`.
 - Health check before activation and release:
-  - **Native:** the launchpad is recognized and bound to the account.
+  - **Native:** the project is reviewer-approved, bound to the account, and points at it.
   - **Locked:** the guard is locked.
   - **Watched:** the covenant reports healthy.
 
@@ -100,3 +101,7 @@ Two adjacent Violations after activation trigger `markDefault`.
   `pool + redeemed = revenue + principalRecovery + stakeRecovery`;
   `released + undrawn + principalRecovery = raise` after activation.
 - Only the bound project can trigger `collect`; only the factory attaches bonds; one active bond per account.
+
+## 5. Product vs demo
+- Product: `contracts/src`, `packages/sdk` (`@slice/sdk`), `services`, `cre`, `indexer`, `apps/web`, `scripts/deploy.ts`.
+- Demo: `demo/` (PumpLab, PumpLabClassic, Oracle Agent on `@slice/sdk/x402`, setup/traffic/demo scripts). The demo uses only public protocol and SDK interfaces.
