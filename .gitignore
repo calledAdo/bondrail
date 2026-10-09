@@ -19,3 +19,7 @@ out/
 playwright-report/
 test-results/
 *.tsbuildinfo
+indexer/config.yaml
+indexer/src/deployment.ts
+indexer/envio-env.d.ts
+docs/deployments/31337.json
