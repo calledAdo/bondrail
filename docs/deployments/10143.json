@@ -29,7 +29,8 @@
       "issuer": "0x4bd86fD284C8F28daC02C0327bFf8F5b83C37394",
       "router": "0xd9644fBf11Fd243402F9D969EEf4454dba697432",
       "bond": "0xC60B199c7128e42AD277dAA4569C7E8Bb6866F82",
-      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health"
+      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health",
+      "agentId": "2091"
     }
   },
   "watchPolicy": {
