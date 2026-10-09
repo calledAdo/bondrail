@@ -13,14 +13,16 @@ import {
   FileText,
   ChevronRight,
 } from 'lucide-react';
-import { type Market, money } from '@/lib/data';
+import { type Market, money, shortAddress } from '@/lib/data';
 import { CapitalRibbon, RevenueChart } from './visuals';
 import { LiveContract } from './live-contract';
 export function Details({ market, issuer = false }: { market: Market; issuer?: boolean }) {
   const [scenario, setScenario] = useState('Current example');
   const [tab, setTab] = useState('Overview');
-  const m =
-    scenario === 'Default & recovery'
+  const live = !!market.live;
+  const m = live
+    ? market
+    : scenario === 'Default & recovery'
       ? {
           ...market,
           phase: 'Active' as const,
@@ -70,35 +72,39 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
           <section className="panel capital-panel">
             <div className="section-heading">
               <h2>Where the capital stands</h2>
-              <label className="scenario-select">
-                <span className="sr-only">Synthetic scenario</span>
-                <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
-                  <option>Current example</option>
-                  <option>Default & recovery</option>
-                  <option>Closing</option>
-                </select>
-              </label>
+              {live ? (
+                <span className="badge good">Live · Monad testnet</span>
+              ) : (
+                <label className="scenario-select">
+                  <span className="sr-only">Synthetic scenario</span>
+                  <select value={scenario} onChange={(e) => setScenario(e.target.value)}>
+                    <option>Current example</option>
+                    <option>Default & recovery</option>
+                    <option>Closing</option>
+                  </select>
+                </label>
+              )}
             </div>
             <div className="capital-total">
               <span>Total capital raised</span>
               <strong>
-                {money(m.raised)}
-                <small>test USDC · synthetic</small>
+                {money(m.raised, 2)}
+                <small>test USDC{live ? '' : ' · synthetic'}</small>
               </strong>
             </div>
             <CapitalRibbon market={m} />
             <div className="capital-secondary">
               <div>
                 <span>Revenue collected</span>
-                <strong>{money(m.revenue)}</strong>
+                <strong>{money(m.revenue, 2)}</strong>
               </div>
               <div>
                 <span>Principal recovery</span>
-                <strong>{money(m.recovery)}</strong>
+                <strong>{money(m.recovery, 2)}</strong>
               </div>
               <div>
                 <span>Stake {m.defaulted ? 'recovery' : 'held'}</span>
-                <strong>{money(m.stake)}</strong>
+                <strong>{money(m.stake, 2)}</strong>
               </div>
             </div>
             {m.defaulted ? (
@@ -205,10 +211,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                     ? 'A recognized PumpLab source commits its fee route through a restricted guard. Unknown calls, route changes and ownership changes are blocked while a bond is reserved.'
                     : 'The monitor observes one registered x402 payment offer. Signed reports can identify a mismatch at that endpoint; they cannot prove the absence of other, unobserved payment routes.'}
                 </p>
-                <div className="source-health">
-                  <span className="status-dot" />
-                  Synthetic scenario only<span>Live monitoring status unavailable</span>
-                </div>
+                <SourceHealth market={m} />
               </section>
             </>
           )}
@@ -217,14 +220,15 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
               <section className="panel">
                 <div className="section-heading">
                   <h2>Receipts, with context</h2>
-                  <span className="badge neutral">Synthetic sample</span>
+                  <span className="badge neutral">{live ? `${m.payments ?? 0} payments indexed by Envio` : 'Synthetic sample'}</span>
                 </div>
                 <RevenueChart market={m} />
                 <p className="notice warning">
-                  {m.days} observed days. A live terms recommendation needs 30 complete days. Separate funding
-                  does not prove independent customers.
+                  {m.days} observed day{m.days === 1 ? '' : 's'}. A live terms recommendation needs 30 complete
+                  days. Separate funding does not prove independent customers.
                 </p>
               </section>
+              {live && <PayerTable market={m} />}
               <section className="panel">
                 <h2>Payer evidence</h2>
                 <div className="evidence-row">
@@ -257,7 +261,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
           )}
           {tab === 'Terms' && (
             <section className="panel">
-              <h2>Illustrative instrument terms</h2>
+              <h2>{live ? 'Instrument terms (read from the bond contract)' : 'Illustrative instrument terms'}</h2>
               <dl className="fact-list roomy">
                 <div>
                   <dt>Revenue participation</dt>
@@ -275,11 +279,11 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                 </div>
                 <div>
                   <dt>Cap after first release</dt>
-                  <dd>{money((m.target * 1.2 * m.firstRelease) / 100)}</dd>
+                  <dd>{money((m.cap * m.firstRelease) / 100, 2)}</dd>
                 </div>
                 <div>
                   <dt>Full-release cap</dt>
-                  <dd>{money(m.target * 1.2)}</dd>
+                  <dd>{money(m.cap, 2)}</dd>
                 </div>
                 <div>
                   <dt>Claim class</dt>
@@ -287,7 +291,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                 </div>
                 <div>
                   <dt>Early redemption</dt>
-                  <dd>Unavailable</dd>
+                  <dd>From activation, at the current backing per claim</dd>
                 </div>
                 <div>
                   <dt>Second-release evaluator</dt>
@@ -307,14 +311,14 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
         </div>
         <aside>
           <section className="panel decision-panel">
-            <span className="badge neutral">Illustrative series {m.symbol}</span>
+            <span className="badge neutral">{live ? m.symbol : `Illustrative series ${m.symbol}`}</span>
             <h2>
               {m.share}%<small>revenue participation</small>
             </h2>
             <dl className="fact-list">
               <div>
                 <dt>Raise target</dt>
-                <dd>{money(m.target)}</dd>
+                <dd>{money(m.target, 2)}</dd>
               </div>
               <div>
                 <dt>Term</dt>
@@ -342,5 +346,94 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
         </aside>
       </div>
     </>
+  );
+}
+
+const REASONS: Record<string, string> = {
+  issuer_wallet: 'Issuer wallet',
+  funded_by_issuer_treasury: 'Funded by issuer treasury',
+};
+
+/** Every payer the indexer attributed revenue to, with the evidence for excluding related ones. */
+function PayerTable({ market }: { market: Market }) {
+  const rows = market.payers ?? [];
+  return (
+    <section className="panel">
+      <div className="section-heading">
+        <h2>Payers</h2>
+        <span className="badge neutral">
+          {rows.filter((r) => r.related).length} of {rows.length} excluded
+        </span>
+      </div>
+      {rows.length === 0 ? (
+        <p className="help">No payments indexed yet.</p>
+      ) : (
+        <table className="payer-table">
+          <thead>
+            <tr>
+              <th>Payer</th>
+              <th>Source</th>
+              <th>Payments</th>
+              <th>Paid</th>
+              <th>Counted as</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.slice(0, 25).map((r) => (
+              <tr key={r.payer}>
+                <td className="mono">{shortAddress(r.payer)}</td>
+                <td>{r.source === 'x402' ? 'x402 API call' : 'Launchpad fee'}</td>
+                <td>{r.payments}</td>
+                <td>{money(r.amount, 4)}</td>
+                <td>
+                  {r.related ? (
+                    <span className="badge warning" title={r.reasons.map((x) => REASONS[x] ?? x).join(', ')}>
+                      Excluded · {r.reasons.map((x) => REASONS[x] ?? x).join(', ')}
+                    </span>
+                  ) : (
+                    <span className="badge good">Verified</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      <p className="footnote">
+        Exclusions come from on-chain funding edges: a payer whose USDC came from the issuer&apos;s own
+        treasury is the business paying itself.
+      </p>
+    </section>
+  );
+}
+
+/** Locked: the guard holds the source. Watched: the latest CRE-delivered observation of the payTo. */
+function SourceHealth({ market: m }: { market: Market }) {
+  if (!m.live)
+    return (
+      <div className="source-health">
+        <span className="status-dot" />
+        Synthetic scenario only<span>Live monitoring status unavailable</span>
+      </div>
+    );
+  if (m.adapter === 'Locked')
+    return (
+      <div className="source-health">
+        <span className="status-dot good" />
+        FeeGuard owns the launchpad<span>Fee recipient and rate changes are blocked on-chain</span>
+      </div>
+    );
+  const last = m.checks?.[0];
+  const label = !last ? 'No CRE report yet' : last.result === 1 ? 'Compliant' : last.result === 2 ? 'Violation' : 'Unknown';
+  return (
+    <div className="source-health">
+      <span className={`status-dot ${last?.result === 1 ? 'good' : last?.result === 2 ? 'danger' : ''}`} />
+      {label}
+      <span>
+        {last
+          ? `Last Chainlink CRE report ${Math.max(0, Math.round(Date.now() / 1000 - last.at))} s ago · ${m.checks!.length} recent`
+          : 'Waiting for the first covenant report'}
+      </span>
+    </div>
   );
 }

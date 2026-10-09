@@ -61,6 +61,7 @@ export function Sparkline({ values, color = 'var(--blue)' }: { values: number[];
   );
 }
 export function RevenueChart({ market }: { market: Market }) {
+  if (market.live && market.daily?.length) return <LiveRevenueChart market={market} />;
   return (
     <div className="revenue-chart">
       <div className="chart-summary">
@@ -107,6 +108,62 @@ export function RevenueChart({ market }: { market: Market }) {
         <span>
           <i className="chart-key eligible" />
           Eligible after known exclusions
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/** Daily raw vs verified revenue from the indexer. The gap is revenue from related payers. */
+function LiveRevenueChart({ market: m }: { market: Market }) {
+  const days = m.daily!;
+  const peak = Math.max(...days.map((d) => d.raw), 1e-9);
+  return (
+    <div className="revenue-chart">
+      <div className="chart-summary">
+        <div>
+          <span>Raw revenue</span>
+          <strong>{money(m.observed, 4)}</strong>
+        </div>
+        <div>
+          <span>Verified (related payers excluded)</span>
+          <strong>{money(m.eligible, 4)}</strong>
+        </div>
+        <div>
+          <span>Concentration-adjusted</span>
+          <strong>{money(m.adjusted, 4)}</strong>
+        </div>
+      </div>
+      <div
+        className="bar-chart"
+        role="img"
+        aria-label={`${days.length} days: raw ${money(m.observed, 4)}, verified ${money(m.eligible, 4)}`}
+      >
+        {days.map((d) => (
+          <div
+            key={d.day}
+            className="bar-column"
+            title={`${new Date(d.day * 86_400_000).toISOString().slice(0, 10)}: ${money(d.raw, 4)} raw; ${money(d.verified, 4)} verified`}
+          >
+            <div className="chart-bar" style={{ height: `${(d.raw / peak) * 100}%` }}>
+              <span style={{ height: `${d.raw ? (d.verified / d.raw) * 100 : 0}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="chart-axis">
+        <span>{new Date(days[0].day * 86_400_000).toISOString().slice(0, 10)}</span>
+        <span>{days.length} indexed day{days.length === 1 ? '' : 's'} · Envio</span>
+        <span>{new Date(days[days.length - 1].day * 86_400_000).toISOString().slice(0, 10)}</span>
+      </div>
+      <div className="chart-legend">
+        <span>
+          <i className="chart-key observed" />
+          Raw
+        </span>
+        <span>
+          <i className="chart-key eligible" />
+          Verified
         </span>
       </div>
     </div>

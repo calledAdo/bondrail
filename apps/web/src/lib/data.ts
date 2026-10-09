@@ -1,4 +1,12 @@
-export type Phase = 'Funding' | 'Active' | 'Closing' | 'Closed';
+export type Phase = 'Funding' | 'Active' | 'Closing' | 'Closed' | 'Cancelled';
+export type PayerRow = {
+  payer: string;
+  amount: number;
+  payments: number;
+  related: boolean;
+  reasons: string[];
+  source: string;
+};
 export type Market = {
   id: string;
   name: string;
@@ -25,6 +33,18 @@ export type Market = {
   history: number[];
   accent: string;
   defaulted: boolean;
+  /** true only for values read from the chain and the indexer */
+  live?: boolean;
+  bond?: string;
+  router?: string;
+  claimName?: string;
+  daily?: { day: number; raw: number; verified: number }[];
+  payers?: PayerRow[];
+  payments?: number;
+  backingPerToken?: number;
+  pool?: number;
+  supply?: number;
+  checks?: { result: number; at: number; txHash: string }[];
 };
 /** Deliberately synthetic scenario fixtures; never use for chain accounting or authorizations. */
 export const markets: Market[] = [

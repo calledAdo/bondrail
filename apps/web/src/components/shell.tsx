@@ -6,6 +6,7 @@ import { ArrowUpRight, ChevronDown, FlaskConical, Wallet, LogOut } from 'lucide-
 import { useState } from 'react';
 import { chain, safeNetwork } from '@/lib/wallet';
 import { shortAddress } from '@/lib/data';
+import { liveConfigured } from '@/lib/live';
 export function WalletButton() {
   const { address, chainId } = useAccount();
   const { connectAsync, connectors, isPending } = useConnect();
@@ -92,10 +93,17 @@ export function Shell({ children }: { children: React.ReactNode }) {
       </header>
       <div className="preview-strip">
         <FlaskConical size={15} aria-hidden />
-        <span>
-          <strong>Synthetic preview.</strong> Illustrative businesses and activity. Live wallet transactions
-          require a configured testnet deployment.
-        </span>
+        {liveConfigured ? (
+          <span>
+            <strong>Monad testnet.</strong> Live contracts and Envio-indexed revenue. Demo businesses and
+            their traffic are run by the Slice team.
+          </span>
+        ) : (
+          <span>
+            <strong>Synthetic preview.</strong> Illustrative businesses and activity. Live wallet transactions
+            require a configured testnet deployment.
+          </span>
+        )}
         <Link href="/demo">
           Readiness <ArrowUpRight size={13} aria-hidden />
         </Link>

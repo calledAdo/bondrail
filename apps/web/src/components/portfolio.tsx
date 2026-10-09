@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { useAccount, useReadContract } from 'wagmi';
 import { formatUnits } from 'viem';
 import { Wallet, ArrowUpRight } from 'lucide-react';
-import { markets, type Market } from '@/lib/data';
+import { type Market } from '@/lib/data';
+import { useMarkets } from '@/lib/live';
 import { chain, deployment } from '@/lib/wallet';
 import { bondAbi } from '@/lib/abi';
 function Position({ market }: { market: Market }) {
@@ -44,6 +45,7 @@ function Position({ market }: { market: Market }) {
   );
 }
 export function Portfolio() {
+  const { markets, live } = useMarkets();
   const { address } = useAccount();
   return (
     <>
@@ -63,7 +65,7 @@ export function Portfolio() {
             contracts.
           </p>
           <Link href="/" className="button">
-            Explore the preview markets
+            {live ? 'Explore the markets' : 'Explore the preview markets'}
           </Link>
         </section>
       ) : (

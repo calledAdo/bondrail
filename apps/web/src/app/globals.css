@@ -1770,3 +1770,12 @@ footer > span:nth-child(2) {
   font-size: 11px;
   resize: vertical;
 }
+
+/* Live payer table */
+.payer-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: 14px; }
+.payer-table th { text-align: left; font-weight: 600; color: var(--muted, #5b6b80); padding: 8px 6px; border-bottom: 1px solid var(--line, #dfe5ee); }
+.payer-table td { padding: 8px 6px; border-bottom: 1px solid var(--line, #eef2f7); }
+.payer-table .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.status-dot.good { background: var(--teal, #217c70); }
+.status-dot.danger { background: #c2412d; }
+@media (max-width: 640px) { .payer-table th:nth-child(2), .payer-table td:nth-child(2) { display: none; } }

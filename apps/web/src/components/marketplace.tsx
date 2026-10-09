@@ -10,11 +10,22 @@ import {
   ArrowRight,
   Layers3,
 } from 'lucide-react';
-import { markets, money } from '@/lib/data';
+import { money } from '@/lib/data';
+import { useMarkets } from '@/lib/live';
 import { CapitalRibbon, Sparkline } from './visuals';
 export function Marketplace() {
   const [filter, setFilter] = useState('All markets');
   const [query, setQuery] = useState('');
+  const { markets, live } = useMarkets();
+  const totals = markets.reduce(
+    (t, m) => ({
+      released: t.released + (m.phase === 'Funding' ? 0 : m.released),
+      escrow: t.escrow + (m.phase === 'Funding' ? 0 : m.undrawn),
+      funding: t.funding + (m.phase === 'Funding' ? m.raised : 0),
+    }),
+    { released: 0, escrow: 0, funding: 0 },
+  );
+  const committed = totals.released + totals.escrow + totals.funding;
   const visible = markets.filter(
     (m) =>
       (filter === 'All markets' || m.phase === filter) &&
@@ -26,7 +37,7 @@ export function Marketplace() {
         <div>
           <div className="crumb">Explore / Revenue financing</div>
           <h1>
-            Revenue markets<span className="count">02</span>
+            Revenue markets<span className="count">{String(markets.length).padStart(2, '0')}</span>
           </h1>
           <p>Back a business. See where every part of your capital goes.</p>
         </div>
@@ -34,7 +45,7 @@ export function Marketplace() {
           Raise capital <ArrowUpRight size={16} aria-hidden />
         </Link>
       </div>
-      <section className="market-overview" aria-label="Synthetic marketplace overview">
+      <section className="market-overview" aria-label="Marketplace overview">
         <div className="overview-title">
           <Layers3 size={22} aria-hidden />
           <h2>
@@ -48,22 +59,20 @@ export function Marketplace() {
         </div>
         <div className="overview-capital">
           <div className="overview-total">
-            <span>Illustrative capital committed</span>
+            <span>{live ? 'Capital committed on Monad testnet' : 'Illustrative capital committed'}</span>
             <strong>
-              {money(15700)}
+              {money(committed, committed < 100 ? 2 : 0)}
               <small>test USDC</small>
             </strong>
           </div>
           <div className="overview-strip">
-            <span className="released" style={{ flex: 5000 }}>
-              5,000
-            </span>
-            <span className="escrow" style={{ flex: 5000 }}>
-              5,000
-            </span>
-            <span className="funding" style={{ flex: 5700 }}>
-              5,700
-            </span>
+            {(['released', 'escrow', 'funding'] as const)
+              .filter((k) => totals[k] > 0)
+              .map((k) => (
+                <span key={k} className={k} style={{ flex: totals[k] }}>
+                  {money(totals[k], totals[k] < 100 ? 2 : 0)}
+                </span>
+              ))}
           </div>
           <div className="overview-legend">
             <span>
