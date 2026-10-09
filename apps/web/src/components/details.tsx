@@ -415,7 +415,13 @@ function PayerTable({ market }: { market: Market }) {
             {rows.slice(0, 25).map((r) => (
               <tr key={r.payer}>
                 <td className="mono">{shortAddress(r.payer)}</td>
-                <td>{r.source === 'x402' ? 'x402 API call' : 'Launchpad fee'}</td>
+                <td>
+                  {r.source === 'x402'
+                    ? 'x402 API call'
+                    : r.source === 'native'
+                      ? 'Pulled fee (proven payer)'
+                      : 'Fee transfer from contract'}
+                </td>
                 <td>{r.payments}</td>
                 <td>{money(r.amount, 4)}</td>
                 <td>
@@ -469,8 +475,13 @@ function SourceHealth({ market: m }: { market: Market }) {
   if (m.adapter === 'Native')
     return (
       <div className="source-health">
-        <span className="status-dot good" />
-        Fees pulled through the SliceAccount<span>No other fee path exists in the launchpad&apos;s code</span>
+        <span className={`status-dot ${m.nativeApproved ? 'good' : ''}`} />
+        {m.nativeApproved ? 'Reviewed: fees pulled through the SliceAccount' : 'Awaiting Slice review'}
+        <span>
+          {m.nativeApproved
+            ? 'The disclosed reviewer checked that every fee goes through SliceEarner'
+            : 'History accrues, but the project cannot raise until its code is reviewed'}
+        </span>
       </div>
     );
   if (m.adapter === 'Locked')

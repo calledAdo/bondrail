@@ -37,6 +37,8 @@ export type Market = {
   live?: boolean;
   bond?: string;
   account?: string;
+  /** Native only: the disclosed reviewer approved the project's code. */
+  nativeApproved?: boolean;
   /** On-chain credit history kept by the SliceAccount since its first payment. */
   credit?: { cumulative: number; payments: number; uniquePayers: number; since: number };
   claimName?: string;

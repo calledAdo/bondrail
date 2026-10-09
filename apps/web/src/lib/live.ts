@@ -60,7 +60,7 @@ query Market($bond: String!, $account: String!) {
     id account phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool
     totalSupply effectiveCap defaulted
   }
-  Issuer(where: { id: { _eq: $account } }) { grossRevenue toInvestors payments issuer tier }
+  Issuer(where: { id: { _eq: $account } }) { grossRevenue toInvestors payments issuer tier projectApproved }
   DailyRevenue(where: { account: { _eq: $account } }, order_by: { day: asc }) { day gross verified payments }
   Payment(where: { account: { _eq: $account } }, order_by: { timestamp: desc }, limit: 1000) {
     payer amount related reasons source timestamp
@@ -127,6 +127,7 @@ async function loadMarket(
     live: true,
     bond,
     account,
+    nativeApproved: !!issuer?.projectApproved,
     adapter: (['Native', 'Locked', 'Watched'] as const)[Number(adapter)] ?? base.adapter,
     history: daily.length ? daily.map((x) => (x.raw / peak) * 100) : [0],
     credit: {
