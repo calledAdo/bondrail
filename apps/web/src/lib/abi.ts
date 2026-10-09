@@ -1,5 +1,41 @@
 import { parseAbi } from 'viem';
 // Public API from contracts/INTERFACE.md; generated shared ABIs can replace these narrow fragments.
-export const bondAbi=parseAbi(['function phase() view returns (uint8)','function issuer() view returns (address)','function router() view returns (address)','function fundingEscrow() view returns (uint256)','function releasedPrincipal() view returns (uint256)','function undrawnPrincipal() view returns (uint256)','function principalRecovery() view returns (uint256)','function revenuePool() view returns (uint256)','function stakeRecovery() view returns (uint256)','function stakeHeld() view returns (uint256)','function pool() view returns (uint256)','function defaultedAt() view returns (uint64)','function effectiveRevenueCap() view returns (uint256)','function balanceOf(address) view returns (uint256)','function deposit(uint256 amount)','function expireUndrawn()','function finalizeSettlement()','function refund(uint256 amount,address to)','function redeem(uint256 amount,address to)']);
-export const routerAbi=parseAbi(['function sweep()','function closeBondAtMaturity(address expectedBond)','function cancelFunding(address expectedBond)']);
-export const factoryAbi=parseAbi(['function activate(address bond)','function releaseSecond(address bond,(address bond,bytes32 policyHash,uint64 periodStart,uint64 periodEnd,uint256 eligibleRevenue,bytes32 evidenceHash,uint64 expiresAt,uint256 nonce) milestone,bytes signature)','function createRouter() returns(address router)','function createLockedSource(address router,string name,string symbol,uint16 maxNameLength) returns(address source,address guard)','event RouterCreated(address indexed issuer,address indexed router)','event LockedSourceCreated(address indexed issuer,address indexed router,address source,address guard,address token)','function createBond(address router,(uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps) terms,(uint8 adapter,address source,address guard,bytes32 policyHash) config) returns(address bond)']);
+export const bondAbi = parseAbi([
+  'function phase() view returns (uint8)',
+  'function issuer() view returns (address)',
+  'function router() view returns (address)',
+  'function fundingEscrow() view returns (uint256)',
+  'function releasedPrincipal() view returns (uint256)',
+  'function undrawnPrincipal() view returns (uint256)',
+  'function principalRecovery() view returns (uint256)',
+  'function revenuePool() view returns (uint256)',
+  'function stakeRecovery() view returns (uint256)',
+  'function stakeHeld() view returns (uint256)',
+  'function pool() view returns (uint256)',
+  'function defaultedAt() view returns (uint64)',
+  'function effectiveRevenueCap() view returns (uint256)',
+  'function balanceOf(address) view returns (uint256)',
+  'function totalSupply() view returns (uint256)',
+  'function backingPerToken() view returns (uint256)',
+  'function name() view returns (string)',
+  'function symbol() view returns (string)',
+  'function deposit(uint256 amount)',
+  'function expireUndrawn()',
+  'function finalizeSettlement()',
+  'function refund(uint256 amount,address to)',
+  'function redeem(uint256 amount,address to)',
+]);
+export const routerAbi = parseAbi([
+  'function sweep()',
+  'function closeBondAtMaturity(address expectedBond)',
+  'function cancelFunding(address expectedBond)',
+]);
+export const factoryAbi = parseAbi([
+  'function activate(address bond)',
+  'function releaseSecond(address bond,(address bond,bytes32 policyHash,uint64 periodStart,uint64 periodEnd,uint256 eligibleRevenue,bytes32 evidenceHash,uint64 expiresAt,uint256 nonce) milestone,bytes signature)',
+  'function createRouter() returns(address router)',
+  'function createLockedSource(address router,string name,string symbol,uint16 maxNameLength) returns(address source,address guard)',
+  'event RouterCreated(address indexed issuer,address indexed router)',
+  'event LockedSourceCreated(address indexed issuer,address indexed router,address source,address guard,address token)',
+  'function createBond(address router,(uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps) terms,(uint8 adapter,address source,address guard,bytes32 policyHash) config,string name,string symbol) returns(address bond)',
+]);

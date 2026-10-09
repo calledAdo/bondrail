@@ -1,6 +1,6 @@
-import { storeFromEnv } from "@slice/observer/store";
-import { environment, getConfig } from "../../../lib/config.js";
-export const dynamic = "force-dynamic";
+import { storeFromEnv } from '@slice/observer/store';
+import { environment, getConfig } from '../../../lib/config.js';
+export const dynamic = 'force-dynamic';
 export async function GET() {
   try {
     const env = environment(),
@@ -12,16 +12,13 @@ export async function GET() {
         updatedAt: config.updatedAt,
         chainId: env.chainId,
         asset: env.asset,
-        priceAtomic: "10000",
-        priceUSD: "0.01",
+        priceAtomic: '10000',
+        priceUSD: '0.01',
         model: env.model,
       },
-      { headers: { "Cache-Control": "no-store" } },
+      { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch {
-    return Response.json(
-      { error: "configuration_unavailable" },
-      { status: 503 },
-    );
+    return Response.json({ error: 'configuration_unavailable' }, { status: 503 });
   }
 }

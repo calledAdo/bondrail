@@ -5,7 +5,10 @@ import { validCode, newSession, validSession, sameOrigin } from './demo-auth.ts'
 
 const previous = process.env.DEMO_ACCESS_CODE;
 process.env.DEMO_ACCESS_CODE = 'local-test-code-never-a-deployed-credential';
-after(() => { if (previous === undefined) delete process.env.DEMO_ACCESS_CODE; else process.env.DEMO_ACCESS_CODE = previous; });
+after(() => {
+  if (previous === undefined) delete process.env.DEMO_ACCESS_CODE;
+  else process.env.DEMO_ACCESS_CODE = previous;
+});
 
 test('only the configured code establishes an authentic session', () => {
   assert.equal(validCode('wrong'), false);
@@ -34,8 +37,27 @@ test('disabled configuration invalidates sessions and rejects codes', () => {
 });
 
 test('mutating controls require an explicit same-origin request', () => {
-  assert.equal(sameOrigin(new Request('https://slice.test/api/demo/action', { headers: { origin: 'https://slice.test', 'sec-fetch-site': 'same-origin' } })), true);
-  assert.equal(sameOrigin(new Request('https://slice.test/api/demo/action', { headers: { origin: 'https://attacker.test' } })), false);
+  assert.equal(
+    sameOrigin(
+      new Request('https://slice.test/api/demo/action', {
+        headers: { origin: 'https://slice.test', 'sec-fetch-site': 'same-origin' },
+      }),
+    ),
+    true,
+  );
+  assert.equal(
+    sameOrigin(
+      new Request('https://slice.test/api/demo/action', { headers: { origin: 'https://attacker.test' } }),
+    ),
+    false,
+  );
   assert.equal(sameOrigin(new Request('https://slice.test/api/demo/action')), false);
-  assert.equal(sameOrigin(new Request('https://slice.test/api/demo/action', { headers: { origin: 'https://slice.test', 'sec-fetch-site': 'cross-site' } })), false);
+  assert.equal(
+    sameOrigin(
+      new Request('https://slice.test/api/demo/action', {
+        headers: { origin: 'https://slice.test', 'sec-fetch-site': 'cross-site' },
+      }),
+    ),
+    false,
+  );
 });

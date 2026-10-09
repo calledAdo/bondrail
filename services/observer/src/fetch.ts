@@ -1,12 +1,12 @@
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
-import https from "node:https";
-import http from "node:http";
-import type { WatchPolicy } from "./protocol.js";
+import { lookup } from 'node:dns/promises';
+import { isIP } from 'node:net';
+import https from 'node:https';
+import http from 'node:http';
+import type { WatchPolicy } from './protocol.js';
 
 export function publicAddress(ip: string): boolean {
   if (isIP(ip) === 4) {
-    const p = ip.split(".").map(Number),
+    const p = ip.split('.').map(Number),
       a = p[0]!,
       b = p[1]!,
       c = p[2]!;
@@ -29,23 +29,18 @@ export function publicAddress(ip: string): boolean {
     return (
       /^[23][0-9a-f]{3}:/.test(normalized) &&
       !/^2001:(?:0*:|0?db8:|0?2:|0?1[0-9a-f]:)/.test(normalized) &&
-      !normalized.startsWith("2002:") &&
-      !normalized.startsWith("3fff:")
+      !normalized.startsWith('2002:') &&
+      !normalized.startsWith('3fff:')
     );
   }
   return false;
 }
 export function validateURL(value: string, local = false): URL {
   const u = new URL(value);
-  if (u.username || u.password || u.hash)
-    throw new Error("URL credentials/fragments forbidden");
-  const fixture =
-    local &&
-    u.protocol === "http:" &&
-    u.hostname === "127.0.0.1" &&
-    u.port === "3001";
-  if (!fixture && (u.protocol !== "https:" || (u.port && u.port !== "443")))
-    throw new Error("Only HTTPS port 443 is supported");
+  if (u.username || u.password || u.hash) throw new Error('URL credentials/fragments forbidden');
+  const fixture = local && u.protocol === 'http:' && u.hostname === '127.0.0.1' && u.port === '3001';
+  if (!fixture && (u.protocol !== 'https:' || (u.port && u.port !== '443')))
+    throw new Error('Only HTTPS port 443 is supported');
   return u;
 }
 export async function fetchOffer(
@@ -53,16 +48,13 @@ export async function fetchOffer(
   local = false,
 ): Promise<{ status: number; header?: string }> {
   const u = validateURL(p.url, local),
-    fixture = local && u.protocol === "http:";
-  const addresses = await lookup(u.hostname.replace(/^\[|\]$/g, ""), {
+    fixture = local && u.protocol === 'http:';
+  const addresses = await lookup(u.hostname.replace(/^\[|\]$/g, ''), {
     all: true,
     verbatim: true,
   });
-  if (
-    !addresses.length ||
-    (!fixture && addresses.some((x) => !publicAddress(x.address)))
-  )
-    throw new Error("Unsafe DNS resolution");
+  if (!addresses.length || (!fixture && addresses.some((x) => !publicAddress(x.address))))
+    throw new Error('Unsafe DNS resolution');
   const selected = addresses[0]!;
   return await new Promise((resolve, reject) => {
     let bytes = 0;
@@ -75,33 +67,27 @@ export async function fetchOffer(
         agent: false,
         maxHeaderSize: 24576,
         // Pin the validated address for this connection, closing the DNS-rebinding gap.
-        lookup: ((
-          _host: unknown,
-          _opts: unknown,
-          cb: (err: null, ip: string, family: number) => void,
-        ) => cb(null, selected.address, selected.family)) as never,
+        lookup: ((_host: unknown, _opts: unknown, cb: (err: null, ip: string, family: number) => void) =>
+          cb(null, selected.address, selected.family)) as never,
       },
       (res) => {
-        const values = res.headersDistinct["payment-required"];
-        res.on("data", (chunk: Buffer) => {
+        const values = res.headersDistinct['payment-required'];
+        res.on('data', (chunk: Buffer) => {
           bytes += chunk.length;
-          if (bytes > 65536) req.destroy(new Error("Response exceeds limit"));
+          if (bytes > 65536) req.destroy(new Error('Response exceeds limit'));
         });
-        res.on("end", () =>
+        res.on('end', () =>
           resolve({
             status: res.statusCode ?? 0,
             header: values?.length === 1 ? values[0] : undefined,
           }),
         );
-        res.on("error", reject);
+        res.on('error', reject);
       },
     );
-    const timer = setTimeout(
-      () => req.destroy(new Error("Observation timeout")),
-      8000,
-    );
-    req.on("close", () => clearTimeout(timer));
-    req.on("error", reject);
+    const timer = setTimeout(() => req.destroy(new Error('Observation timeout')), 8000);
+    req.on('close', () => clearTimeout(timer));
+    req.on('error', reject);
     req.end();
   });
 }
