@@ -1,7 +1,6 @@
 {
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "name": "@slice/agent",
   "scripts": {
     "dev": "next dev -p 3001",
