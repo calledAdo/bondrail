@@ -248,9 +248,9 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                 <div className="evidence-row">
                   <div>
                     <strong>Nansen enrichment</strong>
-                    <p>No mainnet labels are assigned to testnet accounts</p>
+                    <p>Screens payers against Nansen labels on Monad mainnet; never mapped onto testnet activity</p>
                   </div>
-                  <span className="badge neutral">Unavailable on testnet</span>
+                  <span className="badge neutral">On demand</span>
                 </div>
                 <p className="footnote">
                   An empty provider response or missing funding edge means incomplete knowledge, not a
@@ -355,14 +355,42 @@ const REASONS: Record<string, string> = {
 };
 
 /** Every payer the indexer attributed revenue to, with the evidence for excluding related ones. */
+type NansenResult = { address: string; labels: { label: string; category?: string }[] | null; error?: string };
+
 function PayerTable({ market }: { market: Market }) {
   const rows = market.payers ?? [];
+  const [nansen, setNansen] = useState<Record<string, NansenResult>>({});
+  const [screening, setScreening] = useState('');
+  async function screen() {
+    setScreening('Asking Nansen…');
+    try {
+      const r = await fetch('/api/nansen', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ addresses: rows.slice(0, 10).map((x) => x.payer) }),
+      });
+      const j = (await r.json()) as { results?: NansenResult[]; error?: string };
+      if (!r.ok || !j.results) throw new Error(j.error ?? 'Nansen unavailable');
+      setNansen(Object.fromEntries(j.results.map((x) => [x.address, x])));
+      setScreening('');
+    } catch (e) {
+      setScreening((e as Error).message);
+    }
+  }
   return (
     <section className="panel">
       <div className="section-heading">
         <h2>Payers</h2>
         <span className="badge neutral">
           {rows.filter((r) => r.related).length} of {rows.length} excluded
+        </span>
+      </div>
+      <div className="nansen-bar">
+        <button className="button" onClick={screen} disabled={!rows.length || !!screening}>
+          Screen top payers with Nansen
+        </button>
+        <span className="help">
+          {screening || 'Nansen labels from Monad mainnet; it does not cover testnet. Empty lookups are free.'}
         </span>
       </div>
       {rows.length === 0 ? (
@@ -376,6 +404,7 @@ function PayerTable({ market }: { market: Market }) {
               <th>Payments</th>
               <th>Paid</th>
               <th>Counted as</th>
+              {Object.keys(nansen).length > 0 && <th>Nansen (mainnet)</th>}
             </tr>
           </thead>
           <tbody>
@@ -394,6 +423,23 @@ function PayerTable({ market }: { market: Market }) {
                     <span className="badge good">Verified</span>
                   )}
                 </td>
+                {Object.keys(nansen).length > 0 && (
+                  <td>
+                    {!nansen[r.payer] ? (
+                      <span className="help">not screened</span>
+                    ) : nansen[r.payer].labels === null ? (
+                      <span className="help">{nansen[r.payer].error}</span>
+                    ) : nansen[r.payer].labels!.length === 0 ? (
+                      <span className="help">No labels</span>
+                    ) : (
+                      nansen[r.payer].labels!.slice(0, 2).map((l) => (
+                        <span key={l.label} className="badge neutral" title={l.category}>
+                          {l.label}
+                        </span>
+                      ))
+                    )}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

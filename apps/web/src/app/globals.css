@@ -1785,3 +1785,4 @@ footer > span:nth-child(2) {
 .wallet-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; display: grid; min-width: 220px; padding: 6px; background: #fff; border: 1px solid var(--line, #dfe5ee); border-radius: 10px; box-shadow: 0 10px 30px rgba(21, 43, 74, 0.12); }
 .wallet-menu button { text-align: left; padding: 10px 12px; min-height: 44px; border: 0; background: none; border-radius: 8px; font: inherit; color: inherit; cursor: pointer; }
 .wallet-menu button:hover, .wallet-menu button:focus-visible { background: var(--canvas, #f3f6fa); }
+.nansen-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 4px 0 14px; }
