@@ -16,6 +16,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     error InvalidAmount();
     error TooEarly();
     error TransferLocked();
+    error LastHolderWaitsForClose();
     bool private initialized;
     IERC20 public asset;
     address public factory;
@@ -62,16 +63,20 @@ contract SliceBond is ERC20, ReentrancyGuard {
     event Redeemed(address indexed holder, address indexed receiver, uint256 tokens, uint256 amount);
     event StakeClaimed(address indexed receiver, uint256 amount);
 
-    constructor() ERC20("Slice Revenue Claim", "SLICE") {
+    string private _claimName;
+    string private _claimSymbol;
+
+    constructor() ERC20("", "") {
         initialized = true;
     }
 
-    function name() public pure override returns (string memory) {
-        return "Slice Revenue Claim";
+    /// @dev Clones carry their own name and symbol so each bond is distinguishable on Kuru and in wallets.
+    function name() public view override returns (string memory) {
+        return _claimName;
     }
 
-    function symbol() public pure override returns (string memory) {
-        return "SLICE";
+    function symbol() public view override returns (string memory) {
+        return _claimSymbol;
     }
 
     function decimals() public pure override returns (uint8) {
@@ -93,13 +98,17 @@ contract SliceBond is ERC20, ReentrancyGuard {
         address covenant_,
         address recipient_,
         SliceTypes.Terms calldata terms_,
-        SliceTypes.AdapterConfig calldata config
+        SliceTypes.AdapterConfig calldata config,
+        string calldata name_,
+        string calldata symbol_
     ) external {
         if (
             initialized || asset_ == address(0) || issuer_ == address(0) || router_ == address(0)
                 || recipient_ == address(0)
         ) revert InvalidState();
         initialized = true;
+        _claimName = name_;
+        _claimSymbol = symbol_;
         factory = msg.sender;
         asset = IERC20(asset_);
         issuer = issuer_;
@@ -268,10 +277,18 @@ contract SliceBond is ERC20, ReentrancyGuard {
         emit SettlementFinalized(pool, totalSupply(), stakeReturnCredit);
     }
 
+    /// @notice Burn claims for a pro-rata share of the pool collected so far. Allowed while revenue is still
+    /// being collected: the pool only grows, so a leaver takes today's share and remaining holders keep a
+    /// proportional claim on later revenue, recovered principal and any slashed stake. The last claim
+    /// cannot be burned before the bond is Closed, so no inflow can land in a pool nobody owns.
     function redeem(uint256 tokens, address to) external nonReentrant returns (uint256 amount) {
-        if (phase != SliceTypes.Phase.Closed) revert InvalidState();
+        SliceTypes.Phase p = phase;
+        if (p != SliceTypes.Phase.Active && p != SliceTypes.Phase.Closing && p != SliceTypes.Phase.Closed) {
+            revert InvalidState();
+        }
         _validPayment(tokens, to);
         uint256 supply = totalSupply();
+        if (tokens == supply && p != SliceTypes.Phase.Closed) revert LastHolderWaitsForClose();
         amount = tokens == supply ? pool : Math.mulDiv(tokens, pool, supply);
         if (pool != 0 && amount == 0) revert InvalidAmount();
         _burn(msg.sender, tokens);
@@ -279,6 +296,12 @@ contract SliceBond is ERC20, ReentrancyGuard {
         totalRedeemed += amount;
         if (amount != 0) asset.safeTransfer(to, amount);
         emit Redeemed(msg.sender, to, tokens, amount);
+    }
+
+    /// @notice USDC a holder would receive per 1e6 claim units if they redeemed now.
+    function backingPerToken() external view returns (uint256) {
+        uint256 supply = totalSupply();
+        return supply == 0 ? 0 : Math.mulDiv(pool, 1e6, supply);
     }
 
     function claimStake(address to, uint256 amount) external nonReentrant {

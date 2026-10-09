@@ -5,7 +5,9 @@ import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {SliceTypes, ISliceBond} from "./SliceTypes.sol";
 
-/// @notice Application-authenticated observations. A simulation forwarder alone confers no verdict authority.
+/// @notice Watched-adapter covenant. Observations arrive only through Chainlink CRE reports (`onReport`
+/// from the pinned forwarder), and each must also carry the pinned observer's EIP-712 signature, because
+/// the simulation forwarder alone does not authenticate who produced a report.
 contract SliceCovenant is EIP712, ReentrancyGuard {
     error Unauthorized();
     error InvalidObservation();
@@ -83,10 +85,6 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
                 )
             )
         );
-    }
-
-    function submitObservation(SliceTypes.Observation calldata o, bytes calldata signature) external nonReentrant {
-        _submit(o, signature);
     }
 
     function onReport(bytes calldata, bytes calldata report) external nonReentrant {

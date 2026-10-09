@@ -36,7 +36,9 @@ contract AccountingHandler is TestBase {
             factory.createBond(
                 address(router),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, source, guard, keccak256("invariant-policy"))
+                SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, source, guard, keccak256("invariant-policy")),
+                "Invariant Lab Revenue Claim",
+                "INV-RC"
             )
         );
         asset.approve(address(bond), 100e6);
@@ -100,8 +102,13 @@ contract AccountingHandler is TestBase {
 
     function redeem(uint64 raw) external {
         uint256 held = bond.balanceOf(address(this));
-        if (bond.phase() != SliceTypes.Phase.Closed || held == 0) return;
-        uint256 amount = uint256(raw) % held + 1;
+        SliceTypes.Phase p = bond.phase();
+        bool closed = p == SliceTypes.Phase.Closed;
+        if (!closed && p != SliceTypes.Phase.Active && p != SliceTypes.Phase.Closing) return;
+        // Before close the last claim must stay outstanding, so redeem at most held - 1.
+        uint256 limit = closed ? held : (held == bond.totalSupply() ? held - 1 : held);
+        if (limit == 0) return;
+        uint256 amount = uint256(raw) % limit + 1;
         if (bond.pool() != 0 && amount * bond.pool() / bond.totalSupply() == 0) return;
         holderPaid += bond.redeem(amount, address(this));
     }
@@ -136,7 +143,9 @@ contract AccountingInvariantTest is TestBase {
         eq(handler.receipts(), a.balanceOf(address(r)) + b.totalRevenueCollected() + handler.issuerWithdrawn());
         eq(handler.holderPaid(), b.totalRedeemed());
         yes(b.totalRevenueCollected() <= b.effectiveRevenueCap());
-        if (b.phase() == SliceTypes.Phase.Active) eq(b.totalSupply(), 100e6);
+        // Early redemption only shrinks supply, and the last claim survives until Closed.
+        yes(b.totalSupply() <= 100e6);
+        if (b.phase() == SliceTypes.Phase.Active || b.phase() == SliceTypes.Phase.Closing) yes(b.totalSupply() > 0);
         if (b.totalSupply() == 0) eq(b.pool(), 0);
     }
 }

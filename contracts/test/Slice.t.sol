@@ -71,7 +71,7 @@ contract SliceTest is TestBase {
             keccak256("policy-v1")
         );
         vm.prank(issuer);
-        bond = SliceBond(factory.createBond(address(router), t, c));
+        bond = SliceBond(factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC"));
         vm.prank(investor);
         asset.approve(address(bond), type(uint256).max);
     }
@@ -105,7 +105,9 @@ contract SliceTest is TestBase {
 
     function _observe(uint64 at, uint8 result) internal {
         SliceTypes.Observation memory o = _observation(at, result);
-        covenant.submitObservation(o, _sig(OBSERVER_PK, covenant.hashObservation(o)));
+        bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(o, signature));
     }
 
     function _revenue(uint256 amount) internal {
@@ -263,16 +265,65 @@ contract SliceTest is TestBase {
         _solvent();
     }
 
-    function testNoBurnOrEarlyRedemptionSurface() public {
+    function testEarlyRedemptionTakesTodaysShareAndStaysFairForLaterHolders() public {
+        _activate(false);
+        vm.prank(investor);
+        bond.transfer(buyer, 50e6);
+        _revenue(50e6); // 20% to the bond: pool 10
+        eq(bond.backingPerToken(), 100_000);
+        vm.prank(investor);
+        eq(bond.redeem(50e6, investor), 5e6); // half the supply takes half today's pool
+        eq(bond.pool(), 5e6);
+        eq(bond.backingPerToken(), 100_000); // leaving never dilutes the holders who stay
+        _revenue(50e6); // another 10 to the pool, all owned by the remaining 50 claims
+        eq(bond.backingPerToken(), 300_000);
+        vm.prank(buyer);
+        eq(bond.redeem(10e6, buyer), 3e6);
+        _solvent();
+    }
+
+    function testLastClaimCannotBeBurnedBeforeClose() public {
         _activate(false);
         _revenue(10e6);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.InvalidState.selector);
-        bond.redeem(1e6, investor);
+        vm.expectRevert(SliceBond.LastHolderWaitsForClose.selector);
+        bond.redeem(100e6, investor);
         vm.prank(investor);
         (bool ok,) = address(bond).call(abi.encodeWithSignature("burn(uint256)", 1e6));
         yes(!ok);
         eq(bond.totalSupply(), 100e6);
+    }
+
+    function testNoRedemptionWhileFunding() public {
+        _new(false);
+        _fund();
+        vm.prank(investor);
+        vm.expectRevert(SliceBond.InvalidState.selector);
+        bond.redeem(1e6, investor);
+    }
+
+    function testObservationsOnlyThroughCreForwarder() public {
+        _new(true);
+        SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 1);
+        bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
+        (bool ok,) = address(covenant)
+            .call(
+                abi.encodeWithSignature(
+                    "submitObservation((address,bytes32,uint64,uint64,uint64,uint8,address,bytes32,bytes32),bytes)",
+                    o,
+                    signature
+                )
+            );
+        yes(!ok);
+        vm.prank(buyer);
+        vm.expectRevert(SliceCovenant.Unauthorized.selector);
+        covenant.onReport("", abi.encode(o, signature));
+    }
+
+    function testEachBondHasItsOwnNameAndSymbol() public {
+        _new(false);
+        yes(keccak256(bytes(bond.name())) == keccak256("Lab Revenue Claim"));
+        yes(keccak256(bytes(bond.symbol())) == keccak256("LAB-RC"));
     }
 
     function testFinalSweepIncludesPostMaturityPreCloseAndCapWins() public {
@@ -401,10 +452,12 @@ contract SliceTest is TestBase {
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
         vm.expectRevert(SliceCovenant.DuplicateEpoch.selector);
-        covenant.submitObservation(o, signature);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(o, signature));
         vm.warp(vm.getBlockTimestamp() + 91);
         vm.expectRevert(SliceCovenant.InvalidObservation.selector);
-        covenant.submitObservation(o, signature);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(o, signature));
     }
 
     function testClosingAcceptsHistoricalEvidenceAndNeverPostCutoff() public {
@@ -420,15 +473,18 @@ contract SliceTest is TestBase {
         router.closeBondAtMaturity(address(bond));
         eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Closing));
         eq(bond.stakeHeld(), 20e6);
-        covenant.submitObservation(b, sb);
-        covenant.submitObservation(a, sa);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(b, sb));
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(a, sa));
         eq(bond.stakeRecovery(), 20e6);
         vm.expectRevert(SliceBond.TooEarly.selector);
         bond.finalizeSettlement();
         SliceTypes.Observation memory post = _observation(uint64(vm.getBlockTimestamp()), 2);
         bytes memory sp = _sig(OBSERVER_PK, covenant.hashObservation(post));
         vm.expectRevert(SliceCovenant.InvalidObservation.selector);
-        covenant.submitObservation(post, sp);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(post, sp));
         vm.warp(bond.settleAfter());
         bond.finalizeSettlement();
         eq(bond.stakeReturnCredit(), 0);
@@ -478,7 +534,7 @@ contract SliceTest is TestBase {
             SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, address(source), buyer, keccak256("fake"));
         vm.prank(issuer);
         vm.expectRevert(SliceFactory.InvalidAdapter.selector);
-        factory.createBond(address(router), t, c);
+        factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC");
     }
 
     function testPumpCurveRoundTripPaysOnlyFeesNeverVirtualBacking() public {
@@ -577,11 +633,13 @@ contract SliceTest is TestBase {
         SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 2);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
         vm.expectRevert(SliceCovenant.DuplicateEpoch.selector);
-        covenant.submitObservation(o, signature);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(o, signature));
         o = _observation(uint64(vm.getBlockTimestamp() + 6), 2);
         signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
         vm.expectRevert(SliceCovenant.InvalidObservation.selector);
-        covenant.submitObservation(o, signature);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(o, signature));
     }
 
     function testDefaultAfterSecondReleaseNeverClawsBackReleasedCapital() public {
@@ -608,7 +666,8 @@ contract SliceTest is TestBase {
         SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 2);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
         vm.expectRevert(SliceCovenant.InvalidObservation.selector);
-        covenant.submitObservation(o, signature);
+        vm.prank(forwarder);
+        covenant.onReport("", abi.encode(o, signature));
         eq(bond.stakeReturnCredit(), 20e6);
         eq(bond.stakeRecovery(), 0);
         _solvent();

@@ -90,13 +90,18 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         emit LockedSourceCreated(msg.sender, router, source, guard, address(p.token()));
     }
 
-    function createBond(address router, SliceTypes.Terms calldata terms_, SliceTypes.AdapterConfig calldata config)
-        external
-        nonReentrant
-        returns (address bond)
-    {
+    function createBond(
+        address router,
+        SliceTypes.Terms calldata terms_,
+        SliceTypes.AdapterConfig calldata config,
+        string calldata name_,
+        string calldata symbol_
+    ) external nonReentrant returns (address bond) {
         _issuerRouter(router);
         _validateTerms(terms_);
+        if (bytes(name_).length == 0 || bytes(symbol_).length == 0 || bytes(symbol_).length > 16) {
+            revert InvalidTerms();
+        }
         if (SliceRouter(router).activeBond() != address(0) || config.policyHash == bytes32(0)) revert InvalidAdapter();
         if (config.adapter == SliceTypes.Adapter.Locked) {
             _locked(config.guard, config.source, router, msg.sender);
@@ -106,7 +111,17 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         bond = Clones.clone(bondImplementation);
         isBond[bond] = true;
         SliceBond(bond)
-            .initialize(address(asset), msg.sender, router, covenant, SliceRouter(router).payout(), terms_, config);
+            .initialize(
+                address(asset),
+                msg.sender,
+                router,
+                covenant,
+                SliceRouter(router).payout(),
+                terms_,
+                config,
+                name_,
+                symbol_
+            );
         if (terms_.stake != 0) {
             uint256 beforeBalance = asset.balanceOf(bond);
             asset.safeTransferFrom(msg.sender, bond, terms_.stake);
