@@ -50,7 +50,9 @@ async function main() {
     bondImplementation,
     routerImplementation,
   ]);
-  await write(deployer, covenant, parseAbi(['function initializeFactory(address)']), 'initializeFactory', [factory]);
+  await write(deployer, covenant, parseAbi(['function initializeFactory(address)']), 'initializeFactory', [
+    factory,
+  ]);
 
   saveDeployment({
     schemaVersion: 1,

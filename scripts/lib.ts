@@ -19,7 +19,8 @@ export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname)
 export const KEY_DIR = process.env.SLICE_KEY_DIR ?? path.join(os.homedir(), '.slice');
 
 export const chainId = Number(process.env.SLICE_CHAIN_ID ?? 10143) as 10143 | 31337;
-if (chainId !== 10143 && chainId !== 31337) throw new Error('Slice scripts write to local 31337 or Monad testnet 10143 only');
+if (chainId !== 10143 && chainId !== 31337)
+  throw new Error('Slice scripts write to local 31337 or Monad testnet 10143 only');
 export const chain = chainId === 31337 ? sliceLocal : monadTestnet;
 export const rpcUrl = process.env.SLICE_RPC_URL ?? chain.rpcUrls.default.http[0];
 
@@ -63,11 +64,7 @@ export function artifact(name: string): { abi: Abi; bytecode: Hex } {
   return { abi: j.abi, bytecode: j.bytecode.object };
 }
 
-export async function deploy(
-  acct: PrivateKeyAccount,
-  name: string,
-  args: unknown[] = [],
-): Promise<Address> {
+export async function deploy(acct: PrivateKeyAccount, name: string, args: unknown[] = []): Promise<Address> {
   const { abi, bytecode } = artifact(name);
   const w = wallet(acct);
   const gas = await publicClient.estimateGas({
@@ -89,7 +86,13 @@ export async function write(
   functionName: string,
   args: unknown[] = [],
 ) {
-  const { request } = await publicClient.simulateContract({ account: acct, address, abi, functionName, args });
+  const { request } = await publicClient.simulateContract({
+    account: acct,
+    address,
+    abi,
+    functionName,
+    args,
+  });
   const gas = await publicClient.estimateContractGas({ account: acct, address, abi, functionName, args });
   const hash = await wallet(acct).writeContract({ ...request, gas: (gas * 12n) / 10n } as never);
   const r = await publicClient.waitForTransactionReceipt({ hash });

@@ -67,8 +67,11 @@ export async function fetchOffer(
         agent: false,
         maxHeaderSize: 24576,
         // Pin the validated address for this connection, closing the DNS-rebinding gap.
-        lookup: ((_host: unknown, _opts: unknown, cb: (err: null, ip: string, family: number) => void) =>
-          cb(null, selected.address, selected.family)) as never,
+        // Newer Node calls lookup with { all: true } and expects an address list back.
+        lookup: ((_host: unknown, opts: { all?: boolean } | undefined, cb: (...args: unknown[]) => void) =>
+          opts?.all
+            ? cb(null, [{ address: selected.address, family: selected.family }])
+            : cb(null, selected.address, selected.family)) as never,
       },
       (res) => {
         const values = res.headersDistinct['payment-required'];

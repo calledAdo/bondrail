@@ -31,10 +31,17 @@ const erc20 = parseAbi([
 
 async function main() {
   const d = readDeployment();
-  const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
+  const deployer = account('deployer', {
+    fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
+  });
   const payers = Array.from({ length: Number(payersArg) }, (_, i) => account(`payer-${i}`, { create: true }));
   for (const p of payers) {
-    const bal = (await publicClient.readContract({ address: d.asset, abi: erc20, functionName: 'balanceOf', args: [p.address] })) as bigint;
+    const bal = (await publicClient.readContract({
+      address: d.asset,
+      abi: erc20,
+      functionName: 'balanceOf',
+      args: [p.address],
+    })) as bigint;
     if (bal < PER_PAYER / 4n) await write(deployer, d.asset, erc20, 'transfer', [p.address, PER_PAYER]);
   }
   const fetchers = payers.map((p) => {
@@ -50,7 +57,10 @@ async function main() {
     const t0 = Date.now();
     try {
       const r = await fetchers[n](url);
-      const body = (await r.json().catch(() => ({}))) as { answer?: string; payment?: { transaction?: string } };
+      const body = (await r.json().catch(() => ({}))) as {
+        answer?: string;
+        payment?: { transaction?: string };
+      };
       console.log(
         `  call ${i + 1}: payer-${n} HTTP ${r.status} in ${Date.now() - t0} ms` +
           (body.payment?.transaction ? ` tx ${body.payment.transaction}` : ''),

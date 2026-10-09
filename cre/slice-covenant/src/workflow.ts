@@ -23,6 +23,8 @@ import {
 } from '@slice/observer/protocol';
 
 export interface WorkflowConfig {
+  /** Local `cre workflow simulate` only: allow an observer on http://127.0.0.1. */
+  simulationLoopbackObserver?: boolean;
   schedule: string;
   observerURL: string;
   observerSigner: Address;
@@ -81,7 +83,11 @@ export async function onCron(runtime: Runtime<WorkflowConfig>): Promise<string> 
     epoch = Math.floor(now / 30);
   if (c.policy.chainId !== 10143 || c.policy.chainSelector !== '2183018362218727504')
     throw new Error('CRE writes are limited to Monad testnet');
-  if (!/^https:\/\/[^/@\s]+\//.test(c.policy.url) || !/^https:\/\/[^/@\s]+\/observe$/.test(c.observerURL))
+  // The observer may be on loopback only while the workflow itself runs as a local simulation.
+  const observerOk =
+    /^https:\/\/[^/@\s]+\/observe$/.test(c.observerURL) ||
+    (c.simulationLoopbackObserver === true && /^http:\/\/127\.0\.0\.1:\d+\/observe$/.test(c.observerURL));
+  if (!/^https:\/\/[^/@\s]+\//.test(c.policy.url) || !observerOk)
     throw new Error('Public immutable HTTPS endpoints required');
   const token = runtime.getSecret({ id: 'OBSERVER_API_TOKEN' }).result().value;
   if (token.length < 32) throw new Error('Observer credential missing');

@@ -28,7 +28,9 @@ const lab = parseAbi([
   'function token() view returns (address)',
 ]);
 
-const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
+const deployer = account('deployer', {
+  fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
+});
 const treasury = account('pumplab-issuer');
 
 async function topUp(funder: PrivateKeyAccount, to: Address, asset: Address) {
@@ -36,10 +38,19 @@ async function topUp(funder: PrivateKeyAccount, to: Address, asset: Address) {
   // Monad bills the gas limit: a buy (which also sweeps the router) reserves ~0.09 MON at testnet prices.
   const have = await publicClient.getBalance({ address: to });
   if (have < parseEther('0.2')) {
-    const hash = await wallet(deployer).sendTransaction({ to, value: parseEther('0.25') - have, gas: 21_000n });
+    const hash = await wallet(deployer).sendTransaction({
+      to,
+      value: parseEther('0.25') - have,
+      gas: 21_000n,
+    });
     await publicClient.waitForTransactionReceipt({ hash });
   }
-  const bal = (await publicClient.readContract({ address: asset, abi: erc20, functionName: 'balanceOf', args: [to] })) as bigint;
+  const bal = (await publicClient.readContract({
+    address: asset,
+    abi: erc20,
+    functionName: 'balanceOf',
+    args: [to],
+  })) as bigint;
   if (bal >= PER_WALLET / 2n) return;
   if (chainId === 31337 && funder === deployer) await write(deployer, asset, erc20, 'mint', [to, PER_WALLET]);
   else await write(funder, asset, erc20, 'transfer', [to, PER_WALLET]);
@@ -54,7 +65,11 @@ async function main() {
     await write(deployer, d.asset, erc20, 'mint', [treasury.address, PER_WALLET * BigInt(WALLETS)]);
   const traders = Array.from({ length: WALLETS }, (_, i) => account(`${mode}-${i}`, { create: true }));
   for (const t of traders) await topUp(funder, t.address, d.asset);
-  const token = (await publicClient.readContract({ address: p.source, abi: lab, functionName: 'token' })) as Address;
+  const token = (await publicClient.readContract({
+    address: p.source,
+    abi: lab,
+    functionName: 'token',
+  })) as Address;
 
   for (let r = 0; r < rounds; r++) {
     for (const t of traders) {
@@ -63,7 +78,12 @@ async function main() {
       const spend = PER_WALLET / 5n;
       await write(t, d.asset, erc20, 'approve', [p.source, spend]);
       await write(t, p.source, lab, 'buy', [spend, 0n, deadline]);
-      const held = (await publicClient.readContract({ address: token, abi: erc20, functionName: 'balanceOf', args: [t.address] })) as bigint;
+      const held = (await publicClient.readContract({
+        address: token,
+        abi: erc20,
+        functionName: 'balanceOf',
+        args: [t.address],
+      })) as bigint;
       // Wash wallets churn: sell straight back. Organic wallets keep most of their bag.
       const sellAmount = mode === 'wash' ? held : held / 4n;
       if (sellAmount > 0n) {

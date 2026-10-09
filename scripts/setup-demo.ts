@@ -47,7 +47,9 @@ const erc20 = parseAbi([
 const factoryAbi = artifact('SliceFactory').abi;
 const bondAbi = artifact('SliceBond').abi;
 
-const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
+const deployer = account('deployer', {
+  fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
+});
 const pumplabIssuer = account('pumplab-issuer', { create: true });
 const agentIssuer = account('agent-issuer', { create: true });
 const investor = account('investor', { create: true });
@@ -58,7 +60,12 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
     const hash = await wallet(deployer).sendTransaction({ to, value: parseEther(mon) - bal, gas: 21_000n });
     await publicClient.waitForTransactionReceipt({ hash });
   }
-  const have = (await publicClient.readContract({ address: asset, abi: erc20, functionName: 'balanceOf', args: [to] })) as bigint;
+  const have = (await publicClient.readContract({
+    address: asset,
+    abi: erc20,
+    functionName: 'balanceOf',
+    args: [to],
+  })) as bigint;
   if (have < usdcAmount) {
     if (chainId === 31337) await write(deployer, asset, erc20, 'mint', [to, usdcAmount - have]);
     else await write(deployer, asset, erc20, 'transfer', [to, usdcAmount - have]);
@@ -113,7 +120,12 @@ async function main() {
       saveDeployment(d);
     }
     if (!partial.source) {
-      const r2 = await write(pumplabIssuer, d.factory, factoryAbi, 'createLockedSource', [partial.router, 'PumpLab Meme', 'PLMEME', 64]);
+      const r2 = await write(pumplabIssuer, d.factory, factoryAbi, 'createLockedSource', [
+        partial.router,
+        'PumpLab Meme',
+        'PLMEME',
+        64,
+      ]);
       Object.assign(partial, await routerFrom(r2, 'LockedSourceCreated'));
       delete partial.issuer_;
       saveDeployment(d);
@@ -128,12 +140,21 @@ async function main() {
       'PLAB-RC',
     ]);
     const { bond } = await routerFrom(r3, 'BondCreated');
-    d.issuers.pumplab = { name: 'PumpLab', issuer: pumplabIssuer.address, router, source, guard, token, bond };
+    d.issuers.pumplab = {
+      name: 'PumpLab',
+      issuer: pumplabIssuer.address,
+      router,
+      source,
+      guard,
+      token,
+      bond,
+    };
     saveDeployment(d);
     console.log(`  PumpLab   router ${router}  bond ${bond}`);
   }
   const p = d.issuers.pumplab!;
-  const phase = (b: Address) => publicClient.readContract({ address: b, abi: bondAbi, functionName: 'phase' }) as Promise<number>;
+  const phase = (b: Address) =>
+    publicClient.readContract({ address: b, abi: bondAbi, functionName: 'phase' }) as Promise<number>;
   if ((await phase(p.bond!)) === 0) {
     await write(investor, d.asset, erc20, 'approve', [p.bond!, RAISE]);
     await write(investor, p.bond!, bondAbi, 'deposit', [RAISE]);
@@ -182,7 +203,12 @@ async function main() {
     const r2 = await write(agentIssuer, d.factory, factoryAbi, 'createBond', [
       router,
       terms(now),
-      { adapter: 1, source: '0x0000000000000000000000000000000000000000', guard: '0x0000000000000000000000000000000000000000', policyHash: policyHash(policy) },
+      {
+        adapter: 1,
+        source: '0x0000000000000000000000000000000000000000',
+        guard: '0x0000000000000000000000000000000000000000',
+        policyHash: policyHash(policy),
+      },
       'Oracle Agent Revenue Claim',
       'ORCL-RC',
     ]);
@@ -195,12 +221,18 @@ async function main() {
   }
   const a = d.issuers.agent!;
   if ((await phase(a.bond!)) === 0) {
-    const raised = (await publicClient.readContract({ address: a.bond!, abi: bondAbi, functionName: 'fundingEscrow' })) as bigint;
+    const raised = (await publicClient.readContract({
+      address: a.bond!,
+      abi: bondAbi,
+      functionName: 'fundingEscrow',
+    })) as bigint;
     if (raised < RAISE) {
       await write(investor, d.asset, erc20, 'approve', [a.bond!, RAISE - raised]);
       await write(investor, a.bond!, bondAbi, 'deposit', [RAISE - raised]);
     }
-    console.log('  Agent bond funded. Activate after the first compliant CRE report: pnpm tsx scripts/activate-watched.ts');
+    console.log(
+      '  Agent bond funded. Activate after the first compliant CRE report: pnpm tsx scripts/activate-watched.ts',
+    );
   }
 }
 

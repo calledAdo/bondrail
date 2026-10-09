@@ -1,0 +1,27 @@
+{
+  "schedule": "*/30 * * * * *",
+  "observerURL": "http://127.0.0.1:8787/observe",
+  "simulationLoopbackObserver": true,
+  "observerSigner": "0x0c95c87Ce958d75f6aF56E6bd921884752cbC12B",
+  "gasLimit": "700000",
+  "policy": {
+    "id": "slice-agent",
+    "chainId": 10143,
+    "chainSelector": "2183018362218727504",
+    "covenant": "0xf90fcfe1532d8e74f8125cec3ee771f62f13ed41",
+    "bond": "0xC60B199c7128e42AD277dAA4569C7E8Bb6866F82",
+    "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+    "method": "GET",
+    "headers": {
+      "accept": "application/json"
+    },
+    "network": "eip155:10143",
+    "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+    "expectedPayTo": "0xd9644fBf11Fd243402F9D969EEf4454dba697432",
+    "amount": "10000",
+    "maxTimeoutSeconds": 300,
+    "parserVersion": "slice-x402-v2-exact-eip3009/1",
+    "epochSeconds": 30,
+    "freshnessSeconds": 90
+  }
+}

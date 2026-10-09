@@ -1,0 +1,6 @@
+# CRE project settings. The workflow simulates locally and broadcasts to Monad testnet
+# through the Chainlink MockKeystoneForwarder.
+testnet:
+  rpcs:
+    - chain-name: monad-testnet
+      url: https://testnet-rpc.monad.xyz

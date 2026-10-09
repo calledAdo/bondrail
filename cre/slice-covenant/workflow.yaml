@@ -1,4 +1,4 @@
-staging-settings:
+testnet:
   user-workflow:
     workflow-name: slice-covenant-testnet
   workflow-artifacts:
