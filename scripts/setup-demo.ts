@@ -86,7 +86,7 @@ async function routerFrom(receipt: Awaited<ReturnType<typeof write>>, eventName:
   for (const log of receipt.logs) {
     try {
       const e = decodeEventLog({ abi: factoryAbi, data: log.data, topics: log.topics });
-      if (e.eventName === eventName) return e.args as Record<string, Address>;
+      if (e.eventName === eventName) return e.args as unknown as Record<string, Address>;
     } catch {}
   }
   throw new Error(`${eventName} not found`);
