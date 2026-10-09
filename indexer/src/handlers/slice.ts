@@ -17,13 +17,6 @@ indexer.contractRegister({ contract: 'SliceFactory', event: 'AccountCreated' }, 
 indexer.contractRegister({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
   context.chain.SliceBond.add(event.params.bond);
 });
-indexer.contractRegister({ contract: 'SliceFactory', event: 'NativeSourceCreated' }, async ({ event, context }) => {
-  context.chain.PumpLab.add(event.params.source);
-});
-indexer.contractRegister({ contract: 'SliceFactory', event: 'LockedSourceCreated' }, async ({ event, context }) => {
-  context.chain.PumpLabClassic.add(event.params.source);
-});
-
 // ---------- accounts ----------
 
 indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ event, context }) => {
@@ -35,6 +28,7 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
     issuer,
     tier: undefined,
     project: undefined,
+    projectApproved: undefined,
     source: undefined,
     guard: undefined,
     activeBond: undefined,
@@ -48,14 +42,23 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
   context.Treasury.set({ id: issuer, account });
 });
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'NativeSourceCreated' }, async ({ event, context }) => {
-  const i = await context.Issuer.get(low(event.params.account));
-  if (i) context.Issuer.set({ ...i, tier: NATIVE, project: low(event.params.source) });
+// Native: the account binds a project that inherits SliceEarner (pointed at this account forever).
+indexer.onEvent({ contract: 'SliceAccount', event: 'ProjectBound' }, async ({ event, context }) => {
+  const i = await context.Issuer.get(low(event.srcAddress));
+  if (i) context.Issuer.set({ ...i, tier: NATIVE, project: low(event.params.project) });
 });
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'LockedSourceCreated' }, async ({ event, context }) => {
+// The disclosed reviewer approves (or revokes) a Native project.
+indexer.onEvent({ contract: 'SliceFactory', event: 'NativeApproval' }, async ({ event, context }) => {
+  const project = low(event.params.project);
+  for (const i of await context.Issuer.getWhere({ project: { _eq: project } }))
+    context.Issuer.set({ ...i, projectApproved: event.params.approved });
+});
+
+// Locked: a FeeGuard created for the business's existing fee contract.
+indexer.onEvent({ contract: 'SliceFactory', event: 'GuardCreated' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.params.account));
-  if (i) context.Issuer.set({ ...i, tier: LOCKED, source: low(event.params.source), guard: low(event.params.guard) });
+  if (i) context.Issuer.set({ ...i, tier: LOCKED, source: low(event.params.target), guard: low(event.params.guard) });
 });
 
 indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
@@ -144,7 +147,7 @@ async function recordPayment(
   account: string,
   payer: string,
   amount: bigint,
-  source: 'native' | 'launchpad' | 'x402',
+  source: 'native' | 'transfer' | 'x402',
   receiptId: string,
 ) {
   const issuer = await context.Issuer.get(account);
@@ -214,9 +217,9 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
     context.Wallet.set({ ...w, fundedByAccount: treasury.account, fundedAmount: w.fundedAmount + value });
   }
 
-  // Plain receipts into a Watched account are x402 settlements: the facilitator moves funds from the payer.
-  // Native accounts receive pulls (attributed by Revenue); Locked accounts receive launchpad fees
-  // (attributed by the launchpad's Trade event).
+  // Plain receipts: into a Watched account they are x402 settlements (the facilitator moves funds from the
+  // payer); into a Locked account the sender is the fee contract itself. Native accounts receive pulls,
+  // which their Revenue events attribute to the proven payer.
   const issuer = await context.Issuer.get(to);
   if (!issuer) return;
   const id = rowId(event);
@@ -233,40 +236,7 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
     timestamp: BigInt(event.block.timestamp),
   });
   if (issuer.tier === WATCHED) await recordPayment(context, event, to, from, value, 'x402', id);
-});
-
-indexer.onEvent({ contract: 'PumpLab', event: 'Trade' }, async ({ event, context }) => {
-  context.SourceTrade.set({
-    id: rowId(event),
-    chainId: event.chainId,
-    source: low(event.srcAddress),
-    account: '',
-    trader: low(event.params.trader),
-    fee: event.params.fee,
-    usdcAmount: event.params.grossUSDC,
-    isBuy: event.params.isBuy,
-    txHash: event.transaction.hash,
-    timestamp: BigInt(event.block.timestamp),
-  });
-});
-
-indexer.onEvent({ contract: 'PumpLabClassic', event: 'Trade' }, async ({ event, context }) => {
-  const account = low(event.params.recipient);
-  const trader = low(event.params.payer);
-  context.SourceTrade.set({
-    id: rowId(event),
-    chainId: event.chainId,
-    source: low(event.srcAddress),
-    account,
-    trader,
-    fee: event.params.fee,
-    usdcAmount: event.params.grossUSDC,
-    isBuy: event.params.isBuy,
-    txHash: event.transaction.hash,
-    timestamp: BigInt(event.block.timestamp),
-  });
-  if (event.params.fee > 0n)
-    await recordPayment(context, event, account, trader, event.params.fee, 'launchpad', rowId(event));
+  else if (issuer.tier === LOCKED) await recordPayment(context, event, to, from, value, 'transfer', id);
 });
 
 // ---------- bonds ----------

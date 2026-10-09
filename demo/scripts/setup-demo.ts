@@ -1,8 +1,8 @@
 // Sets up the three demo businesses on a deployment (run scripts/deploy.ts first). Resumable: every
 // created piece is saved to docs/deployments/<chain>.json before the next step.
 //
-//   pumplab  Native  : account -> PumpLab bound to it (every fee via account.collect) -> bond (on-chain milestone)
-//   classic  Locked  : account -> PumpLabClassic owned by a FeeGuard -> bond (signed milestone)
+//   pumplab  Native  : account -> issuer deploys PumpLab (a SliceEarner) -> binds it -> reviewer approves -> bond
+//   classic  Locked  : account -> issuer deploys PumpLabClassic -> factory guard -> ownership to guard -> bond
 //   agent    Watched : account (the x402 payTo) -> bond with stake; activation waits for a CRE report
 //
 //   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts [pumplab|classic|agent ...]
@@ -21,18 +21,19 @@ import {
   stringToHex,
   type Address,
 } from 'viem';
-import { PARSER_VERSION, policyHash, type WatchPolicy } from '../services/observer/src/protocol.ts';
+import { PARSER_VERSION, policyHash, type WatchPolicy } from '../../services/observer/src/protocol.ts';
 import {
   account,
   artifact,
   chainId,
+  deploy,
   publicClient,
   readDeployment,
   saveDeployment,
   wallet,
   write,
   type IssuerRecord,
-} from './lib.ts';
+} from '../../scripts/lib.ts';
 
 const usdc = (x: string) => parseUnits(x, 6);
 const RAISE = usdc(process.env.RAISE_USDC ?? '2');
@@ -160,17 +161,30 @@ async function createBond(id: string, config: object, name: string, symbol: stri
 async function setupPumpLab() {
   const d = await ensureAccount('pumplab', 'PumpLab', 'native');
   const rec = d.issuers.pumplab!;
+  const issuer = account('pumplab-issuer');
   if (!rec.source) {
-    const r = await write(account('pumplab-issuer'), d.factory, factoryAbi, 'createNativeLaunchpad', [
-      rec.account,
-      'PumpLab Meme',
-      'PLMEME',
-    ]);
-    const e = await eventArgs(r, 'NativeSourceCreated');
-    rec.source = e.source;
-    rec.token = e.token;
+    // The project deploys itself, pointed at its account (SliceEarner), and binds itself to it.
+    rec.source = await deploy(issuer, 'PumpLab', [d.asset, rec.account, 'PumpLab Meme', 'PLMEME']);
+    rec.token = (await publicClient.readContract({
+      address: rec.source,
+      abi: artifact('PumpLab').abi,
+      functionName: 'token',
+    })) as Address;
     saveDeployment(d);
-    console.log(`  PumpLab: native launchpad ${rec.source}`);
+    await write(issuer, rec.account, artifact('SliceAccount').abi, 'bindProject', [rec.source]);
+    console.log(`  PumpLab: native launchpad ${rec.source}, bound to its account`);
+  }
+  const approved = await publicClient.readContract({
+    address: d.factory,
+    abi: factoryAbi,
+    functionName: 'nativeApproved',
+    args: [rec.source],
+  });
+  if (!approved) {
+    // The disclosed reviewer has checked PumpLab's code: every fee goes through SliceEarner._collect.
+    await fund(account('reviewer').address, '0.2', 0n, d.asset);
+    await write(account('reviewer'), d.factory, factoryAbi, 'setNativeApproval', [rec.source, true]);
+    console.log('  PumpLab: approved as Native by the reviewer');
   }
   await createBond(
     'pumplab',
@@ -185,19 +199,28 @@ async function setupPumpLab() {
 async function setupClassic() {
   const d = await ensureAccount('classic', 'PumpLab Classic', 'locked');
   const rec = d.issuers.classic!;
+  const issuer = account('classic-issuer');
+  const lab = artifact('PumpLabClassic').abi;
   if (!rec.source) {
-    const r = await write(account('classic-issuer'), d.factory, factoryAbi, 'createLockedLaunchpad', [
-      rec.account,
-      'Classic Meme',
-      'CLMEME',
-      64,
-    ]);
-    const e = await eventArgs(r, 'LockedSourceCreated');
-    rec.source = e.source;
-    rec.guard = e.guard;
-    rec.token = e.token;
+    // An ordinary owner-administered launchpad whose fee recipient is the account from the start.
+    rec.source = await deploy(issuer, 'PumpLabClassic', [d.asset, rec.account, 'Classic Meme', 'CLMEME', 64]);
+    rec.token = (await publicClient.readContract({ address: rec.source, abi: lab, functionName: 'token' })) as Address;
     saveDeployment(d);
-    console.log(`  PumpLab Classic: launchpad ${rec.source}, FeeGuard ${rec.guard}`);
+    console.log(`  PumpLab Classic: launchpad ${rec.source}`);
+  }
+  if (!rec.guard) {
+    const r = await write(issuer, d.factory, factoryAbi, 'createGuard', [
+      rec.account,
+      rec.source,
+      keccak256(stringToHex('feeRecipient()')).slice(0, 10),
+      keccak256(stringToHex('feeBps()')).slice(0, 10),
+      100n,
+      [keccak256(stringToHex('setMaxNameLength(uint16)')).slice(0, 10)],
+    ]);
+    rec.guard = (await eventArgs(r, 'GuardCreated')).guard;
+    saveDeployment(d);
+    await write(issuer, rec.source, lab, 'transferOwnership', [rec.guard]);
+    console.log(`  PumpLab Classic: FeeGuard ${rec.guard} now owns the launchpad`);
   }
   await createBond(
     'classic',

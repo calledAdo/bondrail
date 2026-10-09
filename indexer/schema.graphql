@@ -7,8 +7,9 @@ type Issuer {
   chainId: Int!
   issuer: String! @index
   tier: Int # 0 Native, 1 Locked, 2 Watched; known once a source or bond is created
-  project: String # Native launchpad bound to the account
-  source: String # Locked launchpad
+  project: String @index # Native project bound to the account
+  projectApproved: Boolean # reviewer-approved as Native
+  source: String # Locked fee contract
   guard: String # FeeGuard (Locked)
   activeBond: String
   grossRevenue: BigInt!
@@ -77,7 +78,7 @@ type Receipt {
 
 # A revenue payment attributed to a payer, exactly once per payment:
 #   native    account Revenue event from collect(): the payer is proven by the pull
-#   launchpad PumpLabClassic Trade event (Locked): the fee transfer is from the launchpad, so the trader is the payer
+#   transfer  USDC transfer into a Locked account: the payer is the fee contract that sent it
 #   x402      USDC transfer into a Watched account: the facilitator moves funds from the payer
 type Payment {
   id: ID!
@@ -87,7 +88,7 @@ type Payment {
   payer: String! @index
   amount: BigInt!
   timestamp: BigInt! @index
-  source: String! # native | launchpad | x402
+  source: String! # native | transfer | x402
   synthetic: Boolean!
   related: Boolean!
   evidenceComplete: Boolean!
@@ -144,19 +145,6 @@ type CovenantCheck {
   observedAt: BigInt!
   evidenceHash: String!
   txHash: String!
-  timestamp: BigInt!
-}
-
-type SourceTrade {
-  id: ID!
-  chainId: Int!
-  source: String! @index
-  account: String!
-  trader: String!
-  fee: BigInt!
-  usdcAmount: BigInt!
-  isBuy: Boolean!
-  txHash: String! @index
   timestamp: BigInt!
 }
 

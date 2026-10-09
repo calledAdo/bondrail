@@ -11,7 +11,7 @@ import { createRequire } from 'node:module';
 import { ethers } from 'ethers';
 import { decodeEventLog, parseAbi, parseUnits, type Abi, type Address } from 'viem';
 import { ParamCreator, VaultParamFetcher } from '@kuru-labs/kuru-sdk';
-import { account, chainId, publicClient, readDeployment, rpcUrl, saveDeployment, write } from './lib.ts';
+import { account, chainId, publicClient, readDeployment, rpcUrl, saveDeployment, write } from '../../scripts/lib.ts';
 
 const require = createRequire(import.meta.url);
 const routerAbi = require('@kuru-labs/kuru-sdk/abi/Router.json').abi as Abi;

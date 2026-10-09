@@ -1,6 +1,6 @@
 // Activates the Oracle Agent's Watched bond. The factory requires a fresh (<= 90 s) compliant
 // observation delivered by Chainlink CRE, so run a CRE broadcast immediately before this.
-import { artifact, account, publicClient, readDeployment, write } from './lib.ts';
+import { artifact, account, publicClient, readDeployment, write } from '../../scripts/lib.ts';
 
 async function main() {
   const d = readDeployment();

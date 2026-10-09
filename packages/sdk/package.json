@@ -1,0 +1,27 @@
+{
+  "name": "@slice/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Slice SDK: revenue accounts, bonds and guards on Monad; x402 payments into a SliceAccount; revenue data.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./abis": "./src/abis.ts",
+    "./client": "./src/client.ts",
+    "./permit": "./src/permit.ts",
+    "./x402": "./src/x402.ts",
+    "./data": "./src/data.ts"
+  },
+  "scripts": {
+    "generate": "tsx scripts/generate-abis.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/*.test.ts"
+  },
+  "dependencies": {
+    "@slice/observer": "workspace:*",
+    "@slice/scoring": "workspace:*",
+    "@x402/core": "2.28.0",
+    "@x402/evm": "2.28.0",
+    "viem": "2.54.2"
+  }
+}

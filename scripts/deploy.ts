@@ -1,7 +1,7 @@
 // Deploys the Slice core: bond + account implementations, SliceCovenant (CRE receiver), SliceFactory.
 //   SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts     local anvil (deploys MockUSDC too)
 //   pnpm tsx scripts/deploy.ts                          Monad testnet (Circle test USDC, CRE mock forwarder)
-// Writes docs/deployments/<chainId>.json. Demo issuers are set up separately by scripts/setup-demo.ts.
+// Writes docs/deployments/<chainId>.json. Demo businesses are set up separately by demo/scripts/setup-demo.ts.
 import os from 'node:os';
 import path from 'node:path';
 import { parseAbi, type Address } from 'viem';
@@ -19,6 +19,8 @@ const deployer = account('deployer', {
 // signer attests second-release evidence. Both are generated once and kept in ~/.slice.
 const observer = account('observer', { create: true });
 const milestone = account('milestone', { create: true });
+// Disclosed reviewer: approves Native projects whose code pays every fee through their account.
+const reviewer = account('reviewer', { create: true });
 
 async function main() {
   console.log(`Deploying Slice to ${chain.name} (${chainId}) from ${deployer.address}`);
@@ -49,6 +51,7 @@ async function main() {
     milestone.address,
     bondImplementation,
     accountImplementation,
+    reviewer.address,
   ]);
   await write(deployer, covenant, parseAbi(['function initializeFactory(address)']), 'initializeFactory', [
     factory,
@@ -66,6 +69,7 @@ async function main() {
     forwarder,
     observer: observer.address,
     milestoneSigner: milestone.address,
+    reviewer: reviewer.address,
     bondImplementation,
     accountImplementation,
     issuers: {},

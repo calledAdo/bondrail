@@ -6,7 +6,7 @@
 import os from 'node:os';
 import path from 'node:path';
 import { decodeEventLog, keccak256, parseAbi, stringToHex } from 'viem';
-import { account, artifact, publicClient, readDeployment, saveDeployment, write } from './lib.ts';
+import { account, artifact, publicClient, readDeployment, saveDeployment, write } from '../../scripts/lib.ts';
 
 const IDENTITY = '0x8004A818BFB912233c491871b3d84c89A494BD9e';
 const REPUTATION = '0x8004B663056A597Dffe9eCcC1965A193B7388713';

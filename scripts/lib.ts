@@ -127,6 +127,7 @@ export type DeploymentFile = {
   forwarder: Address;
   observer: Address;
   milestoneSigner: Address;
+  reviewer?: Address;
   bondImplementation: Address;
   accountImplementation: Address;
   issuers: Record<string, IssuerRecord>;

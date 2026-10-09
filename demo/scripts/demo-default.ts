@@ -11,7 +11,7 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { artifact, KEY_DIR, publicClient, readDeployment, ROOT } from './lib.ts';
+import { artifact, KEY_DIR, publicClient, readDeployment, ROOT } from '../../scripts/lib.ts';
 
 const d = readDeployment();
 const agent = d.issuers.agent!;
@@ -89,7 +89,7 @@ async function main() {
   );
   if (defaultedAt > 0n) {
     console.log('3. ERC-8004 feedback');
-    execFileSync('npx', ['tsx', 'scripts/erc8004.ts', 'feedback'], { cwd: ROOT, stdio: 'inherit' });
+    execFileSync('npx', ['tsx', 'demo/scripts/erc8004.ts', 'feedback'], { cwd: ROOT, stdio: 'inherit' });
   }
 }
 

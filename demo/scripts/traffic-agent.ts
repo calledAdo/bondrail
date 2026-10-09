@@ -8,7 +8,7 @@ import { registerExactEvmScheme } from '@x402/evm/exact/client';
 import { parseAbi, parseUnits } from 'viem';
 import os from 'node:os';
 import path from 'node:path';
-import { account, publicClient, readDeployment, write } from './lib.ts';
+import { account, publicClient, readDeployment, write } from '../../scripts/lib.ts';
 
 const [callsArg = '20', payersArg = '5'] = process.argv.slice(2);
 const AGENT_URL = process.env.AGENT_URL ?? readDeployment().issuers.agent?.endpoint?.split('?')[0];

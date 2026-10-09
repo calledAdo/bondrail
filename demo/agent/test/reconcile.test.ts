@@ -29,7 +29,7 @@ const record: PaymentRecord = {
   nonce,
   resource: 'https://example.com/api/oracle',
   createdAt: '2026-10-09',
-  answer: 'cached answer',
+  result: 'cached answer',
 };
 const transfer = {
   address: token,

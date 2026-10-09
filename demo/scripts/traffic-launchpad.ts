@@ -8,7 +8,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { maxUint256, parseAbi, parseEther, parseUnits, type Address } from 'viem';
 import type { PrivateKeyAccount } from 'viem/accounts';
-import { account, chainId, publicClient, readDeployment, wallet, write } from './lib.ts';
+import { account, chainId, publicClient, readDeployment, wallet, write } from '../../scripts/lib.ts';
 
 const [issuerId = 'pumplab', mode = 'organic', roundsArg = '1'] = process.argv.slice(2);
 if (mode !== 'organic' && mode !== 'wash') throw new Error('mode must be organic or wash');

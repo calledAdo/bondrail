@@ -3,7 +3,7 @@
 //
 //   pnpm tsx scripts/demo-locked.ts
 import { BaseError, encodeFunctionData, parseAbi } from 'viem';
-import { account, artifact, publicClient, readDeployment, write } from './lib.ts';
+import { account, artifact, publicClient, readDeployment, write } from '../../scripts/lib.ts';
 
 async function main() {
   const d = readDeployment();

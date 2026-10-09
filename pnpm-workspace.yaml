@@ -3,6 +3,7 @@ packages:
   - packages/*
   - services/*
   - cre/*
+  - demo/agent
 
 onlyBuiltDependencies:
   - esbuild

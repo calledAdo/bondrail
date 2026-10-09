@@ -29,13 +29,14 @@ contracts:
   - name: SliceFactory
     events:
       - event: "AccountCreated(address indexed issuer, address indexed account)"
-      - event: "NativeSourceCreated(address indexed issuer, address indexed account, address source, address token)"
-      - event: "LockedSourceCreated(address indexed issuer, address indexed account, address source, address guard, address token)"
+      - event: "GuardCreated(address indexed issuer, address indexed account, address indexed target, address guard)"
+      - event: "NativeApproval(address indexed project, bool approved)"
       - event: "BondCreated(address indexed issuer, address indexed account, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)"${tx}
       - event: "SecondReleaseApproved(address indexed bond, uint8 mode, uint256 eligibleRevenue)"${tx}
   - name: SliceAccount
     events:
       - event: "Revenue(address indexed bond, address indexed payer, uint256 amount, uint256 toBond, uint256 toIssuer, bool collected)"${tx}
+      - event: "ProjectBound(address indexed project)"
       - event: "Attached(address indexed bond)"
       - event: "Detached(address indexed bond)"
   - name: SliceBond
@@ -56,12 +57,6 @@ contracts:
     events:
       - event: "ObservationAccepted(address indexed bond, uint64 indexed epoch, uint8 result, uint64 observedAt, bytes32 evidenceHash, bytes32 digest)"${tx}
       - event: "CovenantDefault(address indexed bond, uint64 firstEpoch, uint64 secondEpoch, bytes32 evidenceHash)"${tx}
-  - name: PumpLab
-    events:
-      - event: "Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee)"${tx}
-  - name: PumpLabClassic
-    events:
-      - event: "Trade(address indexed payer, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee, address indexed recipient)"${tx}
   - name: USDC
     events:
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
@@ -78,8 +73,6 @@ chains:
         address: "${dep.asset}"
       - name: SliceAccount
       - name: SliceBond
-      - name: PumpLab
-      - name: PumpLabClassic
 `,
 );
 fs.writeFileSync(

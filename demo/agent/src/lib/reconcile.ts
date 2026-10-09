@@ -1,38 +1,7 @@
-import { createPublicClient, http, decodeEventLog, parseAbi, type Hex, type Address } from 'viem';
+import { createPublicClient, http, type Hex } from 'viem';
 import type { DurableStore } from '@slice/observer/store';
-import type { PaymentRecord } from './payment';
-const abi = parseAbi([
-  'event Transfer(address indexed from,address indexed to,uint256 value)',
-  'event AuthorizationUsed(address indexed authorizer,bytes32 indexed nonce)',
-]);
-export function receiptProvesPayment(
-  p: PaymentRecord,
-  logs: readonly { address: Address; data: Hex; topics: readonly Hex[] }[],
-): boolean {
-  let transfer = false,
-    authorization = false;
-  for (const log of logs) {
-    if (log.address.toLowerCase() !== p.requirements.asset.toLowerCase()) continue;
-    try {
-      const event = decodeEventLog({
-        abi,
-        data: log.data,
-        topics: [...log.topics] as [Hex, ...Hex[]],
-      });
-      if (event.eventName === 'Transfer')
-        transfer ||=
-          event.args.from.toLowerCase() === p.payer &&
-          event.args.to.toLowerCase() === p.requirements.payTo.toLowerCase() &&
-          event.args.value === BigInt(p.requirements.amount);
-      if (event.eventName === 'AuthorizationUsed')
-        authorization ||=
-          event.args.authorizer.toLowerCase() === p.payer && event.args.nonce.toLowerCase() === p.nonce;
-    } catch {
-      /* Unrelated token event. */
-    }
-  }
-  return transfer && authorization;
-}
+import { receiptProvesPayment, type PaymentRecord } from '@slice/sdk/x402';
+export { receiptProvesPayment };
 export async function reconcile(
   store: DurableStore,
   key: string,
@@ -46,8 +15,8 @@ export async function reconcile(
   if (!raw) throw new Error('Unknown payment');
   const p = JSON.parse(raw) as PaymentRecord;
   if (p.state === 'complete') return { status: 'complete', transaction: p.settlement?.transaction };
-  if (p.state !== 'settlement_pending' || !p.answer)
-    throw new Error('Payment has no cached answer awaiting settlement');
+  if (p.state !== 'settlement_pending' || p.result === undefined)
+    throw new Error('Payment has no journaled result awaiting settlement');
   const client = createPublicClient({ transport: http(rpcURL) });
   if ((await client.getChainId()) !== chainId || p.requirements.network !== `eip155:${chainId}`)
     throw new Error('RPC chain mismatch');
