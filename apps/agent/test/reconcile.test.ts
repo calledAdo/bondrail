@@ -1,8 +1,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { encodeEventTopics, encodeAbiParameters, parseAbi, type Address, type Hex } from 'viem';
-import { receiptProvesPayment } from '../src/lib/reconcile.js';
-import type { PaymentRecord } from '../src/lib/payment.js';
+import { receiptProvesPayment } from '../src/lib/reconcile';
+import type { PaymentRecord } from '../src/lib/payment';
 
 const payer = '0x1111111111111111111111111111111111111111' as Address;
 const recipient = '0x2222222222222222222222222222222222222222' as Address;

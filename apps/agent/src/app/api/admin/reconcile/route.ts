@@ -1,7 +1,7 @@
 import { storeFromEnv } from '@slice/observer/store';
 import { authorized } from '@slice/observer/auth';
-import { environment } from '../../../../lib/config.js';
-import { reconcile } from '../../../../lib/reconcile.js';
+import { environment } from '../../../../lib/config';
+import { reconcile } from '../../../../lib/reconcile';
 import type { Hex } from 'viem';
 export async function POST(request: Request) {
   if (!authorized(request.headers.get('authorization'), process.env.AGENT_ADMIN_TOKEN))

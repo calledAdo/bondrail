@@ -1,5 +1,5 @@
 import { storeFromEnv } from '@slice/observer/store';
-import { environment, getConfig } from '../../../lib/config.js';
+import { environment, getConfig } from '../../../lib/config';
 export const dynamic = 'force-dynamic';
 export async function GET() {
   try {

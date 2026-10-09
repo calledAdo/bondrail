@@ -1,6 +1,6 @@
 import { storeFromEnv } from '@slice/observer/store';
-import { environment, getConfig } from '../../../lib/config.js';
-import { handlePaidRequest, realBackend } from '../../../lib/payment.js';
+import { environment, getConfig } from '../../../lib/config';
+import { handlePaidRequest, realBackend } from '../../../lib/payment';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {

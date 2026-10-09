@@ -1,6 +1,6 @@
 import { storeFromEnv } from '@slice/observer/store';
 import { authorized } from '@slice/observer/auth';
-import { updateConfig } from '../../../../lib/config.js';
+import { updateConfig } from '../../../../lib/config';
 export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {
   if (!authorized(request.headers.get('authorization'), process.env.AGENT_ADMIN_TOKEN))

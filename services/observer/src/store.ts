@@ -88,8 +88,10 @@ export class RedisStore implements DurableStore {
 export function storeFromEnv(env: NodeJS.ProcessEnv = process.env): DurableStore {
   if (env.SLICE_STORE === 'local' && env.SLICE_ENV === 'local' && env.SLICE_DATA_DIR)
     return new LocalStore(env.SLICE_DATA_DIR);
-  if (env.REDIS_REST_URL && env.REDIS_REST_TOKEN)
-    return new RedisStore(env.REDIS_REST_URL, env.REDIS_REST_TOKEN, env.SLICE_STORE_NAMESPACE ?? 'slice');
+  // Upstash via the Vercel Marketplace exposes KV_REST_API_URL / KV_REST_API_TOKEN.
+  const url = env.REDIS_REST_URL ?? env.KV_REST_API_URL;
+  const token = env.REDIS_REST_TOKEN ?? env.KV_REST_API_TOKEN;
+  if (url && token) return new RedisStore(url, token, env.SLICE_STORE_NAMESPACE ?? 'slice');
   throw new Error(
     'Configure shared Redis REST, or explicit SLICE_ENV=local/SLICE_STORE=local/SLICE_DATA_DIR',
   );

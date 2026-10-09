@@ -5,8 +5,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { LocalStore } from '@slice/observer/store';
 import { decodeBase64Json } from '@slice/observer/protocol';
-import { handlePaidRequest, requirements, resourceURL, type PaymentBackend } from '../src/lib/payment.js';
-import { updateConfig, getConfig, type AgentEnvironment, type AgentConfig } from '../src/lib/config.js';
+import { handlePaidRequest, requirements, resourceURL, type PaymentBackend } from '../src/lib/payment';
+import { updateConfig, getConfig, type AgentEnvironment, type AgentConfig } from '../src/lib/config';
 const env: AgentEnvironment = {
   chainId: 10143,
   asset: '0x534b2f3A21130d7a60830c2Df862319e593943A3',

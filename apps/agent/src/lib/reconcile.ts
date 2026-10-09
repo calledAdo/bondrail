@@ -1,6 +1,6 @@
 import { createPublicClient, http, decodeEventLog, parseAbi, type Hex, type Address } from 'viem';
 import type { DurableStore } from '@slice/observer/store';
-import type { PaymentRecord } from './payment.js';
+import type { PaymentRecord } from './payment';
 const abi = parseAbi([
   'event Transfer(address indexed from,address indexed to,uint256 value)',
   'event AuthorizationUsed(address indexed authorizer,bytes32 indexed nonce)',

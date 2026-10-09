@@ -3,7 +3,7 @@ import type { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { address, canonical, decodeBase64Json, digest, isRecord } from '@slice/observer/protocol';
 import type { DurableStore } from '@slice/observer/store';
-import type { AgentConfig, AgentEnvironment } from './config.js';
+import type { AgentConfig, AgentEnvironment } from './config';
 
 export interface PaymentRecord {
   state: 'processing' | 'model_failed' | 'settlement_pending' | 'complete';

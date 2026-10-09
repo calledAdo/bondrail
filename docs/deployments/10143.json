@@ -21,6 +21,11 @@
       "guard": "0x8E7DC3A9e685AcD3941a3508245592D082dB642E",
       "token": "0x6A7A52FeaF2Ea2aB53AFF4ea7273c6784C800c48",
       "bond": "0x2e47673714E4F597135213B2564be48AA4658C27"
+    },
+    "agent": {
+      "name": "Oracle Agent",
+      "issuer": "0x4bd86fD284C8F28daC02C0327bFf8F5b83C37394",
+      "router": "0xd9644fBf11Fd243402F9D969EEf4454dba697432"
     }
   }
 }

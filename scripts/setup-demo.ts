@@ -100,7 +100,7 @@ async function main() {
   // Gas and test USDC for the team wallets.
   await fund(pumplabIssuer.address, '1', STAKE, d.asset);
   await fund(agentIssuer.address, '1', STAKE, d.asset);
-  await fund(investor.address, '0.2', RAISE * 2n, d.asset);
+  await fund(investor.address, '0.2', RAISE, d.asset); // enough for the next raise; tops up only the shortfall
 
   // ---------- PumpLab (Locked) ----------
   if (!d.issuers.pumplab?.bond) {
@@ -142,14 +142,21 @@ async function main() {
   }
 
   // ---------- Oracle Agent (Watched) ----------
-  const agentUrl = process.env.AGENT_URL;
-  if (!agentUrl) {
-    console.log('  Oracle Agent skipped: set AGENT_URL to the deployed agent endpoint.');
-    return;
-  }
-  if (!d.issuers.agent) {
+  // The router exists before the agent is deployed: it is the agent's x402 payTo.
+  if (!d.issuers.agent?.router) {
     const r1 = await write(agentIssuer, d.factory, factoryAbi, 'createRouter');
     const { router } = await routerFrom(r1, 'RouterCreated');
+    d.issuers.agent = { name: 'Oracle Agent', issuer: agentIssuer.address, router };
+    saveDeployment(d);
+    console.log(`  Agent     router ${router} (use as AGENT_INITIAL_PAY_TO)`);
+  }
+  const agentUrl = process.env.AGENT_URL;
+  if (!agentUrl) {
+    console.log('  Oracle Agent bond skipped: set AGENT_URL to the deployed agent endpoint.');
+    return;
+  }
+  if (!d.issuers.agent.bond) {
+    const router = d.issuers.agent.router;
     // The policy commits to the bond address, which the factory creates next with CREATE.
     const nonce = await publicClient.getTransactionCount({ address: d.factory });
     const bond = getContractAddress({ from: d.factory, nonce: BigInt(nonce) });
