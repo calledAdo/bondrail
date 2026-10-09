@@ -1,0 +1,2 @@
+# Standalone workspace so Envio Cloud installs this folder on its own.
+packages: []
