@@ -98,16 +98,27 @@ async function main() {
   console.log(`Setting up demo issuers on ${d.network}`);
 
   // Gas and test USDC for the team wallets.
-  await fund(pumplabIssuer.address, '0.3', STAKE, d.asset);
-  await fund(agentIssuer.address, '0.3', STAKE, d.asset);
+  await fund(pumplabIssuer.address, '1', STAKE, d.asset);
+  await fund(agentIssuer.address, '1', STAKE, d.asset);
   await fund(investor.address, '0.2', RAISE * 2n, d.asset);
 
   // ---------- PumpLab (Locked) ----------
-  if (!d.issuers.pumplab) {
-    const r1 = await write(pumplabIssuer, d.factory, factoryAbi, 'createRouter');
-    const { router } = await routerFrom(r1, 'RouterCreated');
-    const r2 = await write(pumplabIssuer, d.factory, factoryAbi, 'createLockedSource', [router, 'PumpLab Meme', 'PLMEME', 64]);
-    const { source, guard, token } = await routerFrom(r2, 'LockedSourceCreated');
+  if (!d.issuers.pumplab?.bond) {
+    // Resumable: each created piece is saved before the next step.
+    let partial = d.issuers.pumplab ?? ({ name: 'PumpLab', issuer: pumplabIssuer.address } as any);
+    if (!partial.router) {
+      const r1 = await write(pumplabIssuer, d.factory, factoryAbi, 'createRouter');
+      partial.router = (await routerFrom(r1, 'RouterCreated')).router;
+      d.issuers.pumplab = partial;
+      saveDeployment(d);
+    }
+    if (!partial.source) {
+      const r2 = await write(pumplabIssuer, d.factory, factoryAbi, 'createLockedSource', [partial.router, 'PumpLab Meme', 'PLMEME', 64]);
+      Object.assign(partial, await routerFrom(r2, 'LockedSourceCreated'));
+      delete partial.issuer_;
+      saveDeployment(d);
+    }
+    const { router, source, guard, token } = partial;
     await write(pumplabIssuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
     const r3 = await write(pumplabIssuer, d.factory, factoryAbi, 'createBond', [
       router,
