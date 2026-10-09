@@ -1,0 +1,7 @@
+staging-settings:
+  user-workflow:
+    workflow-name: slice-covenant-testnet
+  workflow-artifacts:
+    workflow-path: ./src/main.ts
+    config-path: ./config.json
+    secrets-path: ./secrets.yaml

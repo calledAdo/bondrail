@@ -1,0 +1,21 @@
+{
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "name": "@slice/observer",
+  "exports": {
+    ".": "./src/index.ts",
+    "./protocol": "./src/protocol.ts",
+    "./store": "./src/store.ts",
+    "./auth": "./src/auth.ts"
+  },
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "viem": "2.54.2"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "@slice/shared",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./abis": "./src/abis.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "dependencies": { "viem": "2.54.2" }
+}

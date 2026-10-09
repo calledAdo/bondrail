@@ -1,0 +1,116 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.28;
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ISliceRouter} from "./SliceTypes.sol";
+
+contract PumpLabToken is ERC20 {
+    constructor(string memory name_, string memory symbol_, address holder) ERC20(name_, symbol_) {
+        _mint(holder, 1_000_000_000e18);
+    }
+}
+
+/// @notice Fixed reviewed demo curve. Only administrative name-length metadata is mutable under FeeGuard.
+contract PumpLab is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+    error Unauthorized();
+    error InvalidTrade();
+    error Slippage();
+    IERC20 public immutable asset;
+    PumpLabToken public immutable token;
+    address public owner;
+    address public feeRecipient;
+    uint16 public constant feeBps = 100;
+    uint16 public maxNameLength;
+    uint256 public virtualUSDC = 1000e6;
+    uint256 public virtualToken = 1_073_000_000e18;
+    uint256 public realUSDC;
+    uint256 public realToken = 1_000_000_000e18;
+    uint256 public constant MIN_TRADE = 100;
+    event Trade(
+        address indexed payer, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee, address indexed router
+    );
+    event OwnershipTransferred(address indexed oldOwner, address indexed newOwner);
+    event NameLengthChanged(uint16 value);
+
+    constructor(address asset_, address router_, string memory name_, string memory symbol_, uint16 maxNameLength_) {
+        if (
+            asset_ == address(0) || router_ == address(0) || maxNameLength_ < 8 || maxNameLength_ > 128
+                || bytes(name_).length > maxNameLength_
+        ) revert InvalidTrade();
+        asset = IERC20(asset_);
+        feeRecipient = router_;
+        owner = msg.sender;
+        maxNameLength = maxNameLength_;
+        token = new PumpLabToken(name_, symbol_, address(this));
+    }
+
+    function transferOwnership(address next) external {
+        if (msg.sender != owner || next == address(0)) revert Unauthorized();
+        emit OwnershipTransferred(owner, next);
+        owner = next;
+    }
+
+    function setMaxNameLength(uint16 length) external {
+        if (msg.sender != owner || length < 8 || length > 128) revert Unauthorized();
+        maxNameLength = length;
+        emit NameLengthChanged(length);
+    }
+
+    function quoteBuy(uint256 gross) public view returns (uint256 out, uint256 fee) {
+        fee = Math.ceilDiv(gross, 100);
+        if (gross <= fee) return (0, fee);
+        uint256 newY = Math.mulDiv(virtualUSDC, virtualToken, virtualUSDC + gross - fee, Math.Rounding.Ceil);
+        out = virtualToken - newY;
+    }
+
+    function quoteSell(uint256 amount) public view returns (uint256 net, uint256 fee, uint256 gross) {
+        uint256 newX = Math.mulDiv(virtualUSDC, virtualToken, virtualToken + amount, Math.Rounding.Ceil);
+        gross = virtualUSDC - newX;
+        fee = Math.ceilDiv(gross, 100);
+        net = gross - fee;
+    }
+
+    function buy(uint256 gross, uint256 minTokensOut, uint64 deadline) external nonReentrant returns (uint256 out) {
+        if (block.timestamp > deadline || gross < MIN_TRADE) revert InvalidTrade();
+        uint256 fee;
+        (out, fee) = quoteBuy(gross);
+        if (out == 0 || out > realToken) revert InvalidTrade();
+        if (out < minTokensOut) revert Slippage();
+        uint256 beforeBalance = asset.balanceOf(address(this));
+        asset.safeTransferFrom(msg.sender, address(this), gross);
+        if (asset.balanceOf(address(this)) - beforeBalance != gross) revert InvalidTrade();
+        virtualUSDC += gross - fee;
+        virtualToken -= out;
+        realUSDC += gross - fee;
+        realToken -= out;
+        IERC20(address(token)).safeTransfer(msg.sender, out);
+        _payFee(fee);
+        emit Trade(msg.sender, true, out, gross, fee, feeRecipient);
+    }
+
+    function sell(uint256 amount, uint256 minUSDCOut, uint64 deadline) external nonReentrant returns (uint256 net) {
+        if (block.timestamp > deadline || amount == 0) revert InvalidTrade();
+        uint256 fee;
+        uint256 gross;
+        (net, fee, gross) = quoteSell(amount);
+        if (gross < MIN_TRADE || gross > realUSDC || net == 0) revert InvalidTrade();
+        if (net < minUSDCOut) revert Slippage();
+        IERC20(address(token)).safeTransferFrom(msg.sender, address(this), amount);
+        virtualToken += amount;
+        virtualUSDC -= gross;
+        realToken += amount;
+        realUSDC -= gross;
+        asset.safeTransfer(msg.sender, net);
+        _payFee(fee);
+        emit Trade(msg.sender, false, amount, gross, fee, feeRecipient);
+    }
+
+    function _payFee(uint256 fee) private {
+        asset.safeTransfer(feeRecipient, fee);
+        ISliceRouter(feeRecipient).sweep();
+    }
+}

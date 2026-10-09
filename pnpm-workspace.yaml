@@ -1,0 +1,11 @@
+packages:
+  - apps/*
+  - packages/*
+  - services/*
+  - cre/*
+  - indexer
+
+onlyBuiltDependencies:
+  - esbuild
+  - sharp
+  - better-sqlite3

@@ -1,0 +1,5 @@
+{
+  "name": "@slice/indexer", "version": "0.1.0", "private": true, "type": "module",
+  "scripts": { "codegen": "envio codegen", "dev": "envio dev", "start": "envio start", "typecheck": "tsc --noEmit" },
+  "dependencies": { "envio": "3.14.0" }
+}

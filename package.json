@@ -1,0 +1,29 @@
+{
+  "name": "slice",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@10.32.0",
+  "scripts": {
+    "dev": "pnpm --filter @slice/web dev",
+    "dev:agent": "pnpm --filter @slice/agent dev",
+    "build": "pnpm -r --if-present build",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "test": "pnpm -r --if-present test",
+    "contracts:test": "forge test --root contracts",
+    "contracts:build": "forge build --root contracts",
+    "abi": "tsx scripts/generate-abis.ts",
+    "readiness": "tsx scripts/readiness.ts",
+    "local:deploy": "tsx scripts/deploy-local.ts",
+    "test:e2e": "playwright test",
+    "check": "pnpm typecheck && pnpm test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/node": "22.15.30",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "viem": "2.54.2"
+  }
+}

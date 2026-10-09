@@ -1,0 +1,94 @@
+type Issuer {
+  id: ID!
+  chainId: Int!
+  router: String! @index
+  issuer: String!
+  payout: String!
+}
+type Bond {
+  id: ID!
+  chainId: Int!
+  router: String! @index
+  issuer: String!
+  adapter: Int!
+  policyHash: String!
+  phase: Int!
+  raised: BigInt!
+  released: BigInt!
+  principalRecovery: BigInt!
+  revenueCollected: BigInt!
+  stakeRecovery: BigInt!
+  redeemed: BigInt!
+  totalSupply: BigInt!
+  defaulted: Boolean!
+}
+type Receipt {
+  id: ID!
+  chainId: Int!
+  router: String! @index
+  sender: String!
+  amount: BigInt!
+  block: BigInt!
+  blockHash: String!
+  txHash: String! @index
+  logIndex: Int!
+  timestamp: BigInt!
+}
+type Payment {
+  id: ID!
+  chainId: Int!
+  router: String! @index
+  receiptId: String!
+  payer: String!
+  amount: BigInt!
+  timestamp: BigInt! @index
+  source: String!
+  synthetic: Boolean!
+  related: Boolean!
+  evidenceComplete: Boolean!
+  reasons: [String!]!
+}
+type FundingEdge {
+  id: ID!
+  chainId: Int!
+  issuerRouter: String! @index
+  sender: String!
+  recipient: String! @index
+  amount: BigInt!
+  timestamp: BigInt!
+  txHash: String!
+}
+type ChainEvent {
+  id: ID!
+  chainId: Int!
+  address: String! @index
+  kind: String!
+  account: String!
+  amount: BigInt!
+  block: BigInt!
+  blockHash: String!
+  txHash: String!
+  timestamp: BigInt!
+}
+type CovenantCheck {
+  id: ID!
+  chainId: Int!
+  bond: String! @index
+  result: Int!
+  epoch: BigInt!
+  observedAt: BigInt!
+  observedPayTo: String!
+  evidenceHash: String!
+}
+type SourceTrade {
+  id: ID!
+  chainId: Int!
+  source: String! @index
+  token: String!
+  trader: String!
+  fee: BigInt!
+  usdcAmount: BigInt!
+  isBuy: Boolean!
+  txHash: String! @index
+  timestamp: BigInt!
+}

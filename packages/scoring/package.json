@@ -1,0 +1,8 @@
+{
+  "name": "@slice/scoring",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts", "./nansen": "./src/nansen.ts", "./envio": "./src/envio.ts" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "tsx --test src/*.test.ts" }
+}

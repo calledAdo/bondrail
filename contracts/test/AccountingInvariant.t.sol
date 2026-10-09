@@ -1,0 +1,143 @@
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.28;
+import {TestBase} from "./TestBase.sol";
+import {SliceTypes} from "../src/SliceTypes.sol";
+import {SliceBond} from "../src/SliceBond.sol";
+import {SliceRouter} from "../src/SliceRouter.sol";
+import {SliceFactory} from "../src/SliceFactory.sol";
+import {SliceCovenant} from "../src/SliceCovenant.sol";
+import {MockUSDC} from "../src/MockUSDC.sol";
+
+contract AccountingHandler is TestBase {
+    MockUSDC public asset;
+    SliceFactory public factory;
+    SliceRouter public router;
+    SliceBond public bond;
+    uint256 public receipts;
+    uint256 public issuerWithdrawn;
+    uint256 public holderPaid;
+    uint256 private constant PK = 67890;
+    SliceTypes.Terms private t;
+
+    constructor() {
+        asset = new MockUSDC();
+        SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
+        factory =
+            new SliceFactory(
+            address(asset), address(c), vm.addr(PK), address(new SliceBond()), address(new SliceRouter())
+        );
+        c.initializeFactory(address(factory));
+        router = SliceRouter(factory.createRouter());
+        (address source, address guard) = factory.createLockedSource(address(router), "Invariant Lab", "INV", 64);
+        uint64 now_ = uint64(vm.getBlockTimestamp());
+        t = SliceTypes.Terms(100e6, 120e6, 20e6, 10e6, now_ + 120, now_ + 1200, now_ + 150, now_ + 600, 30, 2000, 5000);
+        asset.mint(address(this), 120e6);
+        asset.approve(address(factory), 20e6);
+        bond = SliceBond(
+            factory.createBond(
+                address(router),
+                t,
+                SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, source, guard, keccak256("invariant-policy"))
+            )
+        );
+        asset.approve(address(bond), 100e6);
+        bond.deposit(100e6);
+        factory.activate(address(bond));
+    }
+
+    function receiveFees(uint64 amount, bool collect) external {
+        uint256 value = uint256(amount) % 40e6;
+        asset.mint(address(router), value);
+        receipts += value;
+        if (collect) router.sweep();
+    }
+
+    function sweep() external {
+        router.sweep();
+    }
+
+    function withdraw(uint64 raw) external {
+        uint256 credit = router.issuerCredit();
+        if (credit == 0) return;
+        uint256 amount = uint256(raw) % credit + 1;
+        router.withdrawIssuerCredit(address(this), amount);
+        issuerWithdrawn += amount;
+    }
+
+    function advance(uint16 raw) external {
+        vm.warp(vm.getBlockTimestamp() + uint256(raw) % 100);
+    }
+
+    function expire() external {
+        if (bond.phase() == SliceTypes.Phase.Active && vm.getBlockTimestamp() >= t.secondReleaseDeadline) {
+            bond.expireUndrawn();
+        }
+    }
+
+    function release() external {
+        uint64 now_ = uint64(vm.getBlockTimestamp());
+        if (
+            bond.phase() != SliceTypes.Phase.Active || bond.undrawnPrincipal() == 0 || now_ < t.secondReleaseNotBefore
+                || now_ >= t.secondReleaseDeadline
+        ) return;
+        SliceTypes.Milestone memory m = SliceTypes.Milestone(
+            address(bond),
+            bond.policyHash(),
+            bond.activationTime(),
+            now_,
+            10e6,
+            keccak256("screened"),
+            now_ + 90,
+            bond.releaseNonce()
+        );
+        factory.releaseSecond(address(bond), m, _sig(PK, factory.hashMilestone(m)));
+    }
+
+    function close() external {
+        if (bond.phase() == SliceTypes.Phase.Active && vm.getBlockTimestamp() >= t.maturity) {
+            router.closeBondAtMaturity(address(bond));
+        }
+    }
+
+    function redeem(uint64 raw) external {
+        uint256 held = bond.balanceOf(address(this));
+        if (bond.phase() != SliceTypes.Phase.Closed || held == 0) return;
+        uint256 amount = uint256(raw) % held + 1;
+        if (bond.pool() != 0 && amount * bond.pool() / bond.totalSupply() == 0) return;
+        holderPaid += bond.redeem(amount, address(this));
+    }
+
+    function donate(uint64 raw) external {
+        asset.mint(address(bond), uint256(raw) % 10e6);
+    }
+}
+
+contract AccountingInvariantTest is TestBase {
+    AccountingHandler public handler;
+    address[] private targets;
+
+    function setUp() public {
+        vm.warp(1_800_000);
+        handler = new AccountingHandler();
+        targets.push(address(handler));
+    }
+
+    function targetContracts() external view returns (address[] memory) {
+        return targets;
+    }
+
+    function invariantAssetsCoverEveryLiability() public view {
+        SliceBond b = handler.bond();
+        SliceRouter r = handler.router();
+        MockUSDC a = handler.asset();
+        yes(a.balanceOf(address(b)) >= b.accountedBalance());
+        yes(a.balanceOf(address(r)) >= r.issuerCredit());
+        eq(b.releasedPrincipal() + b.undrawnPrincipal() + b.principalRecovery(), 100e6);
+        eq(b.totalRedeemed() + b.pool(), b.totalRevenueCollected() + b.principalRecovery() + b.stakeRecovery());
+        eq(handler.receipts(), a.balanceOf(address(r)) + b.totalRevenueCollected() + handler.issuerWithdrawn());
+        eq(handler.holderPaid(), b.totalRedeemed());
+        yes(b.totalRevenueCollected() <= b.effectiveRevenueCap());
+        if (b.phase() == SliceTypes.Phase.Active) eq(b.totalSupply(), 100e6);
+        if (b.totalSupply() == 0) eq(b.pool(), 0);
+    }
+}
