@@ -88,7 +88,7 @@ Deployed 10 Oct 2026 from this code (two tiers, any-token accounts, x402 manifes
 | PumpLab (Native): account / project / bond `PLAB-RC` | `0xA34FE8bd5900360b1f284054C4Bcc115A4BA1e81` / `0x793a25ff10e29f12975227b2ed283256b8530bec` / `0x4ecF7082ADF4C4092B480eDC3FB6054a96f0aff4` |
 | Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0x4a83E241BCF144f738276F10DbC922dc4f17ef58` / `0xf12f80905f96ff99688d2a5e719f5F208c385c06` |
 | Kuru `PLAB-RC`/USDC market / AMM vault | `0xBfb848729E3a87026B6A2d99960f78fA7Ad88F4D` / `0x53Da08F6Fd3Ae2552329fb913A7C4F0605BF91D3` |
-| ERC-8004 agentId | `2091` (Identity Registry `0x8004A818BFB912233c491871b3d84c89A494BD9e`) |
+| ERC-8004 agentId | `2117` (Identity Registry `0x8004A818BFB912233c491871b3d84c89A494BD9e`) |
 
 | Transaction | Hash |
 |---|---|
