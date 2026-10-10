@@ -2,10 +2,13 @@
 // created piece is saved to docs/deployments/<chain>.json before the next step.
 //
 //   pumplab  Native  : account -> issuer deploys PumpLab (a SliceEarner) -> binds it -> reviewer approves -> bond
-//   classic  Locked  : account -> issuer deploys PumpLabClassic -> factory guard -> ownership to guard -> bond
 //   agent    Watched : account (the x402 payTo) -> bond with stake; activation waits for a CRE report
 //
-//   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts [pumplab|classic|agent ...]
+//   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts [pumplab|agent ...]
+//
+// A bond needs `factory.minHistory()` seconds since the account's first booked payment. Run the first time to
+// create the account and project, send real traffic (traffic-launchpad.ts / traffic-agent.ts), then run
+// again once the history is old enough. On local anvil the wait is skipped by advancing the chain clock.
 //
 // Amounts are small on purpose (testnet USDC comes from a rate-limited faucet). Override with
 // RAISE_USDC / CAP_USDC / STAKE_USDC. Every wallet here is team-controlled demo activity.
@@ -50,6 +53,7 @@ const erc20 = parseAbi([
 ]);
 const factoryAbi = artifact('SliceFactory').abi;
 const bondAbi = artifact('SliceBond').abi;
+const accountAbi = artifact('SliceAccount').abi;
 
 const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
 const investor = account('investor', { create: true });
@@ -139,10 +143,37 @@ async function fundAndActivate(id: string) {
   console.log(`  ${rec.name}: funded and activated (50% released, 50% escrowed)`);
 }
 
+/** True once the account's history is old enough to issue. Never fakes payments: traffic must be real. */
+async function historyReady(id: string) {
+  const d = readDeployment();
+  const rec = d.issuers[id]!;
+  const read = (address: Address, abi: typeof factoryAbi, functionName: string) =>
+    publicClient.readContract({ address, abi, functionName }) as Promise<bigint>;
+  const [first, min] = await Promise.all([
+    read(rec.account, accountAbi, 'firstRevenueAt'),
+    read(d.factory, factoryAbi, 'minHistory'),
+  ]);
+  if (first === 0n) {
+    const traffic = rec.tier === 'native' ? `traffic-launchpad.ts ${id} organic 1` : 'traffic-agent.ts';
+    console.log(`  ${rec.name}: no payments yet. Send real traffic (demo/scripts/${traffic}), then run this again`);
+    return false;
+  }
+  const wait = first + min - (await publicClient.getBlock()).timestamp;
+  if (wait <= 0n) return true;
+  if (chainId === 31337) {
+    await publicClient.request({ method: 'evm_increaseTime' as never, params: [Number(wait)] as never });
+    await publicClient.request({ method: 'evm_mine' as never });
+    return true;
+  }
+  console.log(`  ${rec.name}: history is ${min - wait}s old; the factory needs ${min}s. Run again in ${wait}s`);
+  return false;
+}
+
 async function createBond(id: string, config: object, name: string, symbol: string, milestoneMode: 0 | 1) {
   const d = readDeployment();
   const rec = d.issuers[id]!;
-  if (rec.bond) return;
+  if (rec.bond) return true;
+  if (!(await historyReady(id))) return false;
   const issuer = account(`${id}-issuer`);
   const now = (await publicClient.getBlock()).timestamp;
   await write(issuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
@@ -156,6 +187,7 @@ async function createBond(id: string, config: object, name: string, symbol: stri
   rec.bond = (await eventArgs(r, 'BondCreated')).bond;
   saveDeployment(d);
   console.log(`  ${rec.name}: bond ${rec.bond} (${symbol})`);
+  return true;
 }
 
 async function setupPumpLab() {
@@ -186,56 +218,16 @@ async function setupPumpLab() {
     await write(account('reviewer'), d.factory, factoryAbi, 'setNativeApproval', [rec.source, true]);
     console.log('  PumpLab: approved as Native by the reviewer');
   }
-  await createBond(
+  const created = await createBond(
     'pumplab',
-    { adapter: 0, source: rec.source, guard: ZERO, policyHash: keccak256(stringToHex('slice-native-pumplab-v1')) },
+    { adapter: 0, source: rec.source, policyHash: keccak256(stringToHex('slice-native-pumplab-v1')) },
     'PumpLab Revenue Claim',
     'PLAB-RC',
     0,
   );
-  await fundAndActivate('pumplab');
+  if (created) await fundAndActivate('pumplab');
 }
 
-async function setupClassic() {
-  const d = await ensureAccount('classic', 'PumpLab Classic', 'locked');
-  const rec = d.issuers.classic!;
-  const issuer = account('classic-issuer');
-  const lab = artifact('PumpLabClassic').abi;
-  if (!rec.source) {
-    // An ordinary owner-administered launchpad whose fee recipient is the account from the start.
-    rec.source = await deploy(issuer, 'PumpLabClassic', [d.asset, rec.account, 'Classic Meme', 'CLMEME', 64]);
-    rec.token = (await publicClient.readContract({ address: rec.source, abi: lab, functionName: 'token' })) as Address;
-    saveDeployment(d);
-    console.log(`  PumpLab Classic: launchpad ${rec.source}`);
-  }
-  if (!rec.guard) {
-    const r = await write(issuer, d.factory, factoryAbi, 'createGuard', [
-      rec.account,
-      rec.source,
-      keccak256(stringToHex('feeRecipient()')).slice(0, 10),
-      keccak256(stringToHex('feeBps()')).slice(0, 10),
-      100n,
-      [keccak256(stringToHex('setMaxNameLength(uint16)')).slice(0, 10)],
-    ]);
-    rec.guard = (await eventArgs(r, 'GuardCreated')).guard;
-    saveDeployment(d);
-    await write(issuer, rec.source, lab, 'transferOwnership', [rec.guard]);
-    console.log(`  PumpLab Classic: FeeGuard ${rec.guard} now owns the launchpad`);
-  }
-  await createBond(
-    'classic',
-    {
-      adapter: 1,
-      source: rec.source,
-      guard: rec.guard,
-      policyHash: keccak256(stringToHex('slice-locked-classic-v1')),
-    },
-    'Classic Revenue Claim',
-    'CLAB-RC',
-    1,
-  );
-  await fundAndActivate('classic');
-}
 
 async function setupAgent() {
   const d = await ensureAccount('agent', 'Oracle Agent', 'watched');
@@ -244,6 +236,7 @@ async function setupAgent() {
   const agentUrl = process.env.AGENT_URL;
   if (!agentUrl) return console.log('  Oracle Agent bond skipped: deploy the agent, then set AGENT_URL');
   if (!rec.bond) {
+    if (!(await historyReady('agent'))) return;
     // The policy commits to the bond address, which the factory creates next with CREATE.
     const nonce = await publicClient.getTransactionCount({ address: d.factory });
     const bond = getContractAddress({ from: d.factory, nonce: BigInt(nonce) });
@@ -267,7 +260,7 @@ async function setupAgent() {
     };
     await createBond(
       'agent',
-      { adapter: 2, source: ZERO, guard: ZERO, policyHash: policyHash(policy) },
+      { adapter: 1, source: ZERO, policyHash: policyHash(policy) },
       'Oracle Agent Revenue Claim',
       'ORCL-RC',
       0,
@@ -286,7 +279,6 @@ async function main() {
   const all = which.length === 0;
   console.log(`Setting up demo businesses on ${readDeployment().network}`);
   if (all || which.includes('pumplab')) await setupPumpLab();
-  if (all || which.includes('classic')) await setupClassic();
   if (all || which.includes('agent')) await setupAgent();
 }
 

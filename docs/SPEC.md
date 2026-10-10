@@ -1,7 +1,7 @@
 # Slice v1 specification
 
 Single source of truth for the build. Supersedes everything in `docs/archive/`.
-Decided 9 October 2026 (user + Claude). Network: Monad testnet (10143); local anvil (31337) for tests.
+Decided 9 October 2026 (user + Claude); Locked tier removed and issuance/deposit checks added 10 October 2026. Network: Monad testnet (10143); local anvil (31337) for tests.
 
 ## 1. Idea
 
@@ -17,7 +17,7 @@ The business's revenue address and payment entrypoint. Replaces the earlier "rou
 
 **Bound parties**
 - `issuer`: the business owner; withdraws the business's share, binds the project once.
-- `project`: the Native project contract allowed to call `collect` (zero for Locked and Watched). Bound once by the issuer.
+- `project`: the Native project contract allowed to call `collect` (zero for Watched). Bound once by the issuer.
 - `factory`: attaches and detaches bonds.
 
 **Two ways money arrives**
@@ -25,9 +25,10 @@ The business's revenue address and payment entrypoint. Replaces the earlier "rou
    - The account pulls `gross` USDC from `payer` (`transferFrom`; with EIP-2612 permit, no standing approval is needed).
    - It keeps `fee` and sends `gross − fee` to the project.
    - The payer is proven by the pull itself. The fee is split immediately; no keeper is needed.
-2. **Received (Locked, Watched).** A plain USDC transfer to the account: a legacy launchpad's fee
-   transfer, or an x402 settlement. Anyone calls `sweep()` to book unrecorded balance as revenue
-   (payer attributed off-chain from the transfer).
+2. **Received.** A plain USDC transfer to the account: an x402 settlement, or anything else anyone sends.
+   Anyone calls `sweep()` to book unrecorded balance as revenue. The contract cannot tell transfers
+   apart; the indexer does (section 3): x402 settlements carry the payer's EIP-3009 signature, every
+   other transfer is an unclassified inflow that never counts as verified revenue.
 
 **Modes**
 - **Passthrough** (no active bond, or bond still Funding): 100% of revenue is credited to the issuer.
@@ -47,7 +48,7 @@ never block payments or investors.
 
 ### SliceBond (one per issuance, clone)
 Vault plus ERC-20 claim (6 decimals, name and symbol per bond).
-- **Funding:** deposits mint claims 1:1 until `raiseAmount`; transfers are locked while Funding; cancel and refund after `fundingDeadline`.
+- **Funding:** deposits mint claims 1:1 until `raiseAmount`; every deposit requires `factory.depositAllowed(bond)` (below); transfers are locked while Funding; cancel and refund after `fundingDeadline`.
 - **Activation:** issuer (via factory), only when fully funded and the source is healthy.
   - Releases `firstReleaseBps` (2500 or 5000) to the issuer; the rest stays as undrawn principal.
   - Snapshots `account.cumulativeRevenue()`.
@@ -58,26 +59,32 @@ Vault plus ERC-20 claim (6 decimals, name and symbol per bond).
 - **Revenue cap** scales with released principal: `effectiveCap = repayCap × released / raise`.
 - **Redeem at any time after activation** for `tokens × pool / supply`. The last claim waits for Closed.
 - **Default (Watched only):** stake slashed into the pool; undrawn principal goes to recovery.
-- **Closing → Closed:** Watched bonds get a 120 s window for late evidence; Locked and Native close immediately.
+- **Closing → Closed:** Watched bonds get a 120 s window for late evidence; Native bonds close immediately.
 
 ### SliceFactory
 - `createAccount()`; the issuer is `msg.sender`.
 - `setNativeApproval(project, bool)`: the disclosed `reviewer` approves a Native project's code (it pays every fee through `collect`). History accrues before review; review is required to raise.
-- `createGuard(account, target, recipientGetter, feeGetter, minFee, allowedSelectors)`: a generic FeeGuard for any owner-administered fee contract; the issuer then points the fee recipient at the account and transfers ownership to the guard.
 - The factory never deploys projects: Native projects inherit `SliceEarner` and bind themselves (`account.bindProject`, issuer only, the project must point at the account).
-- `createBond(account, terms, config, name, symbol)`.
+- `createBond(account, terms, config, name, symbol)`. Requires `minHistory` seconds (immutable, set at deploy:
+  60 s local, 600 s testnet, days on mainnet) since the account's `firstRevenueAt`. Watched requires a stake.
+- `depositAllowed(bond)`: Native, the project is still reviewer-approved, bound and pointing at the
+  account; Watched, the bond has not defaulted and its latest CRE observation is not a Violation (no fresh
+  report needed, so a bond can raise between CRE runs).
 - `activate`, `releaseSecond(bond)` (on-chain mode), `releaseSecondSigned(bond, milestone, sig)`.
 - Health check before activation and release:
   - **Native:** the project is reviewer-approved, bound to the account, and points at it.
-  - **Locked:** the guard is locked.
-  - **Watched:** the covenant reports healthy.
+  - **Watched:** the covenant reports healthy (a fresh Compliant observation).
 
-### Adapters (three tiers)
+### Adapters (two tiers)
 | Tier | Source | Why fees can't be diverted |
 |---|---|---|
 | Native | `PumpLab`: charges fees through `account.collect`; account is immutable | No other payment path exists in the code |
-| Locked | `PumpLabClassic`: ordinary owner-administered launchpad, owned by `FeeGuard` | The guard refuses recipient, rate, ownership and unknown calls; re-checks the lock after every call |
 | Watched | x402 API whose `payTo` is the account | Chainlink CRE checks `payTo` every 30 s; two adjacent violations default the bond and slash the stake |
+
+Existing contracts can point their fee recipient at an account to build history (unclassified inflows)
+but raise only as Native. The Locked tier (a FeeGuard holding an existing contract's ownership) was
+removed: the guard only checks the getters it is configured with, so other admin roles, proxies or
+withdraw paths could still divert fees, and making it safe needed Native-level review with weaker payer data.
 
 ### SliceCovenant
 CRE receiver. Only `onReport` from the pinned forwarder, carrying an observation with the pinned
@@ -88,9 +95,12 @@ Two adjacent Violations after activation trigger `markDefault`.
 - **Observer:** fetches the x402 offer and signs Compliant, Violation or Unknown.
 - **CRE workflow:** fetches independently, checks agreement with the observer, writes the report.
 - **Agent:** x402 paid API; `payTo` = its SliceAccount.
-- **Envio indexer:** accounts, bonds, payments (Collected events: proven payer; USDC transfers into
-  accounts: x402 payer = transfer `from`; classic launchpad Trade events: trader), treasury funding
-  edges, covenant checks, daily revenue (raw and verified).
+- **Envio indexer:** accounts, bonds, payments, treasury funding edges, covenant checks, daily revenue
+  (raw and verified). Payment classes:
+  - `native`: the account's `Revenue` event from `collect`; payer proven by the pull.
+  - `x402`: a USDC transfer into an account whose transaction emitted `AuthorizationUsed` for the sender
+    (EIP-3009); payer signed it. Works before any bond.
+  - `transfer`: any other transfer into an account; reason `unclassified_inflow`, excluded from verified.
 - **Web:** markets, issuer evidence (history since day one, raw vs verified, payers, Nansen
   screening), bond workspace (deposit, live backing, redeem), passkey wallet.
 - **Kuru:** claim/USDC market. **ERC-8004:** agent identity and default feedback.
@@ -104,4 +114,4 @@ Two adjacent Violations after activation trigger `markDefault`.
 
 ## 5. Product vs demo
 - Product: `contracts/src`, `packages/sdk` (`@slice/sdk`), `services`, `cre`, `indexer`, `apps/web`, `scripts/deploy.ts`.
-- Demo: `demo/` (PumpLab, PumpLabClassic, Oracle Agent on `@slice/sdk/x402`, setup/traffic/demo scripts). The demo uses only public protocol and SDK interfaces.
+- Demo: `demo/` (PumpLab, Oracle Agent on `@slice/sdk/x402`, setup/traffic/demo scripts). The demo uses only public protocol and SDK interfaces.

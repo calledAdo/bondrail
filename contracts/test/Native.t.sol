@@ -36,7 +36,8 @@ contract NativeTest is TestBase {
             vm.addr(67890),
             address(new SliceBond()),
             address(new SliceAccount()),
-            REVIEWER
+            REVIEWER,
+            0
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 1_000e6);
@@ -82,7 +83,7 @@ contract NativeTest is TestBase {
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), address(0), keccak256("native")),
+                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), keccak256("native")),
                 "Lab Revenue Claim",
                 "LAB-RC"
             )
@@ -214,7 +215,7 @@ contract NativeTest is TestBase {
         factory.createBond(
             address(account),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(0xBEEF), address(0), keccak256("x")),
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(0xBEEF), keccak256("x")),
             "X",
             "X-RC"
         );
@@ -230,7 +231,7 @@ contract NativeTest is TestBase {
         factory.createBond(
             address(account),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), address(0), keccak256("native")),
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), keccak256("native")),
             "Lab Revenue Claim",
             "LAB-RC"
         );

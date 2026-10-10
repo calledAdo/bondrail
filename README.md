@@ -5,7 +5,7 @@
 Monad apps earn fees onchain but can't borrow against them. Slice gives every business a revenue
 account from day one. The account records each payment, with the payer, before the business ever asks
 for money. When it raises, the same account automatically pays investors their share, in a way the
-business either cannot route around or gets punished for routing around.
+business either cannot route around (Native) or gets punished for routing around (Watched).
 
 - App: https://slice-flame.vercel.app (Monad testnet)
 - Demo issuer, a paid x402 AI API: https://slice-agent.vercel.app/api/oracle
@@ -21,7 +21,9 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
    - **Native projects** call `account.collect(payer, gross, fee)`. The account *pulls* the payment
      from the payer (an approval, or one EIP-2612 permit signature), keeps the fee and forwards the
      rest to the project. The payer is proven by the pull itself.
-   - **Plain transfers** (x402 settlements, a legacy contract's fee transfer) are booked with `sweep()`.
+   - **Plain transfers** (x402 settlements, anything else sent to the account) are booked with `sweep()`.
+     The indexer tells them apart: an x402 settlement carries the payer's EIP-3009 signature; any other
+     transfer is shown as an unclassified inflow and never counts as verified revenue.
 2. **The account keeps an on-chain credit history from its first payment:** total revenue, payments,
    distinct payers, first revenue date and revenue per day. This happens bond or no bond, so the record
    that underwrites a raise predates the raise.
@@ -40,25 +42,36 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 5. **Claims are redeemable at any time** for a pro-rata share of what has been collected, and tradable
    on **Kuru**. Their price is a live market forecast of the business's revenue.
 
-## Three ways to connect revenue
+## Two ways to connect revenue
 
 | Tier | For | Why revenue can't be diverted | Demo |
 |---|---|---|---|
 | **Native** | New projects built on Slice: inherit `SliceEarner` | Every fee is pulled through the account, which is fixed into the project's contract. A disclosed Slice reviewer checks the code before the project can raise; history accrues before review: **impossible by construction** | PumpLab launchpad |
-| **Locked** | Any existing owner-administered fee contract | Ownership is held by a generic `FeeGuard` (configured with the contract's fee-recipient getter, optional fee-rate floor and an allowlist of harmless admin calls); everything else is refused while a bond is live: **impossible while locked** | PumpLab Classic |
 | **Watched** | Revenue paid over HTTP (x402 agents) | **Chainlink CRE** checks the advertised `payTo` every 30 s; two adjacent violations default the bond and slash the issuer's stake: **caught and punished** | Oracle Agent |
 
 ```
  Native : trader ─ approve/permit ─► SliceAccount.collect ─┬─► fee: history, then the bond share ─► SliceBond
           PumpLab.buy() ─────────────────────────┘          └─► rest ─► PumpLab
- Locked : PumpLabClassic (owned by FeeGuard) ─ fee transfer ─► SliceAccount.sweep ─► same split
  Watched: payer ─ x402 ─► facilitator ─ USDC ─► SliceAccount.sweep ─► same split
           Chainlink CRE ─ unpaid GET ─► agent's 402 offer ─ signed report ─► SliceCovenant ─ default ─► SliceBond
- Envio HyperIndex ◄─ factory / account / bond / covenant / launchpad / USDC events ─► web app
+ Envio HyperIndex ◄─ factory / account / bond / covenant / USDC events ─► web app
  Kuru: claim/USDC order book and AMM vault          ERC-8004: agent identity and reputation
 ```
 
+Any existing contract can still point its fee recipient at a SliceAccount to **build history**, but it
+raises only once it is Native. An earlier Locked tier (an ownership guard around existing contracts) was
+removed: a guard can only check the getters it is told about, so a second admin role, an upgradeable
+proxy or a withdraw function would still divert fees, and making it safe needed the same review as
+Native with weaker payer data.
+
+Before a bond, an account must have `minHistory` of payment history (time is the one part of a history
+that can't be faked), and every deposit re-checks the source: a Native project must still be reviewed and
+bound, and a Watched bond's latest CRE observation must not be a violation.
+
 ## Live on Monad testnet (chain 10143)
+
+> The testnet deployment below predates the removal of the Locked tier and the issuance and deposit
+> checks (10 Oct 2026). The current code is tested locally; the testnet redeploy is pending.
 
 | What | Address |
 |---|---|
@@ -67,7 +80,6 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 | CRE MockKeystoneForwarder | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` |
 | Native reviewer (disclosed) | `0x10Be6883Ebbd9B610C43a97f338512a5e66f5893` |
 | PumpLab (Native): account / project / bond `PLAB-RC` | `0xD4e4959e39787bbDb448d7437f67ca32AbD204B2` / `0x700d8a4e125e3a32dd2be9f727cab4d2a5d2f59d` / `0x121a1294Ced6c90c25bB823e72416E89677a717F` |
-| PumpLab Classic (Locked): account / contract / FeeGuard / bond `CLAB-RC` | `0x2BA8145ebc85feB8A7E8Ebf55A03B37E8fB42A75` / `0x297b0fb25ffe786a88bf20c100c4476ea82dd8c7` / `0x04744483190D4373Ee55cE065c69374cc0f5C38B` / `0x9fcA536a68f0a47d029f93D1a28549288Ba163b5` |
 | Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0xa4a870a3b5Bc457266416C84441011e879141a26` / `0xaDF2916EFd32A4F603E00423Cd9fB5c453a16630` |
 | Kuru `PLAB-RC`/USDC market / AMM vault | `0xEd980DA024b1f5dcaaF3F103275F7a660ED00813` / `0x862f1372307162469DFc2bFe845bDCF0F634515E` |
 | ERC-8004 agentId | `2091` (Identity Registry `0x8004A818BFB912233c491871b3d84c89A494BD9e`) |
@@ -87,14 +99,13 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 
 | Product | |
 |---|---|
-| [`contracts/src`](contracts/src) | SliceAccount, SliceBond, SliceFactory, SliceCovenant, FeeGuard, **SliceEarner** (inherit it to be Native) |
-| [`packages/sdk`](packages/sdk) (`@slice/sdk`) | Typed ABIs and client (accounts, guards, bonds, credit history), EIP-2612 permit for Native payments, **x402 handler** that pays a SliceAccount, revenue data and scoring |
+| [`contracts/src`](contracts/src) | SliceAccount, SliceBond, SliceFactory, SliceCovenant, **SliceEarner** (inherit it to be Native) |
+| [`packages/sdk`](packages/sdk) (`@slice/sdk`) | Typed ABIs and client (accounts, bonds, credit history), EIP-2612 permit for Native payments, **x402 handler** that pays a SliceAccount, revenue data and scoring |
 | [`services`](services), [`cre`](cre), [`indexer`](indexer), [`apps/web`](apps/web) | Observer, keeper, Chainlink CRE covenant workflow, Envio indexer (protocol events only), the app |
 
 | Demo ([`demo/`](demo)) | Built on |
 |---|---|
 | PumpLab | `SliceEarner`; bound to its account and reviewer-approved |
-| PumpLab Classic | An ordinary Ownable launchpad, guarded by a generic `FeeGuard` |
 | Oracle Agent | `@slice/sdk/x402` (about 60 lines of its own code) |
 | `demo/scripts` | Setup, traffic, Kuru listing, ERC-8004, demo moments |
 
@@ -122,8 +133,9 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 - Accounts, bonds and launchpads are registered dynamically from factory events (`indexer.contractRegister`).
 - Each payment is attributed exactly once:
   - **Native:** the account's `Revenue` event; the payer is proven by the pull.
-  - **Locked:** PumpLab Classic `Trade` events.
-  - **Watched:** USDC transfers into the account; the facilitator moves funds from the payer.
+  - **x402:** USDC transfers into an account whose transaction also emits `AuthorizationUsed` for the
+    sender (EIP-3009, how x402 settles); the payer signed it. This works before any bond exists.
+  - **Anything else** sent to an account is an unclassified inflow: booked on-chain, never verified.
 - Treasury `FundingEdge`s flag payers funded by the business itself.
 - This drives raw vs verified revenue, the payer table, market totals and the bond views in the app
   ([`apps/web/src/lib/live.ts`](apps/web/src/lib/live.ts)).
@@ -153,9 +165,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Step | Command |
 |---|---|
 | Native launchpad revenue, organic and wash | `pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1` · `… pumplab wash 1` |
-| Locked launchpad revenue | `pnpm tsx demo/scripts/traffic-launchpad.ts classic organic 1` |
 | Paid API traffic | `pnpm tsx demo/scripts/traffic-agent.ts 10` |
-| Locked: the guard blocks a fee redirect | `pnpm tsx demo/scripts/demo-locked.ts` |
 | Watched: payTo diversion → CRE default → ERC-8004 feedback | `pnpm tsx demo/scripts/demo-default.ts --yes` (irreversible) |
 
 ## Security
@@ -164,13 +174,14 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 |---|---|---|
 | Native project diverts fees | The account address is immutable in the project, and only the bound project can call `collect` | The project can still lower its own fee or stop operating (priced by the claim on Kuru) |
 | Fake payer attribution | Native payments are pulled from the payer's own balance; the event carries the real source | Wash trading from wallets the business funds; caught by funding edges |
-| Issuer changes the fee recipient (Locked) | FeeGuard refuses the selector and re-checks the lock after every call | A proxy admin would also need guarding (PumpLab Classic is not upgradeable) |
+| Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from verified revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
+| Investors fund a source that has gone bad | Every deposit re-checks review/binding (Native) or the latest CRE result (Watched) | — |
 | Issuer changes the x402 `payTo` (Watched) | CRE check every 30 s; two adjacent violations → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
 | Forged default through the permissionless forwarder | Pinned observer EIP-712 signature, freshness and per-epoch replay checks | Trust in one observer key (disclosed) |
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |
 
-- Foundry: 49 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
+- Foundry: 48 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
 - TypeScript: tests for scoring, observer, worker, agent and web (`pnpm -r test`).
 
 ## Limits, stated plainly
@@ -186,19 +197,20 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 ## Repository
 
 ```
-contracts/src     PROTOCOL  SliceFactory, SliceAccount, SliceBond, FeeGuard, SliceCovenant, SliceEarner
+contracts/src     PROTOCOL  SliceFactory, SliceAccount, SliceBond, SliceCovenant, SliceEarner
 packages/sdk      PRODUCT   @slice/sdk: ABIs, client, permit, x402 handler, revenue data
 apps/web          PRODUCT   markets, issuer evidence and credit history, bond workspace, onboarding, passkeys
 services/         PRODUCT   observer (signs payTo observations), worker (sweeps, closes, CRE loop)
 cre/              PRODUCT   Chainlink CRE covenant workflow
 indexer/          PRODUCT   Envio HyperIndex (protocol events only)
 scripts/          PRODUCT   protocol deploy
-demo/             DEMO      contracts (PumpLab, PumpLabClassic), agent (Oracle Agent), scripts
+demo/             DEMO      contracts (PumpLab), agent (Oracle Agent), scripts
 ```
 
 Run locally: `pnpm install`; `forge test --root contracts`; `pnpm -r test`; start
-`anvil --code-size-limit 131072`, then run `SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts` and
-`demo/scripts/setup-demo.ts`.
+`anvil`, then run `SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts`, `demo/scripts/setup-demo.ts pumplab`,
+`demo/scripts/traffic-launchpad.ts pumplab organic 1`, and `setup-demo.ts pumplab` again (locally the
+minimum-history wait is skipped by advancing the chain clock).
 
 Built during the hackathon by calledAdo, with AI pair-programming (OpenAI Codex, then Claude Code).
 MIT licensed.

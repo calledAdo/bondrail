@@ -11,9 +11,9 @@ import {
   type Transport,
   type WalletClient,
 } from 'viem';
-import { feeGuardAbi, sliceAccountAbi, sliceBondAbi, sliceFactoryAbi } from './abis';
+import { sliceAccountAbi, sliceBondAbi, sliceFactoryAbi } from './abis';
 
-export const Tier = { Native: 0, Locked: 1, Watched: 2 } as const;
+export const Tier = { Native: 0, Watched: 1 } as const;
 export const MilestoneMode = { Onchain: 0, Signed: 1 } as const;
 
 export interface BondTerms {
@@ -80,36 +80,16 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
     bindProject: (account: Address, project: Address) =>
       write(account, sliceAccountAbi as Abi, 'bindProject', [project]),
 
-    /**
-     * Locked: create a FeeGuard for an existing owner-administered fee contract. Afterwards point the
-     * contract's fee recipient at the account and transfer its ownership to the returned guard.
-     */
-    async createGuard(o: {
-      account: Address;
-      target: Address;
-      recipientGetter: Hex;
-      feeGetter?: Hex;
-      minFee?: bigint;
-      allowedSelectors?: Hex[];
-    }): Promise<Address> {
-      const r = await write(factory, sliceFactoryAbi as Abi, 'createGuard', [
-        o.account,
-        o.target,
-        o.recipientGetter,
-        o.feeGetter ?? '0x00000000',
-        o.minFee ?? 0n,
-        o.allowedSelectors ?? [],
-      ]);
-      return factoryEvent<{ guard: Address }>(r as never, 'GuardCreated').guard;
-    },
 
-    /** Create a bond. Approve `terms.stake` of USDC to the factory first if the stake is non-zero. */
+    /**
+     * Create a bond. Approve `terms.stake` of USDC to the factory first if the stake is non-zero (Watched
+     * requires one). The account needs `factory.minHistory()` seconds since its first booked payment.
+     */
     async createBond(o: {
       account: Address;
       terms: BondTerms;
       tier: (typeof Tier)[keyof typeof Tier];
       source?: Address;
-      guard?: Address;
       policyHash: Hex;
       name: string;
       symbol: string;
@@ -118,7 +98,7 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
       const r = await write(factory, sliceFactoryAbi as Abi, 'createBond', [
         o.account,
         o.terms,
-        { adapter: o.tier, source: o.source ?? zero, guard: o.guard ?? zero, policyHash: o.policyHash },
+        { adapter: o.tier, source: o.source ?? zero, policyHash: o.policyHash },
         o.name,
         o.symbol,
       ]);
@@ -128,15 +108,16 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
     activate: (bond: Address) => write(factory, sliceFactoryAbi as Abi, 'activate', [bond]),
     /** Second release, on-chain milestone mode. */
     releaseSecond: (bond: Address) => write(factory, sliceFactoryAbi as Abi, 'releaseSecond', [bond]),
-    /** Book plain transfers (x402 settlements, Locked fees) into history and split them. */
+    /** Book plain transfers (x402 settlements, other inflows) into history and split them. */
     sweep: (account: Address) => write(account, sliceAccountAbi as Abi, 'sweep'),
     withdraw: (account: Address, to: Address, amount: bigint) =>
       write(account, sliceAccountAbi as Abi, 'withdraw', [to, amount]),
     deposit: (bond: Address, amount: bigint) => write(bond, sliceBondAbi as Abi, 'deposit', [amount]),
     redeem: (bond: Address, tokens: bigint, to: Address) =>
       write(bond, sliceBondAbi as Abi, 'redeem', [tokens, to]),
-    guardLocked: (guard: Address) =>
-      publicClient.readContract({ address: guard, abi: feeGuardAbi, functionName: 'isLocked' }),
+    /** Whether investors can deposit now (Native: still reviewed and bound; Watched: not in violation). */
+    depositAllowed: (bond: Address) =>
+      publicClient.readContract({ address: factory, abi: sliceFactoryAbi, functionName: 'depositAllowed', args: [bond] }),
 
     /** The account's on-chain credit history (every booked payment since its first). */
     async creditHistory(account: Address): Promise<CreditHistory> {

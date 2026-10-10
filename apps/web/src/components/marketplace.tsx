@@ -213,14 +213,6 @@ export function Marketplace() {
           </p>
         </div>
         <div>
-          <ShieldCheck size={23} />
-          <h3>Locked source</h3>
-          <p>
-            A recognized fee guard restricts changes to the committed route. Its permission boundary is
-            explicit.
-          </p>
-        </div>
-        <div>
           <Radio size={23} />
           <h3>Watched source</h3>
           <p>

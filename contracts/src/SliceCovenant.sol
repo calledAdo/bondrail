@@ -149,6 +149,13 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
             && s.observedAt <= block.timestamp + MAX_CLOCK_SKEW && ISliceBond(bond).defaultedAt() == 0;
     }
 
+    /// @notice True when the bond defaulted or its latest observation is a Violation. Deposits check this:
+    /// unlike `isHealthy` it needs no fresh report, so a bond can raise between CRE runs.
+    function inViolation(address bond) external view returns (bool) {
+        if (ISliceBond(bond).defaultedAt() != 0) return true;
+        return hasObservation[bond] && slots[bond][uint8(latestEpoch[bond] % 8)].result == 2;
+    }
+
     function observationAt(address bond, uint64 epoch) external view returns (Slot memory s) {
         s = slots[bond][uint8(epoch % 8)];
         if (s.epoch != epoch) delete s;

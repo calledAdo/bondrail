@@ -6,8 +6,7 @@ import {SliceBond} from "../src/SliceBond.sol";
 import {SliceAccount} from "../src/SliceAccount.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLabClassic} from "@slice-demo/PumpLabClassic.sol";
-import {FeeGuard} from "../src/FeeGuard.sol";
+import {PumpLab} from "@slice-demo/PumpLab.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 contract SliceTest is TestBase {
@@ -15,8 +14,7 @@ contract SliceTest is TestBase {
     SliceFactory factory;
     SliceCovenant covenant;
     SliceAccount router;
-    PumpLabClassic source;
-    FeeGuard guard;
+    PumpLab source;
     SliceBond bond;
     address issuer = address(0x111);
     address investor = address(0x222);
@@ -38,30 +36,21 @@ contract SliceTest is TestBase {
             vm.addr(MILESTONE_PK),
             address(new SliceBond()),
             address(new SliceAccount()),
-            REVIEWER
+            REVIEWER,
+            0
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 10_000_000e6);
         asset.mint(investor, 10_000_000e6);
         vm.startPrank(issuer);
         router = SliceAccount(factory.createAccount());
-        // Locked tier: the issuer's own existing contract, guarded by a factory-made FeeGuard.
-        source = new PumpLabClassic(address(asset), address(router), "Lab", "LAB", 64);
-        bytes4[] memory allowed = new bytes4[](1);
-        allowed[0] = PumpLabClassic.setMaxNameLength.selector;
-        guard = FeeGuard(
-            factory.createGuard(
-                address(router),
-                address(source),
-                bytes4(keccak256("feeRecipient()")),
-                bytes4(keccak256("feeBps()")),
-                100,
-                allowed
-            )
-        );
-        source.transferOwnership(address(guard));
+        // Native tier: the issuer's own project, built on SliceEarner and bound to the account.
+        source = new PumpLab(address(asset), address(router), "Lab", "LAB");
+        router.bindProject(address(source));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
+        vm.prank(REVIEWER);
+        factory.setNativeApproval(address(source), true);
         t = SliceTypes.Terms(
             100e6,
             120e6,
@@ -80,9 +69,8 @@ contract SliceTest is TestBase {
 
     function _new(bool watched) internal {
         SliceTypes.AdapterConfig memory c = SliceTypes.AdapterConfig(
-            watched ? SliceTypes.Adapter.Watched : SliceTypes.Adapter.Locked,
+            watched ? SliceTypes.Adapter.Watched : SliceTypes.Adapter.Native,
             watched ? address(0) : address(source),
-            watched ? address(0) : address(guard),
             keccak256("policy-v1")
         );
         vm.prank(issuer);
@@ -525,65 +513,74 @@ contract SliceTest is TestBase {
         eq(old.stakeReturnCredit(), 20e6);
     }
 
-    function testFeeGuardAllowlistAndEarlyRelease() public {
+    function testDepositsStopWhenTheNativeReviewIsRevoked() public {
         _new(false);
-        vm.prank(issuer);
-        vm.expectRevert(FeeGuard.Unauthorized.selector);
-        guard.release();
-        vm.prank(issuer);
-        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeWithSignature("transferOwnership(address)", issuer));
-        vm.prank(issuer);
-        guard.execute(abi.encodeCall(PumpLabClassic.setMaxNameLength, (uint16(48))));
-        eq(source.maxNameLength(), 48);
-        yes(guard.isLocked());
-        vm.warp(t.fundingDeadline);
-        router.cancelFunding(address(bond));
-        vm.prank(issuer);
-        guard.release();
-        eq(source.owner(), issuer);
+        vm.prank(REVIEWER);
+        factory.setNativeApproval(address(source), false);
+        vm.prank(investor);
+        vm.expectRevert(SliceBond.Unhealthy.selector);
+        bond.deposit(10e6);
+        vm.prank(REVIEWER);
+        factory.setNativeApproval(address(source), true);
+        vm.prank(investor);
+        bond.deposit(10e6);
+        eq(bond.fundingEscrow(), 10e6);
     }
 
-    function testGuardBlocksFeeRedirectAndRateCutButAllowsHarmlessAdmin() public {
-        vm.startPrank(issuer);
-        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeCall(PumpLabClassic.setFeeRecipient, (issuer)));
-        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeCall(PumpLabClassic.setFeeBps, (0)));
-        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        guard.execute(abi.encodeCall(PumpLabClassic.transferOwnership, (issuer)));
-        // The issuer no longer owns the launchpad, so going around the guard fails too.
-        vm.expectRevert(PumpLabClassic.Unauthorized.selector);
-        source.setFeeRecipient(issuer);
-        guard.execute(abi.encodeCall(PumpLabClassic.setMaxNameLength, (32)));
-        vm.stopPrank();
-        eq(source.maxNameLength(), 32);
-        eq(source.feeRecipient(), address(router));
-        yes(guard.isLocked());
+    function testWatchedDepositsStopWhileTheLatestObservationIsAViolation() public {
+        _new(true);
+        vm.prank(investor);
+        bond.deposit(10e6); // no observation yet: raising does not need CRE to be running
+        _observe(uint64(vm.getBlockTimestamp()), 2);
+        vm.prank(investor);
+        vm.expectRevert(SliceBond.Unhealthy.selector);
+        bond.deposit(10e6);
+        vm.warp(vm.getBlockTimestamp() + 30);
+        _observe(uint64(vm.getBlockTimestamp()), 1);
+        vm.prank(investor);
+        bond.deposit(10e6);
+        eq(bond.fundingEscrow(), 20e6);
     }
 
-    function testGuardNeverAllowlistsOwnershipMoves() public {
-        bytes4[] memory allowed = new bytes4[](1);
-        allowed[0] = bytes4(keccak256("transferOwnership(address)"));
-        vm.prank(issuer);
-        vm.expectRevert(FeeGuard.UnsupportedCall.selector);
-        factory.createGuard(
-            address(router), address(source), bytes4(keccak256("feeRecipient()")), bytes4(0), 0, allowed
+    function testIssuanceWaitsForMinimumHistory() public {
+        SliceCovenant c = new SliceCovenant(forwarder, vm.addr(OBSERVER_PK));
+        SliceFactory f = new SliceFactory(
+            address(asset),
+            address(c),
+            vm.addr(MILESTONE_PK),
+            address(new SliceBond()),
+            address(new SliceAccount()),
+            REVIEWER,
+            600
         );
-    }
-
-    function testFakeGuardRejected() public {
-        SliceTypes.AdapterConfig memory c =
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, address(source), buyer, keccak256("fake"));
+        c.initializeFactory(address(f));
+        vm.startPrank(issuer);
+        SliceAccount a = SliceAccount(f.createAccount());
+        asset.approve(address(f), type(uint256).max);
+        SliceTypes.AdapterConfig memory cfg =
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
+        vm.expectRevert(SliceFactory.InsufficientHistory.selector); // no payment yet
+        f.createBond(address(a), t, cfg, "Lab Revenue Claim", "LAB-RC");
+        vm.stopPrank();
+        asset.mint(address(a), 1e6);
+        a.sweep();
+        vm.warp(vm.getBlockTimestamp() + 599);
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
-        factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC");
+        vm.expectRevert(SliceFactory.InsufficientHistory.selector);
+        f.createBond(address(a), t, cfg, "Lab Revenue Claim", "LAB-RC");
+        vm.warp(vm.getBlockTimestamp() + 1);
+        uint64 now_ = uint64(vm.getBlockTimestamp());
+        (t.fundingDeadline, t.secondReleaseNotBefore, t.secondReleaseDeadline, t.maturity) =
+            (now_ + 120, now_ + 150, now_ + 600, now_ + 1200);
+        vm.prank(issuer);
+        f.createBond(address(a), t, cfg, "Lab Revenue Claim", "LAB-RC");
+        yes(a.activeBond() != address(0));
     }
 
     function testPumpCurveRoundTripPaysOnlyFeesNeverVirtualBacking() public {
         _activate(false);
         vm.startPrank(investor);
-        asset.approve(address(source), type(uint256).max);
+        asset.approve(address(router), type(uint256).max);
         uint256 beforeBalance = asset.balanceOf(investor);
         uint256 tokens = source.buy(1000e6, 1, uint64(vm.getBlockTimestamp()));
         eq(source.realUSDC(), 990e6);
@@ -630,7 +627,7 @@ contract SliceTest is TestBase {
     function testFuzzCurveRoundTripNoRoundingProfit(uint96 raw) public {
         uint256 gross = uint256(raw) % 5000e6 + 1000;
         vm.startPrank(investor);
-        asset.approve(address(source), gross);
+        asset.approve(address(router), type(uint256).max);
         uint256 beforeBalance = asset.balanceOf(investor);
         uint256 tokens = source.buy(gross, 1, uint64(vm.getBlockTimestamp()));
         source.token().approve(address(source), tokens);

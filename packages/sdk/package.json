@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Slice SDK: revenue accounts, bonds and guards on Monad; x402 payments into a SliceAccount; revenue data.",
+  "description": "Slice SDK: revenue accounts and bonds on Monad; x402 payments into a SliceAccount; revenue data.",
   "exports": {
     ".": "./src/index.ts",
     "./abis": "./src/abis.ts",

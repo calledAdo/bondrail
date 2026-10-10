@@ -6,8 +6,6 @@ const low = (a: string) => a.toLowerCase();
 const rowId = (e: any) => `${e.chainId}:${e.block.number}:${e.transaction?.hash ?? e.block.hash}:${e.logIndex}`;
 const DAY = 86_400;
 const NATIVE = 0;
-const LOCKED = 1;
-const WATCHED = 2;
 
 // ---------- dynamic contracts: everything the factory creates gets indexed ----------
 
@@ -29,8 +27,6 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
     tier: undefined,
     project: undefined,
     projectApproved: undefined,
-    source: undefined,
-    guard: undefined,
     activeBond: undefined,
     grossRevenue: 0n,
     toInvestors: 0n,
@@ -55,11 +51,6 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'NativeApproval' }, async ({ 
     context.Issuer.set({ ...i, projectApproved: event.params.approved });
 });
 
-// Locked: a FeeGuard created for the business's existing fee contract.
-indexer.onEvent({ contract: 'SliceFactory', event: 'GuardCreated' }, async ({ event, context }) => {
-  const i = await context.Issuer.get(low(event.params.account));
-  if (i) context.Issuer.set({ ...i, tier: LOCKED, source: low(event.params.target), guard: low(event.params.guard) });
-});
 
 indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
   const account = low(event.params.account);
@@ -149,11 +140,12 @@ async function recordPayment(
   amount: bigint,
   source: 'native' | 'transfer' | 'x402',
   receiptId: string,
+  extraReasons: string[] = [],
 ) {
   const issuer = await context.Issuer.get(account);
   if (!issuer) return;
   const wallet = await context.Wallet.get(payer);
-  const reasons: string[] = [];
+  const reasons: string[] = [...extraReasons];
   if (payer === issuer.issuer) reasons.push('issuer_wallet');
   if (wallet?.fundedByAccount === account) reasons.push('funded_by_issuer_treasury');
   const related = reasons.length > 0;
@@ -192,6 +184,12 @@ async function recordPayment(
   });
 }
 
+// EIP-3009 transferWithAuthorization (how x402 settles) marks the payer's authorization used just before
+// the transfer itself. Remembered per transaction so the Transfer handler can classify the payment.
+indexer.onEvent({ contract: 'USDC', event: 'AuthorizationUsed' }, async ({ event, context }) => {
+  context.Authorization.set({ id: `${event.transaction.hash}:${low(event.params.authorizer)}` });
+});
+
 indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context }) => {
   const from = low(event.params.from);
   const to = low(event.params.to);
@@ -217,11 +215,14 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
     context.Wallet.set({ ...w, fundedByAccount: treasury.account, fundedAmount: w.fundedAmount + value });
   }
 
-  // Plain receipts: into a Watched account they are x402 settlements (the facilitator moves funds from the
-  // payer); into a Locked account the sender is the fee contract itself. Native accounts receive pulls,
-  // which their Revenue events attribute to the proven payer.
+  // A transfer into an account is one of:
+  //   x402      an EIP-3009 settlement: USDC emitted AuthorizationUsed for this sender in the same
+  //             transaction, so the payer signed it (works before any bond exists)
+  //   (skipped) the pull inside a Native collect(): its Revenue event attributes the proven payer
+  //   transfer  anything else: booked on-chain by sweep(), shown as an unclassified inflow and never
+  //             counted as verified revenue (anyone, including the issuer, can send USDC to an account)
   const issuer = await context.Issuer.get(to);
-  if (!issuer) return;
+  if (!issuer || viaSlice) return;
   const id = rowId(event);
   context.Receipt.set({
     id,
@@ -235,8 +236,10 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
     logIndex: event.logIndex,
     timestamp: BigInt(event.block.timestamp),
   });
-  if (issuer.tier === WATCHED) await recordPayment(context, event, to, from, value, 'x402', id);
-  else if (issuer.tier === LOCKED) await recordPayment(context, event, to, from, value, 'transfer', id);
+  if (await context.Authorization.get(`${event.transaction.hash}:${from}`))
+    await recordPayment(context, event, to, from, value, 'x402', id);
+  else if (!issuer.project || low(event.transaction.to ?? '') !== issuer.project)
+    await recordPayment(context, event, to, from, value, 'transfer', id, ['unclassified_inflow']);
 });
 
 // ---------- bonds ----------
@@ -323,7 +326,7 @@ indexer.onEvent({ contract: 'SliceBond', event: 'DefaultRecorded' }, async ({ ev
 
 indexer.onEvent({ contract: 'SliceBond', event: 'CollectionClosed' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
-  // Watched bonds enter Closing (2) for the evidence window; Native and Locked close straight away (3).
+  // Watched bonds enter Closing (2) for the evidence window; Native bonds close straight away (3).
   if (b) context.Bond.set({ ...b, phase: event.params.settleAfter > 0n ? 2 : 3, pool: event.params.pool });
   log(context, event, low(event.srcAddress), 'CollectionClosed', '', event.params.pool);
 });

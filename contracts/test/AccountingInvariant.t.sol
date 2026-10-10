@@ -4,7 +4,7 @@ import {TestBase} from "./TestBase.sol";
 import {SliceTypes} from "../src/SliceTypes.sol";
 import {SliceBond} from "../src/SliceBond.sol";
 import {SliceAccount} from "../src/SliceAccount.sol";
-import {PumpLabClassic} from "@slice-demo/PumpLabClassic.sol";
+import {PumpLab} from "@slice-demo/PumpLab.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
@@ -29,22 +29,15 @@ contract AccountingHandler is TestBase {
             vm.addr(PK),
             address(new SliceBond()),
             address(new SliceAccount()),
-            address(0x777)
+            address(0x777),
+            0
         );
         c.initializeFactory(address(factory));
         router = SliceAccount(factory.createAccount());
-        PumpLabClassic lab = new PumpLabClassic(address(asset), address(router), "Invariant Lab", "INV", 64);
-        bytes4[] memory allowed = new bytes4[](1);
-        allowed[0] = PumpLabClassic.setMaxNameLength.selector;
-        address guard = factory.createGuard(
-            address(router),
-            address(lab),
-            bytes4(keccak256("feeRecipient()")),
-            bytes4(keccak256("feeBps()")),
-            100,
-            allowed
-        );
-        lab.transferOwnership(guard);
+        PumpLab lab = new PumpLab(address(asset), address(router), "Invariant Lab", "INV");
+        router.bindProject(address(lab));
+        vm.prank(address(0x777));
+        factory.setNativeApproval(address(lab), true);
         address source = address(lab);
         uint64 now_ = uint64(vm.getBlockTimestamp());
         t = SliceTypes.Terms(
@@ -67,7 +60,7 @@ contract AccountingHandler is TestBase {
             factory.createBond(
                 address(router),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Locked, source, guard, keccak256("invariant-policy")),
+                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, source, keccak256("invariant-policy")),
                 "Invariant Lab Revenue Claim",
                 "INV-RC"
             )

@@ -6,11 +6,9 @@ type Issuer {
   id: ID! # account address
   chainId: Int!
   issuer: String! @index
-  tier: Int # 0 Native, 1 Locked, 2 Watched; known once a source or bond is created
+  tier: Int # 0 Native, 1 Watched; Native once a project is bound, otherwise known at the first bond
   project: String @index # Native project bound to the account
   projectApproved: Boolean # reviewer-approved as Native
-  source: String # Locked fee contract
-  guard: String # FeeGuard (Locked)
   activeBond: String
   grossRevenue: BigInt!
   toInvestors: BigInt!
@@ -62,7 +60,7 @@ type Holder {
   balance: BigInt!
 }
 
-# A USDC transfer into an account (the raw receipt behind an x402 payment).
+# A USDC transfer into an account (the raw receipt behind an x402 payment or an unclassified inflow).
 type Receipt {
   id: ID!
   chainId: Int!
@@ -78,8 +76,8 @@ type Receipt {
 
 # A revenue payment attributed to a payer, exactly once per payment:
 #   native    account Revenue event from collect(): the payer is proven by the pull
-#   transfer  USDC transfer into a Locked account: the payer is the fee contract that sent it
-#   x402      USDC transfer into a Watched account: the facilitator moves funds from the payer
+#   x402      EIP-3009 settlement into an account (AuthorizationUsed in the same tx): the payer signed it
+#   transfer  any other USDC transfer into an account: unclassified, never verified revenue
 type Payment {
   id: ID!
   chainId: Int!
@@ -155,4 +153,9 @@ type DailyRevenue {
   gross: BigInt!
   verified: BigInt!
   payments: Int!
+}
+
+# An EIP-3009 authorization used in a transaction (tx hash : authorizer). Marks x402 settlements.
+type Authorization {
+  id: ID!
 }

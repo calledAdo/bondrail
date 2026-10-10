@@ -29,7 +29,6 @@ contracts:
   - name: SliceFactory
     events:
       - event: "AccountCreated(address indexed issuer, address indexed account)"
-      - event: "GuardCreated(address indexed issuer, address indexed account, address indexed target, address guard)"
       - event: "NativeApproval(address indexed project, bool approved)"
       - event: "BondCreated(address indexed issuer, address indexed account, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)"${tx}
       - event: "SecondReleaseApproved(address indexed bond, uint8 mode, uint256 eligibleRevenue)"${tx}
@@ -61,6 +60,7 @@ contracts:
     events:
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
         field_selection: { transaction_fields: [hash, to] }
+      - event: "AuthorizationUsed(address indexed authorizer, bytes32 indexed nonce)"${tx}
 chains:
   - id: ${chainId}
     start_block: ${dep.startBlock ?? 0}${rpc}

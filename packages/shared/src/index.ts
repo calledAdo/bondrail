@@ -35,7 +35,6 @@ export interface Deployment {
     account: Address;
     issuer: Address;
     bond?: Address;
-    guard?: Address;
     source?: Address;
     endpoint?: string;
     agentId?: string;

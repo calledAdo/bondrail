@@ -13,7 +13,7 @@ import {SliceTypes, ISliceBond, ISliceEarner} from "./SliceTypes.sol";
 /// Money arrives two ways:
 ///   - collect: the bound Native project asks the account to pull a payment from the payer. The
 ///     account keeps the fee and forwards the rest to the project, so the payer is proven by the pull.
-///   - receive: a plain USDC transfer (a Locked launchpad's fee, an x402 settlement), booked by sweep().
+///   - receive: a plain USDC transfer (an x402 settlement, or any transfer into the account), booked by sweep().
 ///
 /// Every booked payment adds to an on-chain credit history. With no active bond (passthrough) all
 /// revenue is credited to the issuer; while a bond is Active the bond's share is split off first.
@@ -29,7 +29,7 @@ contract SliceAccount is ReentrancyGuard {
     IERC20 public asset;
     address public factory;
     address public issuer;
-    /// @notice The Native project allowed to call collect (zero for Locked and Watched businesses).
+    /// @notice The Native project allowed to call collect (zero for Watched businesses).
     address public project;
     address public activeBond;
     /// @notice Revenue already credited to the business, withdrawable by the issuer.
@@ -100,7 +100,7 @@ contract SliceAccount is ReentrancyGuard {
         return _collect(payer, gross, fee);
     }
 
-    /// @notice Books USDC that arrived by plain transfer (Locked launchpad fees, x402 settlements).
+    /// @notice Books USDC that arrived by plain transfer (x402 settlements, other transfers).
     function sweep() external nonReentrant {
         uint256 amount = _unbooked();
         if (amount != 0) _book(address(0), amount, false);

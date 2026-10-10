@@ -103,12 +103,11 @@ export async function write(
 export const deploymentFile = path.join(ROOT, 'docs/deployments', `${chainId}.json`);
 export type IssuerRecord = {
   name: string;
-  tier: 'native' | 'locked' | 'watched';
+  tier: 'native' | 'watched';
   issuer: Address;
   account: Address;
   bond?: Address;
   source?: Address;
-  guard?: Address;
   token?: Address;
   endpoint?: string;
   agentId?: string;
@@ -128,6 +127,7 @@ export type DeploymentFile = {
   observer: Address;
   milestoneSigner: Address;
   reviewer?: Address;
+  minHistory?: number;
   bondImplementation: Address;
   accountImplementation: Address;
   issuers: Record<string, IssuerRecord>;

@@ -210,9 +210,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                 <p>
                   {m.adapter === 'Native'
                     ? 'Built on Slice: every fee is pulled through this business\'s SliceAccount, which is fixed into its contract forever. There is no other fee path, so revenue cannot be diverted.'
-                    : m.adapter === 'Locked'
-                      ? 'An existing contract whose owner key is held by a FeeGuard. Fee-recipient, fee-rate, ownership and unknown calls are refused while a bond is live.'
-                      : 'Paid over x402. Chainlink CRE checks the advertised payTo every 30 seconds; two adjacent violations default the bond and slash the issuer\'s stake. Payments between a switch and its detection are at risk.'}
+                    : 'Paid over x402. Chainlink CRE checks the advertised payTo every 30 seconds; two adjacent violations default the bond and slash the issuer\'s stake. Payments between a switch and its detection are at risk.'}
                 </p>
                 <SourceHealth market={m} />
               </section>
@@ -356,6 +354,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
 const REASONS: Record<string, string> = {
   issuer_wallet: 'Issuer wallet',
   funded_by_issuer_treasury: 'Funded by issuer treasury',
+  unclassified_inflow: 'Not a fee or x402 payment',
 };
 
 /** Every payer the indexer attributed revenue to, with the evidence for excluding related ones. */
@@ -417,10 +416,10 @@ function PayerTable({ market }: { market: Market }) {
                 <td className="mono">{shortAddress(r.payer)}</td>
                 <td>
                   {r.source === 'x402'
-                    ? 'x402 API call'
+                    ? 'x402 settlement (signed by payer)'
                     : r.source === 'native'
                       ? 'Pulled fee (proven payer)'
-                      : 'Fee transfer from contract'}
+                      : 'Plain transfer (unclassified)'}
                 </td>
                 <td>{r.payments}</td>
                 <td>{money(r.amount, 4)}</td>
@@ -463,7 +462,7 @@ function PayerTable({ market }: { market: Market }) {
   );
 }
 
-/** Locked: the guard holds the source. Watched: the latest CRE-delivered observation of the payTo. */
+/** Native: the reviewer's approval. Watched: the latest CRE-delivered observation of the payTo. */
 function SourceHealth({ market: m }: { market: Market }) {
   if (!m.live)
     return (
@@ -482,13 +481,6 @@ function SourceHealth({ market: m }: { market: Market }) {
             ? 'The disclosed reviewer checked that every fee goes through SliceEarner'
             : 'History accrues, but the project cannot raise until its code is reviewed'}
         </span>
-      </div>
-    );
-  if (m.adapter === 'Locked')
-    return (
-      <div className="source-health">
-        <span className="status-dot good" />
-        FeeGuard owns the launchpad<span>Fee recipient and rate changes are blocked on-chain</span>
       </div>
     );
   const last = m.checks?.[0];

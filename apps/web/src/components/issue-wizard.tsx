@@ -9,7 +9,7 @@ import { money } from '@/lib/data';
 import { SourceSetup } from './source-setup';
 export function IssueWizard() {
   const [step, setStep] = useState(0);
-  const [adapter, setAdapter] = useState<'Native' | 'Locked' | 'Watched'>('Native');
+  const [adapter, setAdapter] = useState<'Native' | 'Watched'>('Native');
   const [milestoneMode, setMilestoneMode] = useState<'Onchain' | 'Signed'>('Onchain');
   const [ratio, setRatio] = useState('50');
   const [fields, setFields] = useState({
@@ -23,7 +23,6 @@ export function IssueWizard() {
     interval: '60',
     account: '',
     source: '',
-    guard: '',
     policy: '',
     funding: '',
     notBefore: '',
@@ -57,8 +56,7 @@ export function IssueWizard() {
     if (!fields.claimName.trim() || !/^[A-Z0-9-]{2,16}$/.test(fields.claimSymbol.trim()))
       throw Error('Give the claim token a name and a 2-16 character symbol (A-Z, 0-9, -).');
     if (all) {
-      for (const key of ['account', 'source', 'guard'] as const) {
-        if (key === 'guard' && adapter !== 'Locked') continue;
+      for (const key of ['account', 'source'] as const) {
         if (key === 'source' && adapter === 'Watched') continue;
         if (!isAddress(fields[key])) throw Error(`Enter a valid ${key} address from your source setup.`);
       }
@@ -157,9 +155,8 @@ export function IssueWizard() {
               milestoneMode: milestoneMode === 'Onchain' ? 0 : 1,
             },
             {
-              adapter: adapter === 'Native' ? 0 : adapter === 'Locked' ? 1 : 2,
+              adapter: adapter === 'Native' ? 0 : 1,
               source: (adapter === 'Watched' ? '0x0000000000000000000000000000000000000000' : fields.source) as Address,
-              guard: (fields.guard || '0x0000000000000000000000000000000000000000') as Address,
               policyHash: fields.policy as Hash,
             },
             fields.claimName.trim(),
@@ -211,7 +208,7 @@ export function IssueWizard() {
                 configuration.
               </p>
               <div className="source-options">
-                {(['Native', 'Locked', 'Watched'] as const).map((a) => (
+                {(['Native', 'Watched'] as const).map((a) => (
                   <button
                     key={a}
                     className={`source-option ${adapter === a ? 'selected' : ''}`}
@@ -220,14 +217,12 @@ export function IssueWizard() {
                   >
                     {a === 'Watched' ? <Radio size={25} /> : <ShieldCheck size={25} />}
                     <strong>
-                      {a === 'Native' ? 'Built on Slice' : a === 'Locked' ? 'Existing contract' : 'x402 service'}
+                      {a === 'Native' ? 'Built on Slice' : 'x402 service'}
                     </strong>
                     <small>
                       {a === 'Native'
                         ? 'Every fee is pulled through your SliceAccount. Diversion is impossible by construction.'
-                        : a === 'Locked'
-                          ? 'A FeeGuard holds your contract and refuses fee-route changes while a bond is live.'
-                          : 'Chainlink CRE checks your payTo every 30 s; a diversion defaults the bond and slashes your stake.'}
+                        : 'Chainlink CRE checks your payTo every 30 s; a diversion defaults the bond and slashes your stake.'}
                     </small>
                   </button>
                 ))}
@@ -238,13 +233,13 @@ export function IssueWizard() {
                 onCreated={(values) => setFields((f) => ({ ...f, ...values }))}
               />
               <div className="form-grid">
-                {(['account', 'source', 'guard', 'policy'] as const).map((k) => (
+                {(['account', 'source', 'policy'] as const).map((k) => (
                   <label className="field-label wide" key={k}>
                     {k === 'policy'
                       ? 'Immutable policy hash'
                       : k === 'account'
                         ? 'SliceAccount address'
-                        : `${k[0].toUpperCase() + k.slice(1)} address${(k === 'guard' && adapter !== 'Locked') || (k === 'source' && adapter === 'Watched') ? ' (not used)' : ''}`}
+                        : `${k[0].toUpperCase() + k.slice(1)} address${k === 'source' && adapter === 'Watched' ? ' (not used)' : ''}`}
                     <input
                       value={fields[k]}
                       onChange={(e) => update(k, e.target.value)}

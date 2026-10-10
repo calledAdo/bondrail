@@ -13,7 +13,7 @@ export type Market = {
   symbol: string;
   description: string;
   category: string;
-  adapter: 'Native' | 'Locked' | 'Watched';
+  adapter: 'Native' | 'Watched';
   phase: Phase;
   raised: number;
   target: number;
@@ -77,33 +77,6 @@ export const markets: Market[] = [
     days: 14,
     history: [18, 30, 24, 42, 37, 50, 47, 68, 52, 78, 63, 90, 73, 100],
     accent: 'blue',
-    defaulted: false,
-  },
-  {
-    id: 'classic',
-    name: 'PumpLab Classic',
-    symbol: 'CLAB-01',
-    description: 'An existing launchpad whose owner key is held by a FeeGuard while the bond is live.',
-    category: 'Launchpad',
-    adapter: 'Locked',
-    phase: 'Active',
-    raised: 6000,
-    target: 6000,
-    released: 3000,
-    undrawn: 3000,
-    recovery: 0,
-    revenue: 410,
-    stake: 1000,
-    share: 25,
-    cap: 7200,
-    firstRelease: 50,
-    term: 60,
-    observed: 2100,
-    eligible: 1640,
-    adjusted: 1310,
-    days: 11,
-    history: [22, 30, 28, 41, 39, 47, 55, 52, 66, 71, 80],
-    accent: 'amber',
     defaulted: false,
   },
   {

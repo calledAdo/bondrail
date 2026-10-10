@@ -14,9 +14,10 @@ library SliceTypes {
         RevenueCap,
         Maturity
     }
+    /// @notice How the bond knows fees reach the account: Native (enforced by the project's code, reviewed)
+    /// or Watched (an off-chain route, checked by Chainlink CRE and backed by a slashable stake).
     enum Adapter {
         Native,
-        Locked,
         Watched
     }
 
@@ -44,7 +45,6 @@ library SliceTypes {
     struct AdapterConfig {
         Adapter adapter;
         address source;
-        address guard;
         bytes32 policyHash;
     }
 
@@ -119,11 +119,9 @@ interface ISliceBond {
 interface ISliceCovenant {
     function registerBond(address bond, bytes32 policyHash) external;
     function isHealthy(address bond) external view returns (bool);
+    function inViolation(address bond) external view returns (bool);
 }
 
-interface IFeeGuard {
-    function isLocked() external view returns (bool);
-    function issuer() external view returns (address);
-    function account() external view returns (address);
-    function target() external view returns (address);
+interface ISliceFactory {
+    function depositAllowed(address bond) external view returns (bool);
 }

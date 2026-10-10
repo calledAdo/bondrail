@@ -3,7 +3,7 @@
 //   wash     funded by the business's own issuer wallet                   -> the scorer must exclude it
 //
 //   pnpm tsx scripts/traffic-launchpad.ts pumplab organic 2     Native PumpLab (traders approve the SliceAccount)
-//   pnpm tsx scripts/traffic-launchpad.ts classic wash 1        Locked PumpLabClassic (traders approve the launchpad)
+//   pnpm tsx scripts/traffic-launchpad.ts pumplab wash 1
 import os from 'node:os';
 import path from 'node:path';
 import { maxUint256, parseAbi, parseEther, parseUnits, type Address } from 'viem';
@@ -64,15 +64,14 @@ async function main() {
   const d = readDeployment();
   const rec = d.issuers[issuerId];
   if (!rec?.source) throw new Error(`Run scripts/setup-demo.ts ${issuerId} first`);
-  const native = rec.tier === 'native';
   const treasury = account(`${issuerId}-issuer`);
   const funder = mode === 'wash' ? treasury : deployer;
   if (mode === 'wash' && chainId === 31337)
     await write(deployer, d.asset, erc20, 'mint', [treasury.address, PER_WALLET * BigInt(WALLETS)]);
   const traders = Array.from({ length: WALLETS }, (_, i) => account(`${issuerId}-${mode}-${i}`, { create: true }));
   const token = (await publicClient.readContract({ address: rec.source, abi: lab, functionName: 'token' })) as Address;
-  // Native: the SliceAccount pulls every USDC payment (and the sell fee). Classic: the launchpad pulls.
-  const usdcSpender = native ? rec.account : rec.source;
+  // The SliceAccount pulls every USDC payment (and the sell fee), so traders approve it, not the launchpad.
+  const usdcSpender = rec.account;
   for (const t of traders) {
     await topUp(funder, t.address, d.asset);
     await approveOnce(t, d.asset, usdcSpender);

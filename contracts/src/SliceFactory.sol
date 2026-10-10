@@ -12,11 +12,10 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {SliceTypes, ISliceCovenant, ISliceEarner} from "./SliceTypes.sol";
 import {SliceBond} from "./SliceBond.sol";
 import {SliceAccount} from "./SliceAccount.sol";
-import {FeeGuard} from "./FeeGuard.sol";
 
-/// @notice Creates accounts, guards and bonds; gates activation and the second release.
-/// Projects deploy their own contracts: a Native project inherits SliceEarner, a Locked project keeps
-/// its existing contract and hands ownership to a FeeGuard created here.
+/// @notice Creates accounts and bonds; gates issuance, deposits, activation and the second release.
+/// Projects deploy their own contracts: a Native project inherits SliceEarner and binds itself to its
+/// account. A Watched business (an x402 API) only sets its payTo to the account.
 contract SliceFactory is EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -25,6 +24,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     error InvalidAdapter();
     error Unhealthy();
     error InvalidMilestone();
+    error InsufficientHistory();
 
     IERC20 public immutable asset;
     address public immutable covenant;
@@ -33,6 +33,9 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     address public immutable accountImplementation;
     /// @notice Disclosed reviewer who approves Native projects' code (pays fees only via its account).
     address public immutable reviewer;
+    /// @notice Minimum time since an account's first booked payment before it can issue a bond.
+    /// Time is the one part of a revenue history that cannot be faked.
+    uint256 public immutable minHistory;
     bytes32 public constant MILESTONE_TYPEHASH = keccak256(
         "Milestone(address bond,bytes32 policyHash,uint64 periodStart,uint64 periodEnd,uint256 eligibleRevenue,bytes32 evidenceHash,uint64 expiresAt,uint256 nonce)"
     );
@@ -41,12 +44,9 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     mapping(address => bool) public isBond;
     /// @notice Native projects whose code the reviewer has checked routes every fee through `collect`.
     mapping(address => bool) public nativeApproved;
-    /// @notice Guards this factory created (their code is known).
-    mapping(address => bool) public recognizedGuard;
 
     event AccountCreated(address indexed issuer, address indexed account);
     event NativeApproval(address indexed project, bool approved);
-    event GuardCreated(address indexed issuer, address indexed account, address indexed target, address guard);
     event BondCreated(
         address indexed issuer,
         address indexed account,
@@ -63,7 +63,8 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         address milestoneSigner_,
         address bondImplementation_,
         address accountImplementation_,
-        address reviewer_
+        address reviewer_,
+        uint256 minHistory_
     ) EIP712("SliceFactory", "1") {
         if (
             asset_.code.length == 0 || IERC20Metadata(asset_).decimals() != 6 || covenant_.code.length == 0
@@ -76,9 +77,10 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         bondImplementation = bondImplementation_;
         accountImplementation = accountImplementation_;
         reviewer = reviewer_;
+        minHistory = minHistory_;
     }
 
-    // ---------------------------------------------------------------- accounts and sources
+    // ---------------------------------------------------------------- accounts and projects
 
     /// @notice A business's revenue account. Create it on day one: history starts at the first payment.
     function createAccount() external nonReentrant returns (address account) {
@@ -95,24 +97,6 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         emit NativeApproval(project, approved);
     }
 
-    /// @notice Locked tier: a guard for an existing owner-administered fee contract. After creating it,
-    /// the issuer points the target's fee recipient at the account and transfers ownership to the guard.
-    function createGuard(
-        address account,
-        address target,
-        bytes4 recipientGetter,
-        bytes4 feeGetter,
-        uint256 minFee,
-        bytes4[] calldata allowedSelectors
-    ) external nonReentrant returns (address guard) {
-        _issuerAccount(account);
-        guard = address(
-            new FeeGuard(target, msg.sender, account, recipientGetter, feeGetter, minFee, allowedSelectors)
-        );
-        recognizedGuard[guard] = true;
-        emit GuardCreated(msg.sender, account, target, guard);
-    }
-
     // ---------------------------------------------------------------- bonds
 
     function createBond(
@@ -123,6 +107,8 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         string calldata symbol_
     ) external nonReentrant returns (address bond) {
         _issuerAccount(account);
+        uint256 first = SliceAccount(account).firstRevenueAt();
+        if (minHistory != 0 && (first == 0 || block.timestamp < first + minHistory)) revert InsufficientHistory();
         _validateTerms(terms_);
         if (bytes(name_).length == 0 || bytes(symbol_).length == 0 || bytes(symbol_).length > 16) {
             revert InvalidTerms();
@@ -131,11 +117,8 @@ contract SliceFactory is EIP712, ReentrancyGuard {
             revert InvalidAdapter();
         }
         if (config.adapter == SliceTypes.Adapter.Native) {
-            if (config.guard != address(0)) revert InvalidAdapter();
-            _native(config.source, account);
-        } else if (config.adapter == SliceTypes.Adapter.Locked) {
-            _locked(config.guard, config.source, account, msg.sender);
-        } else if (config.guard != address(0) || config.source != address(0) || terms_.stake == 0) {
+            if (!_nativeOk(config.source, account)) revert InvalidAdapter();
+        } else if (config.source != address(0) || terms_.stake == 0) {
             // Watched: nothing on-chain enforces the route, so a slashable stake is mandatory.
             revert InvalidAdapter();
         }
@@ -218,26 +201,27 @@ contract SliceFactory is EIP712, ReentrancyGuard {
 
     // ---------------------------------------------------------------- checks
 
+    /// @notice Whether investors may deposit now: a Native project still reviewed and bound, or a Watched
+    /// bond whose latest CRE observation is not a Violation. Called by the bond on every deposit.
+    function depositAllowed(address bond) external view returns (bool) {
+        if (!isBond[bond]) return false;
+        SliceBond b = SliceBond(bond);
+        if (b.adapter() == SliceTypes.Adapter.Native) return _nativeOk(b.source(), b.account());
+        return !ISliceCovenant(covenant).inViolation(bond);
+    }
+
+    /// @dev Activation and the second release need more than deposits: a Watched bond needs a fresh
+    /// Compliant observation.
     function _healthy(SliceBond b) private view {
-        SliceTypes.Adapter a = b.adapter();
-        if (a == SliceTypes.Adapter.Native) _native(b.source(), b.account());
-        else if (a == SliceTypes.Adapter.Locked) _locked(b.guard(), b.source(), b.account(), b.issuer());
-        else if (!ISliceCovenant(covenant).isHealthy(address(b))) revert Unhealthy();
+        bool ok = b.adapter() == SliceTypes.Adapter.Native
+            ? _nativeOk(b.source(), b.account())
+            : ISliceCovenant(covenant).isHealthy(address(b));
+        if (!ok) revert Unhealthy();
     }
 
-    function _native(address source, address account) private view {
-        if (
-            !nativeApproved[source] || SliceAccount(account).project() != source
-                || ISliceEarner(source).sliceAccount() != account
-        ) revert InvalidAdapter();
-    }
-
-    function _locked(address guard, address source, address account, address issuer) private view {
-        if (!recognizedGuard[guard]) revert InvalidAdapter();
-        FeeGuard g = FeeGuard(guard);
-        if (g.target() != source || g.account() != account || g.issuer() != issuer || !g.isLocked()) {
-            revert Unhealthy();
-        }
+    function _nativeOk(address source, address account) private view returns (bool) {
+        return nativeApproved[source] && SliceAccount(account).project() == source
+            && ISliceEarner(source).sliceAccount() == account;
     }
 
     function _issuerAccount(address account) private view {

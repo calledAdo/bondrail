@@ -6,7 +6,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SliceEarner} from "@slice/SliceEarner.sol";
-import {LaunchToken} from "./PumpLabClassic.sol";
+import {LaunchToken} from "./LaunchToken.sol";
 
 /// @notice DEMO, Native tier: a launchpad built on Slice from day one (inherits SliceEarner).
 ///
@@ -32,9 +32,7 @@ contract PumpLab is SliceEarner, ReentrancyGuard {
 
     event Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee);
 
-    constructor(address asset_, address account_, string memory name_, string memory symbol_)
-        SliceEarner(account_)
-    {
+    constructor(address asset_, address account_, string memory name_, string memory symbol_) SliceEarner(account_) {
         if (asset_ == address(0)) revert InvalidTrade();
         asset = IERC20(asset_);
         token = new LaunchToken(name_, symbol_, address(this));

@@ -6,7 +6,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceTypes} from "./SliceTypes.sol";
+import {SliceTypes, ISliceFactory} from "./SliceTypes.sol";
 
 /// @notice One fungible class: fund, stage principal, collect revenue, then redeem once collection and evidence close.
 contract SliceBond is ERC20, ReentrancyGuard {
@@ -17,6 +17,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     error TooEarly();
     error TransferLocked();
     error LastHolderWaitsForClose();
+    error Unhealthy();
     bool private initialized;
     IERC20 public asset;
     address public factory;
@@ -24,7 +25,6 @@ contract SliceBond is ERC20, ReentrancyGuard {
     address public account;
     address public covenant;
     address public raiseRecipient;
-    address public guard;
     address public source;
     bytes32 public policyHash;
     SliceTypes.Adapter public adapter;
@@ -118,7 +118,6 @@ contract SliceBond is ERC20, ReentrancyGuard {
         _terms = terms_;
         adapter = config.adapter;
         source = config.source;
-        guard = config.guard;
         policyHash = config.policyHash;
         stakeHeld = terms_.stake;
     }
@@ -153,6 +152,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
 
     function deposit(uint256 amount) external nonReentrant {
         if (phase != SliceTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
+        if (!ISliceFactory(factory).depositAllowed(address(this))) revert Unhealthy();
         if (amount == 0 || amount > _terms.raiseAmount - fundingEscrow) revert InvalidAmount();
         uint256 beforeBalance = asset.balanceOf(address(this));
         asset.safeTransferFrom(msg.sender, address(this), amount);

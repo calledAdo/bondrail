@@ -128,7 +128,7 @@ async function loadMarket(
     bond,
     account,
     nativeApproved: !!issuer?.projectApproved,
-    adapter: (['Native', 'Locked', 'Watched'] as const)[Number(adapter)] ?? base.adapter,
+    adapter: (['Native', 'Watched'] as const)[Number(adapter)] ?? base.adapter,
     history: daily.length ? daily.map((x) => (x.raw / peak) * 100) : [0],
     credit: {
       cumulative: usd(cumulative as bigint),
