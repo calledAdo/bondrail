@@ -29,10 +29,14 @@ export interface BondTerms {
   revenueBps: number;
   firstReleaseBps: 2500 | 5000;
   milestoneMode: (typeof MilestoneMode)[keyof typeof MilestoneMode];
+  /** Native only: minimum fee rate (bps of gross) every payment must carry while the bond is Active. 0 = none. */
+  minFeeBps: number;
 }
 
 export interface CreditHistory {
+  asset: Address;
   cumulativeRevenue: bigint;
+  cumulativeVolume: bigint;
   paymentCount: bigint;
   collectedCount: bigint;
   uniquePayers: bigint;
@@ -70,9 +74,12 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
   }
 
   return {
-    /** Create the business's SliceAccount. Do it on day one: history starts at the first payment. */
-    async createAccount(): Promise<Address> {
-      const r = await write(factory, sliceFactoryAbi as Abi, 'createAccount');
+    /**
+     * Create the business's SliceAccount in `asset`: the token it charges fees in (any ERC-20). Its bonds
+     * raise and repay in the same token. Do it on day one: history starts at the first payment.
+     */
+    async createAccount(asset: Address): Promise<Address> {
+      const r = await write(factory, sliceFactoryAbi as Abi, 'createAccount', [asset]);
       return factoryEvent<{ account: Address }>(r as never, 'AccountCreated').account;
     },
 
@@ -123,8 +130,10 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
     async creditHistory(account: Address): Promise<CreditHistory> {
       const read = (functionName: string) =>
         publicClient.readContract({ address: account, abi: sliceAccountAbi as Abi, functionName });
-      const [c, p, cc, u, f, l, ic, b, pr] = await Promise.all([
+      const [a, c, v, p, cc, u, f, l, ic, b, pr] = await Promise.all([
+        read('asset'),
         read('cumulativeRevenue'),
+        read('cumulativeVolume'),
         read('paymentCount'),
         read('collectedCount'),
         read('uniquePayers'),
@@ -135,7 +144,9 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
         read('project'),
       ]);
       return {
+        asset: a as Address,
         cumulativeRevenue: c as bigint,
+        cumulativeVolume: v as bigint,
         paymentCount: BigInt(p as bigint),
         collectedCount: BigInt(cc as bigint),
         uniquePayers: BigInt(u as bigint),

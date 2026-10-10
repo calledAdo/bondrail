@@ -25,8 +25,8 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     error Unhealthy();
     error InvalidMilestone();
     error InsufficientHistory();
+    error UnsupportedAsset();
 
-    IERC20 public immutable asset;
     address public immutable covenant;
     address public immutable milestoneSigner;
     address public immutable bondImplementation;
@@ -45,7 +45,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     /// @notice Native projects whose code the reviewer has checked routes every fee through `collect`.
     mapping(address => bool) public nativeApproved;
 
-    event AccountCreated(address indexed issuer, address indexed account);
+    event AccountCreated(address indexed issuer, address indexed account, address indexed asset);
     event NativeApproval(address indexed project, bool approved);
     event BondCreated(
         address indexed issuer,
@@ -58,7 +58,6 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     event SecondReleaseApproved(address indexed bond, SliceTypes.MilestoneMode mode, uint256 eligibleRevenue);
 
     constructor(
-        address asset_,
         address covenant_,
         address milestoneSigner_,
         address bondImplementation_,
@@ -67,11 +66,9 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         uint256 minHistory_
     ) EIP712("SliceFactory", "1") {
         if (
-            asset_.code.length == 0 || IERC20Metadata(asset_).decimals() != 6 || covenant_.code.length == 0
-                || milestoneSigner_ == address(0) || bondImplementation_.code.length == 0
+            covenant_.code.length == 0 || milestoneSigner_ == address(0) || bondImplementation_.code.length == 0
                 || accountImplementation_.code.length == 0 || reviewer_ == address(0)
         ) revert InvalidTerms();
-        asset = IERC20(asset_);
         covenant = covenant_;
         milestoneSigner = milestoneSigner_;
         bondImplementation = bondImplementation_;
@@ -82,12 +79,16 @@ contract SliceFactory is EIP712, ReentrancyGuard {
 
     // ---------------------------------------------------------------- accounts and projects
 
-    /// @notice A business's revenue account. Create it on day one: history starts at the first payment.
-    function createAccount() external nonReentrant returns (address account) {
+    /// @notice A business's revenue account in one asset: the token it charges fees in, any ERC-20.
+    /// Create it on day one: history starts at the first payment. Its bonds raise, repay and take stake
+    /// in the same asset. Slice does not vet assets; the marketplace shows which asset a bond repays in.
+    function createAccount(address asset_) external nonReentrant returns (address account) {
+        if (asset_.code.length == 0) revert UnsupportedAsset();
+        IERC20Metadata(asset_).decimals(); // claims mint 1:1 and share its decimals
         account = Clones.clone(accountImplementation);
         isAccount[account] = true;
-        SliceAccount(account).initialize(address(asset), msg.sender);
-        emit AccountCreated(msg.sender, account);
+        SliceAccount(account).initialize(asset_, msg.sender);
+        emit AccountCreated(msg.sender, account, asset_);
     }
 
     /// @notice Reviewer marks a Native project as checked: its code pays every fee through `collect`.
@@ -118,10 +119,12 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         }
         if (config.adapter == SliceTypes.Adapter.Native) {
             if (!_nativeOk(config.source, account)) revert InvalidAdapter();
-        } else if (config.source != address(0) || terms_.stake == 0) {
-            // Watched: nothing on-chain enforces the route, so a slashable stake is mandatory.
+        } else if (config.source != address(0) || terms_.stake == 0 || terms_.minFeeBps != 0) {
+            // Watched: nothing on-chain enforces the route, so a slashable stake is mandatory (and there
+            // is no collect call for a fee floor to apply to).
             revert InvalidAdapter();
         }
+        IERC20 asset = SliceAccount(account).asset();
         bond = Clones.clone(bondImplementation);
         isBond[bond] = true;
         SliceBond(bond)
@@ -241,7 +244,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
                 || t.fundingDeadline <= block.timestamp || t.fundingDeadline >= t.maturity
                 || t.secondReleaseNotBefore >= t.secondReleaseDeadline || t.secondReleaseDeadline >= t.maturity
                 || t.secondReleaseDeadline <= t.fundingDeadline || t.maturity - t.fundingDeadline < t.minOperatingPeriod
-                || Math.mulDiv(t.raiseAmount, t.firstReleaseBps, 10_000) == 0
+                || Math.mulDiv(t.raiseAmount, t.firstReleaseBps, 10_000) == 0 || t.minFeeBps > 10_000
         ) revert InvalidTerms();
     }
 }

@@ -49,8 +49,8 @@ async function main() {
   const bondImplementation = await deploy(deployer, 'SliceBond');
   const accountImplementation = await deploy(deployer, 'SliceAccount');
   const covenant = await deploy(deployer, 'SliceCovenant', [forwarder, observer.address]);
+  // Accounts choose their own asset; `asset` here is the demo's default (USDC on testnet).
   const factory = await deploy(deployer, 'SliceFactory', [
-    asset,
     covenant,
     milestone.address,
     bondImplementation,

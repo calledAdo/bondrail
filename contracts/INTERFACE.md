@@ -9,7 +9,7 @@ Watched1; MilestoneMode Onchain0, Signed1; CloseReason None0, RevenueCap1, Matur
 Structs, exact field order:
 - Terms: uint256 raiseAmount, repayCap, stake, minRevenue; uint64 fundingDeadline, maturity,
   secondReleaseNotBefore, secondReleaseDeadline; uint32 minOperatingPeriod; uint16 revenueBps,
-  firstReleaseBps; uint8 milestoneMode.
+  firstReleaseBps; uint8 milestoneMode; uint16 minFeeBps (Native fee floor while Active; 0 = none).
 - AdapterConfig: uint8 adapter, address source (the Native project; zero for Watched), bytes32 policyHash.
 - Observation: address bond, bytes32 policyHash, uint64 epoch, uint64 observedAt, uint64 expiresAt,
   uint8 result (0 Unknown, 1 Compliant, 2 Violation), address observedPayTo, bytes32 offerHash, bytes32 evidenceHash.
@@ -17,27 +17,31 @@ Structs, exact field order:
   bytes32 evidenceHash, uint64 expiresAt, uint256 nonce.
 
 **SliceFactory**
-- `createAccount()` → account (issuer = caller).
+- `createAccount(asset)` → account (issuer = caller; `asset` is any ERC-20 contract: the token the business
+  charges fees in, raises and repays in).
 - `setNativeApproval(project, approved)`: reviewer only.
 - `createBond(account, Terms, AdapterConfig, name, symbol)` → bond. Issuer only; needs `minHistory` seconds
   since `account.firstRevenueAt()`; Native needs an approved, bound project; Watched needs `stake > 0`
-  (approve the stake to the factory first).
+  (approve the stake, in the account's asset, to the factory first); `minFeeBps` must be 0 for Watched.
 - `activate(bond)`, `releaseSecond(bond)` (Onchain mode), `releaseSecondSigned(bond, Milestone, sig)`:
   issuer only, source must be healthy.
 - Views: `depositAllowed(bond)`, `minHistory`, `nativeApproved(project)`, `reviewer`, `milestoneSigner`,
   `hashMilestone(Milestone)`, `isAccount`, `isBond`.
 
 **SliceAccount**
-- Native project: `collect(payer, gross, fee)`, `collectWithPermit(payer, gross, fee, deadline, v, r, s)`.
+- Native project, money in: `collect(payer, gross, fee)`, `collectWithPermit(payer, gross, fee, deadline, v, r, s)`.
+- Native project, money out: `settleOut(payer, gross, fee)` (pulls `gross` from the project, pays `gross − fee`).
+- Both revert with `FeeBelowFloor` while an Active bond's `minFeeBps` is not met; both emit
+  `Collected(payer, gross, fee, outgoing)`.
 - Anyone: `sweep()`, `closeBondAtMaturity(bond)`, `cancelFunding(bond)`.
 - Issuer: `bindProject(project)` (once), `withdraw(to, amount)`.
-- History: `cumulativeRevenue`, `paymentCount`, `collectedCount`, `uniquePayers`, `firstRevenueAt`,
-  `lastRevenueAt`, `revenueByDay(day)`; state `issuer`, `project`, `activeBond`, `issuerCredit`.
+- History: `cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `collectedCount`, `uniquePayers`, `firstRevenueAt`,
+  `lastRevenueAt`, `revenueByDay(day)`; state `asset`, `issuer`, `project`, `activeBond`, `issuerCredit`.
 
 **SliceBond** (ERC-20 claim)
 - Investors: `deposit(amount)` (approve the bond; requires `factory.depositAllowed`), `refund(amount, to)`,
   `redeem(amount, to)`. Anyone: `expireUndrawn()`, `finalizeSettlement()`.
-- Views: `terms()`, `phase`, `adapter`, `source`, `account`, `backingPerToken`, `pool`, `fundingEscrow`,
+- Views: `terms()`, `decimals` (= the asset's), `minFeeBps`, `asset`, `phase`, `adapter`, `source`, `account`, `backingPerToken`, `pool`, `fundingEscrow`,
   `releasedPrincipal`, `undrawnPrincipal`, `principalRecovery`, `totalRevenueCollected`, `effectiveRevenueCap`,
   `remainingRevenueCap`, `stakeHeld`, `stakeRecovery`, `stakeReturnCredit`, `releaseNonce`, `revenueSnapshot`.
 

@@ -14,6 +14,10 @@ export type Market = {
   description: string;
   category: string;
   adapter: 'Native' | 'Watched';
+  /** Symbol of the token the bond raises and repays in (the account's asset). Defaults to USDC. */
+  unit?: string;
+  /** Native fee floor while Active, in bps of gross (0 = none). */
+  minFeeBps?: number;
   phase: Phase;
   raised: number;
   target: number;
@@ -108,11 +112,12 @@ export const markets: Market[] = [
   },
 ];
 /** USD formatting; sub-dollar testnet amounts keep four decimals so they don't read as $0.00. */
-export const money = (n: number, decimals = 0) =>
-  new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: n !== 0 && Math.abs(n) < 1 ? Math.max(decimals, 4) : decimals,
-  }).format(n);
+/** Dollar format for USD stablecoins (the default); `1.25 WETH` style for any other bond asset. */
+export const money = (n: number, decimals = 0, unit = 'USDC') => {
+  const digits = n !== 0 && Math.abs(n) < 1 ? Math.max(decimals, 4) : decimals;
+  if (/USD/i.test(unit))
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: digits }).format(n);
+  return `${new Intl.NumberFormat('en-US', { maximumFractionDigits: Math.max(digits, 4) }).format(n)} ${unit}`;
+};
 export const findMarket = (id: string) => markets.find((m) => m.id === id);
 export const shortAddress = (s: string) => `${s.slice(0, 6)}…${s.slice(-4)}`;

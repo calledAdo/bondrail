@@ -10,10 +10,13 @@ import {SliceTypes, ISliceBond, ISliceEarner} from "./SliceTypes.sol";
 
 /// @notice A business's revenue address and payment entrypoint, from day one.
 ///
-/// Money arrives two ways:
-///   - collect: the bound Native project asks the account to pull a payment from the payer. The
-///     account keeps the fee and forwards the rest to the project, so the payer is proven by the pull.
-///   - receive: a plain USDC transfer (an x402 settlement, or any transfer into the account), booked by sweep().
+/// Each account holds one asset, chosen at creation: the token the business charges fees in (any ERC-20,
+/// e.g. USDC or WETH). Its bonds raise and repay in that asset. Money arrives three ways:
+///   - collect: money in. The bound Native project asks the account to pull a payment from the payer;
+///     the account keeps the fee and forwards the rest to the project (payer proven by the pull).
+///   - settleOut: money out. The project hands a payout to the account, which pays the payer the payout
+///     minus the fee and keeps the fee (for fees charged on what the payer receives).
+///   - receive: a plain transfer (an x402 settlement, or anything sent to the account), booked by sweep().
 ///
 /// Every booked payment adds to an on-chain credit history. With no active bond (passthrough) all
 /// revenue is credited to the issuer; while a bond is Active the bond's share is split off first.
@@ -24,6 +27,7 @@ contract SliceAccount is ReentrancyGuard {
     error WrongBond();
     error InvalidState();
     error InvalidAmount();
+    error FeeBelowFloor();
 
     bool private initialized;
     IERC20 public asset;
@@ -39,6 +43,8 @@ contract SliceAccount is ReentrancyGuard {
 
     // ---- credit history, from the first payment ----
     uint256 public cumulativeRevenue;
+    /// @notice Gross payment volume behind collected fees (in and out); with the fees it shows the fee rate.
+    uint256 public cumulativeVolume;
     uint64 public paymentCount;
     uint64 public collectedCount;
     uint64 public uniquePayers;
@@ -48,7 +54,8 @@ contract SliceAccount is ReentrancyGuard {
     mapping(address payer => bool) public isPayer;
 
     event ProjectBound(address indexed project);
-    event Collected(address indexed payer, uint256 gross, uint256 fee);
+    /// @notice A Native payment: `outgoing` is false when the payer paid in, true when the payer was paid out.
+    event Collected(address indexed payer, uint256 gross, uint256 fee, bool outgoing);
     event Revenue(
         address indexed bond, address indexed payer, uint256 amount, uint256 toBond, uint256 toIssuer, bool collected
     );
@@ -100,26 +107,58 @@ contract SliceAccount is ReentrancyGuard {
         return _collect(payer, gross, fee);
     }
 
-    /// @notice Books USDC that arrived by plain transfer (x402 settlements, other transfers).
+    /// @notice Native payment out: pull `gross` from the project, pay `gross - fee` to `payer`, keep `fee`.
+    /// For fees charged on what the payer receives (e.g. a sell paid in the quote asset).
+    function settleOut(address payer, uint256 gross, uint256 fee) external nonReentrant returns (uint256 net) {
+        _checkPayment(payer, gross, fee);
+        _pull(msg.sender, gross);
+        net = gross - fee;
+        if (net != 0) asset.safeTransfer(payer, net);
+        emit Collected(payer, gross, fee, true);
+        _bookCollected(payer, gross, fee);
+    }
+
+    /// @notice Books asset that arrived by plain transfer (x402 settlements, other transfers).
     function sweep() external nonReentrant {
         uint256 amount = _unbooked();
         if (amount != 0) _book(address(0), amount, false);
     }
 
     function _collect(address payer, uint256 gross, uint256 fee) private returns (uint256 net) {
-        if (msg.sender != project || project == address(0)) revert Unauthorized();
-        if (payer == address(0) || fee > gross || gross == 0) revert InvalidAmount();
-        uint256 beforeBalance = asset.balanceOf(address(this));
-        asset.safeTransferFrom(payer, address(this), gross);
-        if (asset.balanceOf(address(this)) - beforeBalance != gross) revert InvalidAmount();
+        _checkPayment(payer, gross, fee);
+        _pull(payer, gross);
         net = gross - fee;
         if (net != 0) asset.safeTransfer(project, net);
-        emit Collected(payer, gross, fee);
+        emit Collected(payer, gross, fee, false);
+        _bookCollected(payer, gross, fee);
+    }
+
+    /// @dev Only the bound project; and while a bond is Active, the fee rate may not drop below its floor.
+    function _checkPayment(address payer, uint256 gross, uint256 fee) private view {
+        if (msg.sender != project || project == address(0)) revert Unauthorized();
+        if (payer == address(0) || payer == address(this) || fee > gross || gross == 0) revert InvalidAmount();
+        address bond = activeBond;
+        if (bond != address(0) && ISliceBond(bond).phase() == SliceTypes.Phase.Active) {
+            if (fee * 10_000 < gross * ISliceBond(bond).minFeeBps()) revert FeeBelowFloor();
+        }
+    }
+
+    function _pull(address from, uint256 amount) private {
+        uint256 beforeBalance = asset.balanceOf(address(this));
+        asset.safeTransferFrom(from, address(this), amount);
+        if (asset.balanceOf(address(this)) - beforeBalance != amount) revert InvalidAmount();
+    }
+
+    function _bookCollected(address payer, uint256 gross, uint256 fee) private {
+        cumulativeVolume += gross;
         if (fee != 0) _book(payer, fee, true);
     }
 
+    /// @dev A token that rebases down can leave the balance below the issuer's credit: book nothing
+    /// rather than revert, so payments and bond settlement keep working.
     function _unbooked() private view returns (uint256) {
-        return asset.balanceOf(address(this)) - issuerCredit;
+        uint256 balance = asset.balanceOf(address(this));
+        return balance > issuerCredit ? balance - issuerCredit : 0;
     }
 
     // ---------------------------------------------------------------- booking and splitting

@@ -17,7 +17,8 @@ export function Marketplace() {
   const [filter, setFilter] = useState('All markets');
   const [query, setQuery] = useState('');
   const { markets, live } = useMarkets();
-  const totals = markets.reduce(
+  // Headline totals add up dollar-stablecoin bonds only; bonds in other assets show their own unit.
+  const totals = markets.filter((m) => /USD/i.test(m.unit ?? 'USDC')).reduce(
     (t, m) => ({
       released: t.released + (m.phase === 'Funding' ? 0 : m.released),
       escrow: t.escrow + (m.phase === 'Funding' ? 0 : m.undrawn),
@@ -62,7 +63,7 @@ export function Marketplace() {
             <span>{live ? 'Capital committed on Monad testnet' : 'Illustrative capital committed'}</span>
             <strong>
               {money(committed, committed < 100 ? 2 : 0)}
-              <small>test USDC</small>
+              <small>in USD stablecoins</small>
             </strong>
           </div>
           <div className="overview-strip">
@@ -145,7 +146,7 @@ export function Marketplace() {
             </div>
             <div className="row-capital">
               <strong>
-                {money(m.raised)} <span>/ {money(m.target)}</span>
+                {money(m.raised, 0, m.unit)} <span>/ {money(m.target, 0, m.unit)}</span>
               </strong>
               <CapitalRibbon market={m} compact />
               <small>

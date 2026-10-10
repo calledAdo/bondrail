@@ -20,14 +20,14 @@ export function CapitalRibbon({ market, compact = false }: { market: Market; com
         role="img"
         aria-label={segments
           .filter((s) => s.value)
-          .map((s) => `${s.label}: ${money(s.value)}`)
+          .map((s) => `${s.label}: ${money(s.value, 0, m.unit)}`)
           .join('; ')}
       >
         {segments
           .filter((s) => s.value > 0)
           .map((s) => (
             <div key={s.kind} className={`capital-segment ${s.kind}`} style={{ flex: s.value }}>
-              {!compact && <span>{money(s.value)}</span>}
+              {!compact && <span>{money(s.value, 0, m.unit)}</span>}
             </div>
           ))}
       </div>
@@ -67,27 +67,27 @@ export function RevenueChart({ market }: { market: Market }) {
       <div className="chart-summary">
         <div>
           <span>Observed receipts</span>
-          <strong>{money(market.observed)}</strong>
+          <strong>{money(market.observed, 0, market.unit)}</strong>
         </div>
         <div>
           <span>Eligible after known exclusions</span>
-          <strong>{money(market.eligible)}</strong>
+          <strong>{money(market.eligible, 0, market.unit)}</strong>
         </div>
         <div>
           <span>Concentration-adjusted</span>
-          <strong>{money(market.adjusted)}</strong>
+          <strong>{money(market.adjusted, 0, market.unit)}</strong>
         </div>
       </div>
       <div
         className="bar-chart"
         role="img"
-        aria-label={`Synthetic ${market.days}-day sample: observed ${money(market.observed)}, eligible ${money(market.eligible)}. Not sufficient for live underwriting.`}
+        aria-label={`Synthetic ${market.days}-day sample: observed ${money(market.observed, 0, market.unit)}, eligible ${money(market.eligible, 0, market.unit)}. Not sufficient for live underwriting.`}
       >
         {market.history.map((n, i) => (
           <div
             key={i}
             className="bar-column"
-            title={`Sample day ${i + 1}: ${money((market.observed * n) / market.history.reduce((a, b) => a + b, 0), 2)} observed; ${money((market.eligible * n) / market.history.reduce((a, b) => a + b, 0), 2)} eligible`}
+            title={`Sample day ${i + 1}: ${money((market.observed * n) / market.history.reduce((a, b) => a + b, 0), 2, market.unit)} observed; ${money((market.eligible * n) / market.history.reduce((a, b) => a + b, 0), 2, market.unit)} eligible`}
           >
             <div className="chart-bar" style={{ height: `${n}%` }}>
               <span style={{ height: `${(market.eligible / market.observed) * 100}%` }} />
@@ -123,27 +123,27 @@ function LiveRevenueChart({ market: m }: { market: Market }) {
       <div className="chart-summary">
         <div>
           <span>Raw revenue</span>
-          <strong>{money(m.observed, 4)}</strong>
+          <strong>{money(m.observed, 4, m.unit)}</strong>
         </div>
         <div>
           <span>Verified (related payers excluded)</span>
-          <strong>{money(m.eligible, 4)}</strong>
+          <strong>{money(m.eligible, 4, m.unit)}</strong>
         </div>
         <div>
           <span>Concentration-adjusted</span>
-          <strong>{money(m.adjusted, 4)}</strong>
+          <strong>{money(m.adjusted, 4, m.unit)}</strong>
         </div>
       </div>
       <div
         className="bar-chart"
         role="img"
-        aria-label={`${days.length} days: raw ${money(m.observed, 4)}, verified ${money(m.eligible, 4)}`}
+        aria-label={`${days.length} days: raw ${money(m.observed, 4, m.unit)}, verified ${money(m.eligible, 4, m.unit)}`}
       >
         {days.map((d) => (
           <div
             key={d.day}
             className="bar-column"
-            title={`${new Date(d.day * 86_400_000).toISOString().slice(0, 10)}: ${money(d.raw, 4)} raw; ${money(d.verified, 4)} verified`}
+            title={`${new Date(d.day * 86_400_000).toISOString().slice(0, 10)}: ${money(d.raw, 4, m.unit)} raw; ${money(d.verified, 4, m.unit)} verified`}
           >
             <div className="chart-bar" style={{ height: `${(d.raw / peak) * 100}%` }}>
               <span style={{ height: `${d.raw ? (d.verified / d.raw) * 100 : 0}%` }} />

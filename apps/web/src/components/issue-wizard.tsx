@@ -1,10 +1,10 @@
 'use client';
 import { useState } from 'react';
-import { useAccount, usePublicClient, useWalletClient } from 'wagmi';
+import { useAccount, usePublicClient, useReadContract, useWalletClient } from 'wagmi';
 import { erc20Abi, isAddress, parseUnits, type Address, type Hash } from 'viem';
 import { ShieldCheck, Radio, ArrowRight, ArrowLeft, Download } from 'lucide-react';
 import { chain, deployment, safeNetwork } from '@/lib/wallet';
-import { factoryAbi } from '@/lib/abi';
+import { accountAbi, factoryAbi } from '@/lib/abi';
 import { money } from '@/lib/data';
 import { SourceSetup } from './source-setup';
 export function IssueWizard() {
@@ -21,6 +21,7 @@ export function IssueWizard() {
     share: '20',
     minimum: '5',
     interval: '60',
+    minFeeBps: '0',
     account: '',
     source: '',
     policy: '',
@@ -38,15 +39,38 @@ export function IssueWizard() {
   const client = usePublicClient();
   const { data: wallet } = useWalletClient();
   const update = (key: keyof typeof fields, value: string) => setFields((f) => ({ ...f, [key]: value }));
+  // Amounts are in the account's asset (the token it charges fees in): read it, its decimals and symbol.
+  const { data: asset } = useReadContract({
+    address: fields.account as Address,
+    abi: accountAbi,
+    functionName: 'asset',
+    chainId: chain.id,
+    query: { enabled: isAddress(fields.account) },
+  });
+  const tokenRead = (functionName: 'decimals' | 'symbol') => ({
+    address: asset as Address,
+    abi: erc20Abi,
+    functionName,
+    chainId: chain.id,
+    query: { enabled: !!asset },
+  });
+  const { data: decimals = 6 } = useReadContract(tokenRead('decimals')) as { data?: number };
+  const { data: unit = 'USDC' } = useReadContract(tokenRead('symbol')) as { data?: string };
+  const units = (x: string) => parseUnits(x, decimals);
   const ready =
     !!address && chainId === chain.id && !!deployment.factory && !!deployment.token && safeNetwork;
   function validate(all = false) {
     const numeric = ['raise', 'cap', 'stake', 'minimum'] as const;
+    const pattern = new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`);
     for (const key of numeric)
-      if (!/^\d+(\.\d{1,6})?$/.test(fields[key]) || Number(fields[key]) <= 0)
+      if (!pattern.test(fields[key]) || (Number(fields[key]) <= 0 && !(key === 'stake' && adapter === 'Native')))
         throw Error(
-          `${key === 'cap' ? 'Full-release cap' : key} must be positive with at most six decimal places.`,
+          `${key === 'cap' ? 'Full-release cap' : key} must be positive with at most ${decimals} decimal places.`,
         );
+    if (!/^\d+$/.test(fields.minFeeBps) || Number(fields.minFeeBps) > 10_000)
+      throw Error('Fee floor must be a whole number of basis points from 0 to 10000.');
+    if (adapter === 'Watched' && Number(fields.minFeeBps) !== 0)
+      throw Error('A fee floor applies to Native projects only; set it to 0 for an x402 service.');
     if (Number(fields.cap) < Number(fields.raise))
       throw Error('Full-release cap must be at least the raise amount.');
     if (!/^\d+$/.test(fields.share) || Number(fields.share) < 1 || Number(fields.share) > 50)
@@ -118,7 +142,8 @@ export function IssueWizard() {
     setBusy(true);
     try {
       validate(true);
-      if (!ready || !address || !client || !wallet || !deployment.factory || !deployment.token)
+      if (!asset) throw Error('Enter your SliceAccount first: the bond raises in its asset.');
+      if (!ready || !address || !client || !wallet || !deployment.factory)
         throw Error(
           'Configure the testnet factory and token, then connect a wallet on the selected network.',
         );
@@ -126,10 +151,10 @@ export function IssueWizard() {
       if (kind === 'approve') {
         simulation = await client.simulateContract({
           account: address,
-          address: deployment.token,
+          address: asset as Address,
           abi: erc20Abi,
           functionName: 'approve',
-          args: [deployment.factory, parseUnits(fields.stake, 6)],
+          args: [deployment.factory, units(fields.stake)],
         });
       } else {
         const unix = (x: string) => BigInt(Math.floor(new Date(x).getTime() / 1000));
@@ -141,10 +166,10 @@ export function IssueWizard() {
           args: [
             fields.account as Address,
             {
-              raiseAmount: parseUnits(fields.raise, 6),
-              repayCap: parseUnits(fields.cap, 6),
-              stake: parseUnits(fields.stake, 6),
-              minRevenue: parseUnits(fields.minimum, 6),
+              raiseAmount: units(fields.raise),
+              repayCap: units(fields.cap),
+              stake: units(fields.stake),
+              minRevenue: units(fields.minimum),
               fundingDeadline: unix(fields.funding),
               maturity: unix(fields.maturity),
               secondReleaseNotBefore: unix(fields.notBefore),
@@ -153,6 +178,7 @@ export function IssueWizard() {
               revenueBps: Number(fields.share) * 100,
               firstReleaseBps: Number(ratio) * 100,
               milestoneMode: milestoneMode === 'Onchain' ? 0 : 1,
+              minFeeBps: Number(fields.minFeeBps),
             },
             {
               adapter: adapter === 'Native' ? 0 : 1,
@@ -271,12 +297,13 @@ export function IssueWizard() {
                   />
                 </label>
                 {[
-                  ['raise', 'Raise amount · USDC'],
-                  ['cap', 'Full-release revenue cap · USDC'],
-                  ['stake', 'Issuer stake · USDC'],
+                  ['raise', `Raise amount · ${unit}`],
+                  ['cap', `Full-release revenue cap · ${unit}`],
+                  ['stake', `Issuer stake · ${unit}${adapter === 'Native' ? ' (optional)' : ''}`],
                   ['share', 'Revenue share · %'],
-                  ['minimum', 'Second-draw eligible revenue · USDC'],
+                  ['minimum', `Second-draw eligible revenue · ${unit}`],
                   ['interval', 'Minimum operating interval · seconds'],
+                  ...(adapter === 'Native' ? [['minFeeBps', 'Fee floor while live · bps (0 = none)']] : []),
                 ].map(([k, label]) => (
                   <label className="field-label" key={k}>
                     {label}
@@ -337,16 +364,16 @@ export function IssueWizard() {
                 <div>
                   <dt>Raised / released at activation</dt>
                   <dd>
-                    {money(Number(fields.raise))} / {money((Number(fields.raise) * Number(ratio)) / 100)}
+                    {money(Number(fields.raise), 0, unit)} / {money((Number(fields.raise) * Number(ratio)) / 100, 0, unit)}
                   </dd>
                 </div>
                 <div>
                   <dt>Conditional second release</dt>
-                  <dd>{money((Number(fields.raise) * (100 - Number(ratio))) / 100)}</dd>
+                  <dd>{money((Number(fields.raise) * (100 - Number(ratio))) / 100, 0, unit)}</dd>
                 </div>
                 <div>
                   <dt>Cap after first release</dt>
-                  <dd>{money((Number(fields.cap) * Number(ratio)) / 100)}</dd>
+                  <dd>{money((Number(fields.cap) * Number(ratio)) / 100, 0, unit)}</dd>
                 </div>
                 <div>
                   <dt>Revenue participation</dt>
@@ -356,8 +383,8 @@ export function IssueWizard() {
                   <dt>Second-release proof</dt>
                   <dd>
                     {milestoneMode === 'Onchain'
-                      ? `Account revenue ≥ ${fields.minimum} USDC since activation (on-chain)`
-                      : `Signed, wash-adjusted revenue ≥ ${fields.minimum} USDC`}
+                      ? `Account revenue ≥ ${fields.minimum} ${unit} since activation (on-chain)`
+                      : `Signed, wash-adjusted revenue ≥ ${fields.minimum} ${unit}`}
                   </dd>
                 </div>
                 <div>

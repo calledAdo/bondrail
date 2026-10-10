@@ -31,21 +31,15 @@ contract SliceTest is TestBase {
         asset = new MockUSDC();
         covenant = new SliceCovenant(forwarder, vm.addr(OBSERVER_PK));
         factory = new SliceFactory(
-            address(asset),
-            address(covenant),
-            vm.addr(MILESTONE_PK),
-            address(new SliceBond()),
-            address(new SliceAccount()),
-            REVIEWER,
-            0
+            address(covenant), vm.addr(MILESTONE_PK), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 0
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 10_000_000e6);
         asset.mint(investor, 10_000_000e6);
         vm.startPrank(issuer);
-        router = SliceAccount(factory.createAccount());
+        router = SliceAccount(factory.createAccount(address(asset)));
         // Native tier: the issuer's own project, built on SliceEarner and bound to the account.
-        source = new PumpLab(address(asset), address(router), "Lab", "LAB");
+        source = new PumpLab(address(router), "Lab", "LAB");
         router.bindProject(address(source));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
@@ -63,7 +57,8 @@ contract SliceTest is TestBase {
             30,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Signed
+            SliceTypes.MilestoneMode.Signed,
+            0
         );
     }
 
@@ -545,17 +540,11 @@ contract SliceTest is TestBase {
     function testIssuanceWaitsForMinimumHistory() public {
         SliceCovenant c = new SliceCovenant(forwarder, vm.addr(OBSERVER_PK));
         SliceFactory f = new SliceFactory(
-            address(asset),
-            address(c),
-            vm.addr(MILESTONE_PK),
-            address(new SliceBond()),
-            address(new SliceAccount()),
-            REVIEWER,
-            600
+            address(c), vm.addr(MILESTONE_PK), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 600
         );
         c.initializeFactory(address(f));
         vm.startPrank(issuer);
-        SliceAccount a = SliceAccount(f.createAccount());
+        SliceAccount a = SliceAccount(f.createAccount(address(asset)));
         asset.approve(address(f), type(uint256).max);
         SliceTypes.AdapterConfig memory cfg =
             SliceTypes.AdapterConfig(SliceTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
@@ -571,7 +560,7 @@ contract SliceTest is TestBase {
         vm.warp(vm.getBlockTimestamp() + 1);
         uint64 now_ = uint64(vm.getBlockTimestamp());
         (t.fundingDeadline, t.secondReleaseNotBefore, t.secondReleaseDeadline, t.maturity) =
-            (now_ + 120, now_ + 150, now_ + 600, now_ + 1200);
+        (now_ + 120, now_ + 150, now_ + 600, now_ + 1200);
         vm.prank(issuer);
         f.createBond(address(a), t, cfg, "Lab Revenue Claim", "LAB-RC");
         yes(a.activeBond() != address(0));

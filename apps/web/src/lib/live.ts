@@ -4,7 +4,7 @@
 // labelled synthetic fixtures in data.ts; live and synthetic values are never mixed.
 import { useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
-import { formatUnits, type Address } from 'viem';
+import { erc20Abi, formatUnits, type Address } from 'viem';
 import { accountAbi, bondAbi } from './abi';
 import { markets as fixtures, type Market, type PayerRow, type Phase } from './data';
 import { deployment } from './wallet';
@@ -33,6 +33,8 @@ const termsAbi = [
           { name: 'minOperatingPeriod', type: 'uint32' },
           { name: 'revenueBps', type: 'uint16' },
           { name: 'firstReleaseBps', type: 'uint16' },
+          { name: 'milestoneMode', type: 'uint8' },
+          { name: 'minFeeBps', type: 'uint16' },
         ],
       },
     ],
@@ -40,7 +42,6 @@ const termsAbi = [
 ] as const;
 
 const PHASES: Phase[] = ['Funding', 'Active', 'Closing', 'Closed', 'Cancelled'];
-const usd = (v: string | bigint | number | null | undefined) => Number(formatUnits(BigInt(v ?? 0), 6));
 
 async function gql<T>(query: string, variables: Record<string, unknown>): Promise<T> {
   const r = await fetch(INDEXER_URL, {
@@ -90,6 +91,13 @@ async function loadMarket(
     client.readContract({ address: bond, abi: bondAbi, functionName: 'backingPerToken' }),
   ]);
   const account = (await client.readContract({ address: bond, abi: bondAbi, functionName: 'account' })) as Address;
+  // Amounts are in the bond's asset (its account's token): read its decimals and symbol.
+  const asset = (await client.readContract({ address: bond, abi: bondAbi, functionName: 'asset' })) as Address;
+  const [decimals, unit] = await Promise.all([
+    client.readContract({ address: asset, abi: erc20Abi, functionName: 'decimals' }),
+    client.readContract({ address: asset, abi: erc20Abi, functionName: 'symbol' }),
+  ]);
+  const amt = (v: string | bigint | number | null | undefined) => Number(formatUnits(BigInt(v ?? 0), decimals));
   const read = (functionName: 'cumulativeRevenue' | 'paymentCount' | 'uniquePayers' | 'firstRevenueAt') =>
     client.readContract({ address: account, abi: accountAbi, functionName });
   const [cumulative, paymentCount, uniquePayers, firstRevenueAt, adapter] = await Promise.all([
@@ -107,7 +115,7 @@ async function loadMarket(
   const byPayer = new Map<string, PayerRow>();
   for (const p of d.Payment) {
     const row = byPayer.get(p.payer) ?? { payer: p.payer, amount: 0, payments: 0, related: false, reasons: [], source: p.source };
-    row.amount += usd(p.amount);
+    row.amount += amt(p.amount);
     row.payments += 1;
     row.related ||= p.related;
     for (const r of p.reasons) if (!row.reasons.includes(r)) row.reasons.push(r);
@@ -119,7 +127,7 @@ async function loadMarket(
   // Concentration haircut: no single verified payer counts for more than 10% of verified revenue.
   const capPer = eligible / 10;
   const adjusted = payers.filter((p) => !p.related).reduce((s, p) => s + Math.min(p.amount, capPer), 0);
-  const daily = d.DailyRevenue.map((x) => ({ day: x.day, raw: usd(x.gross), verified: usd(x.verified) }));
+  const daily = d.DailyRevenue.map((x) => ({ day: x.day, raw: amt(x.gross), verified: amt(x.verified) }));
   const peak = Math.max(1e-9, ...daily.map((x) => x.raw));
 
   return {
@@ -129,9 +137,11 @@ async function loadMarket(
     account,
     nativeApproved: !!issuer?.projectApproved,
     adapter: (['Native', 'Watched'] as const)[Number(adapter)] ?? base.adapter,
+    unit,
+    minFeeBps: Number(terms.minFeeBps),
     history: daily.length ? daily.map((x) => (x.raw / peak) * 100) : [0],
     credit: {
-      cumulative: usd(cumulative as bigint),
+      cumulative: amt(cumulative as bigint),
       payments: Number(paymentCount),
       uniquePayers: Number(uniquePayers),
       since: Number(firstRevenueAt),
@@ -140,15 +150,15 @@ async function loadMarket(
     symbol: String(symbol),
     claimName: String(name),
     phase: PHASES[b?.phase ?? 0] ?? 'Funding',
-    raised: usd(b?.raised),
-    target: usd(terms.raiseAmount),
-    released: usd(b?.released),
-    undrawn: usd(b?.undrawn),
-    recovery: usd(b?.principalRecovery),
-    revenue: usd(b?.revenueCollected),
-    stake: usd(terms.stake),
+    raised: amt(b?.raised),
+    target: amt(terms.raiseAmount),
+    released: amt(b?.released),
+    undrawn: amt(b?.undrawn),
+    recovery: amt(b?.principalRecovery),
+    revenue: amt(b?.revenueCollected),
+    stake: amt(terms.stake),
     share: terms.revenueBps / 100,
-    cap: usd(terms.repayCap),
+    cap: amt(terms.repayCap),
     firstRelease: terms.firstReleaseBps === 2500 ? 25 : 50,
     term: Math.round(Number(terms.maturity - terms.fundingDeadline) / 86_400),
     observed,
@@ -158,9 +168,9 @@ async function loadMarket(
     daily,
     payers,
     payments: issuer?.payments ?? 0,
-    backingPerToken: usd(backing as bigint),
-    pool: usd(b?.pool),
-    supply: usd(b?.totalSupply),
+    backingPerToken: amt(backing as bigint),
+    pool: amt(b?.pool),
+    supply: amt(b?.totalSupply),
     checks: d.CovenantCheck.map((c) => ({ result: c.result, at: Number(c.observedAt), txHash: c.txHash })),
     defaulted: !!b?.defaulted,
   };

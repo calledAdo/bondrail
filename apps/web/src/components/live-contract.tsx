@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import { useAccount, usePublicClient, useReadContracts, useWalletClient } from 'wagmi';
+import { useAccount, usePublicClient, useReadContract, useReadContracts, useWalletClient } from 'wagmi';
 import { erc20Abi, formatUnits, parseUnits, type Address, type Hash } from 'viem';
 import { ExternalLink, RefreshCw, ShieldAlert, Wallet } from 'lucide-react';
 import { bondAbi, accountAbi, factoryAbi } from '@/lib/abi';
@@ -23,6 +23,8 @@ const fields = [
   'account',
   'backingPerToken',
   'totalSupply',
+  'asset',
+  'decimals',
 ] as const;
 const phaseNames = ['Funding', 'Active', 'Closing', 'Closed', 'Cancelled'];
 export function LiveContract({ id }: { id: string }) {
@@ -45,6 +47,17 @@ export function LiveContract({ id }: { id: string }) {
   const phase = reads.data?.[0]?.status === 'success' ? Number(reads.data[0].result) : undefined;
   const issuer = reads.data?.[11]?.result as Address | undefined;
   const accountAddress = reads.data?.[12]?.result as Address | undefined;
+  // The bond raises and repays in its account's asset (any token): use its decimals and symbol.
+  const asset = reads.data?.[15]?.result as Address | undefined;
+  const decimals = Number(reads.data?.[16]?.result ?? 6);
+  const { data: unit = 'tokens' } = useReadContract({
+    address: asset,
+    abi: erc20Abi,
+    functionName: 'symbol',
+    chainId: chain.id,
+    query: { enabled: !!asset },
+  });
+  const show = (v: unknown) => `${formatUnits(BigInt(v as bigint), decimals)} ${unit}`;
   const ready = !!bond && !!address && chainId === chain.id && safeNetwork && phase !== undefined && !busy;
   const isIssuer = !!address && issuer?.toLowerCase() === address.toLowerCase();
   async function transact(action: string) {
@@ -57,17 +70,17 @@ export function LiveContract({ id }: { id: string }) {
         throw Error('Connect a wallet on the configured test network and wait for contract reads.');
       let value = 0n;
       if (['approve', 'deposit', 'redeem', 'refund'].includes(action)) {
-        if (!/^\d+(\.\d{1,6})?$/.test(amount))
-          throw Error('Enter a positive amount with at most six decimal places.');
-        value = parseUnits(amount, 6);
+        if (!new RegExp(`^\\d+(\\.\\d{1,${decimals}})?$`).test(amount))
+          throw Error(`Enter a positive amount with at most ${decimals} decimal places.`);
+        value = parseUnits(amount, decimals);
         if (value <= 0n) throw Error('Amount must be greater than zero.');
       }
       let request;
       if (action === 'approve') {
-        if (!deployment.token) throw Error('USDC token address is not configured.');
+        if (!asset) throw Error('The bond asset is not loaded yet.');
         request = await publicClient.simulateContract({
           account: address,
-          address: deployment.token,
+          address: asset,
           abi: erc20Abi,
           functionName: 'approve',
           args: [bond, value],
@@ -183,7 +196,7 @@ export function LiveContract({ id }: { id: string }) {
               {phase >= 1 && phase <= 3 && reads.data?.[13]?.status === 'success' && (
                 <div className="live-phase">
                   <span>Backing per claim, redeemable now</span>
-                  <strong>{formatUnits(BigInt(reads.data[13].result as bigint), 6)} USDC</strong>
+                  <strong>{show(reads.data[13].result)}</strong>
                 </div>
               )}
               <dl className="fact-list">
@@ -198,7 +211,7 @@ export function LiveContract({ id }: { id: string }) {
                     <dt>{label}</dt>
                     <dd>
                       {reads.data?.[Number(index)]?.status === 'success'
-                        ? `${formatUnits(BigInt(reads.data[Number(index)].result as bigint), 6)} USDC`
+                        ? show(reads.data[Number(index)].result)
                         : 'Unavailable'}
                     </dd>
                   </div>
@@ -213,7 +226,7 @@ export function LiveContract({ id }: { id: string }) {
             </>
           )}
           <label className="field-label">
-            Amount in test USDC / claim units
+            Amount in {unit} / claim units
             <input
               inputMode="decimal"
               value={amount}
@@ -222,17 +235,17 @@ export function LiveContract({ id }: { id: string }) {
             />
           </label>
           <p className="help" id="amount-help">
-            Six decimal places. Approve only the amount you intend to deposit.
+            Up to {decimals} decimal places. Approve only the amount you intend to deposit.
           </p>
           <div className="transaction-buttons">
             {phase === 0 && (
               <>
                 <button
                   className="button"
-                  disabled={!ready || !deployment.token}
+                  disabled={!ready || !asset}
                   onClick={() => transact('approve')}
                 >
-                  1. Approve USDC
+                  1. Approve {unit}
                 </button>
                 <button className="button primary" disabled={!ready} onClick={() => transact('deposit')}>
                   2. Deposit

@@ -6,15 +6,17 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {SliceEarner} from "@slice/SliceEarner.sol";
+import {ISliceAccount} from "@slice/SliceTypes.sol";
 import {LaunchToken} from "./LaunchToken.sol";
 
 /// @notice DEMO, Native tier: a launchpad built on Slice from day one (inherits SliceEarner).
 ///
-/// Every USDC that a trader pays goes through the launchpad's SliceAccount (`_collect`, via SliceEarner): the
-/// account pulls the payment from the trader, keeps the 1% fee as revenue and forwards the rest here.
+/// Every USDC a trader pays in or is paid out goes through the launchpad's SliceAccount. Buys use `_collect`:
+/// the account pulls the payment from the trader, keeps the 1% fee and forwards the rest here. Sells use
+/// `_settleOut`: the proceeds go out through the account, which keeps the 1% fee and pays the trader.
 /// The account is immutable and there is no other fee path, so fees cannot be redirected, and every
 /// fee since launch is in the account's on-chain history with the trader as its proven payer.
-/// Traders approve (or permit) the account, not this contract, for USDC.
+/// Buyers approve (or permit) the account, not this contract, for USDC; sellers approve only the token.
 contract PumpLab is SliceEarner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -32,9 +34,9 @@ contract PumpLab is SliceEarner, ReentrancyGuard {
 
     event Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee);
 
-    constructor(address asset_, address account_, string memory name_, string memory symbol_) SliceEarner(account_) {
-        if (asset_ == address(0)) revert InvalidTrade();
-        asset = IERC20(asset_);
+    /// @dev The quote asset is the account's asset (USDC here: the virtual reserves assume 6 decimals).
+    constructor(address account_, string memory name_, string memory symbol_) SliceEarner(account_) {
+        asset = IERC20(ISliceAccount(account_).asset());
         token = new LaunchToken(name_, symbol_, address(this));
     }
 
@@ -103,8 +105,8 @@ contract PumpLab is SliceEarner, ReentrancyGuard {
         emit Trade(msg.sender, true, out, gross, fee);
     }
 
-    /// @notice Sell tokens. The launchpad pays the trader the gross proceeds, then the account pulls the
-    /// fee back from the trader: the trader is still the one paying the fee.
+    /// @notice Sell tokens. The gross proceeds go out through the account (`_settleOut`), which keeps the
+    /// fee and pays the trader the rest: the seller needs no USDC approval.
     function sell(uint256 amount, uint256 minUSDCOut, uint64 deadline) external nonReentrant returns (uint256 net) {
         if (block.timestamp > deadline || amount == 0) revert InvalidTrade();
         uint256 fee;
@@ -117,8 +119,7 @@ contract PumpLab is SliceEarner, ReentrancyGuard {
         virtualUSDC -= gross;
         realToken += amount;
         realUSDC -= gross;
-        asset.safeTransfer(msg.sender, gross);
-        _collect(msg.sender, fee, fee);
+        _settleOut(msg.sender, gross, fee);
         emit Trade(msg.sender, false, amount, gross, fee);
     }
 }

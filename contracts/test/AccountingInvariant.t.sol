@@ -24,17 +24,11 @@ contract AccountingHandler is TestBase {
         asset = new MockUSDC();
         SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
         factory = new SliceFactory(
-            address(asset),
-            address(c),
-            vm.addr(PK),
-            address(new SliceBond()),
-            address(new SliceAccount()),
-            address(0x777),
-            0
+            address(c), vm.addr(PK), address(new SliceBond()), address(new SliceAccount()), address(0x777), 0
         );
         c.initializeFactory(address(factory));
-        router = SliceAccount(factory.createAccount());
-        PumpLab lab = new PumpLab(address(asset), address(router), "Invariant Lab", "INV");
+        router = SliceAccount(factory.createAccount(address(asset)));
+        PumpLab lab = new PumpLab(address(router), "Invariant Lab", "INV");
         router.bindProject(address(lab));
         vm.prank(address(0x777));
         factory.setNativeApproval(address(lab), true);
@@ -52,7 +46,8 @@ contract AccountingHandler is TestBase {
             30,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Signed
+            SliceTypes.MilestoneMode.Signed,
+            0
         );
         asset.mint(address(this), 120e6);
         asset.approve(address(factory), 20e6);

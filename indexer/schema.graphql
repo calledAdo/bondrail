@@ -6,11 +6,13 @@ type Issuer {
   id: ID! # account address
   chainId: Int!
   issuer: String! @index
+  asset: String! # the token the account earns, raises and repays in
   tier: Int # 0 Native, 1 Watched; Native once a project is bound, otherwise known at the first bond
   project: String @index # Native project bound to the account
   projectApproved: Boolean # reviewer-approved as Native
   activeBond: String
   grossRevenue: BigInt!
+  volume: BigInt! # gross payments behind collected fees (in and out)
   toInvestors: BigInt!
   toIssuer: BigInt!
   payments: Int!

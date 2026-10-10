@@ -40,6 +40,9 @@ library SliceTypes {
         uint16 revenueBps;
         uint16 firstReleaseBps;
         MilestoneMode milestoneMode;
+        /// @notice Native only: while the bond is Active, every payment must carry at least this fee rate
+        /// (fee * 10000 >= gross * minFeeBps), so the issuer cannot cut its fee after raising. 0 = no floor.
+        uint16 minFeeBps;
     }
 
     struct AdapterConfig {
@@ -84,6 +87,7 @@ interface ISliceAccount {
     function activeBond() external view returns (address);
     function cumulativeRevenue() external view returns (uint256);
     function collect(address payer, uint256 gross, uint256 fee) external returns (uint256 net);
+    function settleOut(address payer, uint256 gross, uint256 fee) external returns (uint256 net);
     function collectWithPermit(
         address payer,
         uint256 gross,
@@ -102,6 +106,7 @@ interface ISliceAccount {
 interface ISliceBond {
     function phase() external view returns (SliceTypes.Phase);
     function revenueBps() external view returns (uint16);
+    function minFeeBps() external view returns (uint16);
     function maturity() external view returns (uint64);
     function remainingRevenueCap() external view returns (uint256);
     function onRepayment(uint256 amount) external;

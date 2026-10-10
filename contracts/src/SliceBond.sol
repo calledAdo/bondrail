@@ -3,6 +3,7 @@ pragma solidity 0.8.28;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
@@ -65,6 +66,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
 
     string private _claimName;
     string private _claimSymbol;
+    uint8 private _assetDecimals;
 
     constructor() ERC20("", "") {
         initialized = true;
@@ -79,8 +81,13 @@ contract SliceBond is ERC20, ReentrancyGuard {
         return _claimSymbol;
     }
 
-    function decimals() public pure override returns (uint8) {
-        return 6;
+    /// @dev Claims mint 1:1 with the raised asset, so they share its decimals.
+    function decimals() public view override returns (uint8) {
+        return _assetDecimals;
+    }
+
+    function minFeeBps() external view returns (uint16) {
+        return _terms.minFeeBps;
     }
     modifier onlyFactory() {
         if (msg.sender != factory) revert Unauthorized();
@@ -111,6 +118,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         _claimSymbol = symbol_;
         factory = msg.sender;
         asset = IERC20(asset_);
+        _assetDecimals = IERC20Metadata(asset_).decimals();
         issuer = issuer_;
         account = account_;
         covenant = covenant_;

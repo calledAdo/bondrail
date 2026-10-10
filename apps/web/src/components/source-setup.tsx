@@ -27,6 +27,8 @@ export function SourceSetup({
   const [hash, setHash] = useState<Hash>();
   const [message, setMessage] = useState('');
   const [project, setProject] = useState('');
+  // The token the business charges fees in (any ERC-20); its bonds raise and repay in it too.
+  const [asset, setAsset] = useState<string>(deployment.token ?? '');
   const ready = !!address && !!deployment.factory && chainId === chain.id && safeNetwork && !busy;
 
   async function send(kind: 'account' | 'bind') {
@@ -37,6 +39,7 @@ export function SourceSetup({
     try {
       if (!ready || !address || !deployment.factory || !client || !wallet)
         throw Error('Configure the Factory and connect your wallet on the configured network first.');
+      if (kind === 'account' && !isAddress(asset)) throw Error('Enter the token your project charges fees in.');
       if (kind !== 'account' && !isAddress(account)) throw Error('Create or enter your SliceAccount first.');
       let request: unknown;
       if (kind === 'account') {
@@ -46,6 +49,7 @@ export function SourceSetup({
             address: deployment.factory,
             abi: factoryAbi,
             functionName: 'createAccount',
+            args: [asset as Address],
           })
         ).request;
       } else {
@@ -90,7 +94,11 @@ export function SourceSetup({
   return (
     <div className="source-setup">
       <h3>Set up on {chain.name}</h3>
-      <div className="setup-actions">
+      <div className="form-grid">
+        <label className="field-label wide">
+          Token you charge fees in (your bonds raise and repay in it; defaults to USDC)
+          <input value={asset} onChange={(e) => setAsset(e.target.value)} placeholder="0x…" spellCheck={false} />
+        </label>
         <button className="button" disabled={!ready} onClick={() => send('account')}>
           1. Create my SliceAccount
         </button>

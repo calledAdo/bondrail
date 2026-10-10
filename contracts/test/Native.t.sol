@@ -31,22 +31,16 @@ contract NativeTest is TestBase {
         asset = new MockUSDC();
         SliceCovenant covenant = new SliceCovenant(address(0x444), vm.addr(12345));
         factory = new SliceFactory(
-            address(asset),
-            address(covenant),
-            vm.addr(67890),
-            address(new SliceBond()),
-            address(new SliceAccount()),
-            REVIEWER,
-            0
+            address(covenant), vm.addr(67890), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 0
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 1_000e6);
         asset.mint(investor, 1_000e6);
         asset.mint(trader, 100_000e6);
         vm.startPrank(issuer);
-        account = SliceAccount(factory.createAccount());
+        account = SliceAccount(factory.createAccount(address(asset)));
         // The project deploys itself on top of SliceEarner, pointed at its account, then binds it.
-        lab = new PumpLab(address(asset), address(account), "Lab", "LAB");
+        lab = new PumpLab(address(account), "Lab", "LAB");
         account.bindProject(address(lab));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
@@ -68,7 +62,8 @@ contract NativeTest is TestBase {
             60,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Onchain
+            SliceTypes.MilestoneMode.Onchain,
+            0
         );
     }
 
@@ -245,8 +240,8 @@ contract NativeTest is TestBase {
 
     function testAccountRefusesAProjectThatDoesNotPointAtIt() public {
         vm.startPrank(issuer);
-        SliceAccount other = SliceAccount(factory.createAccount());
-        PumpLab stranger = new PumpLab(address(asset), address(account), "X", "X"); // points at another account
+        SliceAccount other = SliceAccount(factory.createAccount(address(asset)));
+        PumpLab stranger = new PumpLab(address(account), "X", "X"); // points at another account
         vm.expectRevert(SliceAccount.InvalidState.selector);
         other.bindProject(address(stranger));
         vm.stopPrank();

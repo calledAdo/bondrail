@@ -88,23 +88,23 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
             <div className="capital-total">
               <span>Total capital raised</span>
               <strong>
-                {money(m.raised, 2)}
-                <small>test USDC{live ? '' : ' · synthetic'}</small>
+                {money(m.raised, 2, m.unit)}
+                <small>{m.unit ?? 'USDC'}{live ? '' : ' · synthetic'}</small>
               </strong>
             </div>
             <CapitalRibbon market={m} />
             <div className="capital-secondary">
               <div>
                 <span>Revenue collected</span>
-                <strong>{money(m.revenue, 2)}</strong>
+                <strong>{money(m.revenue, 2, m.unit)}</strong>
               </div>
               <div>
                 <span>Principal recovery</span>
-                <strong>{money(m.recovery, 2)}</strong>
+                <strong>{money(m.recovery, 2, m.unit)}</strong>
               </div>
               <div>
                 <span>Stake {m.defaulted ? 'recovery' : 'held'}</span>
-                <strong>{money(m.stake, 2)}</strong>
+                <strong>{money(m.stake, 2, m.unit)}</strong>
               </div>
             </div>
             {m.defaulted ? (
@@ -281,11 +281,11 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
                 </div>
                 <div>
                   <dt>Cap after first release</dt>
-                  <dd>{money((m.cap * m.firstRelease) / 100, 2)}</dd>
+                  <dd>{money((m.cap * m.firstRelease) / 100, 2, m.unit)}</dd>
                 </div>
                 <div>
                   <dt>Full-release cap</dt>
-                  <dd>{money(m.cap, 2)}</dd>
+                  <dd>{money(m.cap, 2, m.unit)}</dd>
                 </div>
                 <div>
                   <dt>Claim class</dt>
@@ -320,7 +320,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
             <dl className="fact-list">
               <div>
                 <dt>Raise target</dt>
-                <dd>{money(m.target, 2)}</dd>
+                <dd>{money(m.target, 2, m.unit)}</dd>
               </div>
               <div>
                 <dt>Term</dt>
@@ -422,7 +422,7 @@ function PayerTable({ market }: { market: Market }) {
                       : 'Plain transfer (unclassified)'}
                 </td>
                 <td>{r.payments}</td>
-                <td>{money(r.amount, 4)}</td>
+                <td>{money(r.amount, 4, market.unit)}</td>
                 <td>
                   {r.related ? (
                     <span className="badge warning" title={r.reasons.map((x) => REASONS[x] ?? x).join(', ')}>
@@ -455,7 +455,7 @@ function PayerTable({ market }: { market: Market }) {
         </table>
       )}
       <p className="footnote">
-        Exclusions come from on-chain funding edges: a payer whose USDC came from the issuer&apos;s own
+        Exclusions come from on-chain funding edges: a payer whose funds came from the issuer&apos;s own
         treasury is the business paying itself.
       </p>
     </section>
@@ -511,7 +511,7 @@ function CreditHistory({ market: m }: { market: Market }) {
       <dl className="fact-list">
         <div>
           <dt>Total revenue booked</dt>
-          <dd>{money(c.cumulative, 4)}</dd>
+          <dd>{money(c.cumulative, 4, m.unit)}</dd>
         </div>
         <div>
           <dt>Payments</dt>

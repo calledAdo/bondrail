@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ISliceAccount, ISliceEarner} from "./SliceTypes.sol";
 
-/// @notice Base for a Native project: inherit it and charge every fee through `_collect`.
+/// @notice Base for a Native project: inherit it and charge every fee through the account, in the
+/// account's asset: `_collect` for money coming in (the fee comes off what the payer sends) and
+/// `_settleOut` for money going out (the fee comes off what the payer receives).
 ///
 /// The SliceAccount is fixed at deploy and cannot be changed, so the project has no way to route fees
 /// anywhere else. From the first fee, the account records every payment with its proven payer, building
@@ -12,6 +16,8 @@ import {ISliceAccount, ISliceEarner} from "./SliceTypes.sol";
 ///
 /// Users approve (or permit) the account, not the project, for the payment asset.
 abstract contract SliceEarner is ISliceEarner {
+    using SafeERC20 for IERC20;
+
     error SliceAccountRequired();
 
     ISliceAccount private immutable _sliceAccount;
@@ -28,6 +34,13 @@ abstract contract SliceEarner is ISliceEarner {
     /// @dev Pulls `gross` from `payer`; the account keeps `fee` as revenue and sends `gross - fee` here.
     function _collect(address payer, uint256 gross, uint256 fee) internal returns (uint256 net) {
         return _sliceAccount.collect(payer, gross, fee);
+    }
+
+    /// @dev Pays `gross - fee` of the account's asset from this contract to `payer` through the account,
+    /// which keeps `fee` as revenue. The payer approves nothing (works for sellers and non-permit tokens).
+    function _settleOut(address payer, uint256 gross, uint256 fee) internal returns (uint256 net) {
+        IERC20(_sliceAccount.asset()).forceApprove(address(_sliceAccount), gross);
+        return _sliceAccount.settleOut(payer, gross, fee);
     }
 
     /// @dev Same as `_collect`, using the payer's EIP-2612 permit for the account (no standing approval).

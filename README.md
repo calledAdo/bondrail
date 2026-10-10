@@ -18,9 +18,15 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 
 1. **Every business has a SliceAccount from day one.** It is the business's revenue address and
    payment entrypoint.
-   - **Native projects** call `account.collect(payer, gross, fee)`. The account *pulls* the payment
-     from the payer (an approval, or one EIP-2612 permit signature), keeps the fee and forwards the
-     rest to the project. The payer is proven by the pull itself.
+   - The account holds **one asset: the token the business charges fees in** (any ERC-20: USDC, WETH,
+     ...). Its bonds raise and repay in that token, so no oracle or conversion is involved.
+   - **Native projects** move money through it in both directions:
+     - **in**, `collect(payer, gross, fee)`: the account *pulls* the payment from the payer (an approval or
+       an EIP-2612 permit), keeps the fee and forwards the rest to the project; the payer is proven by the pull;
+     - **out**, `settleOut(payer, gross, fee)`: for fees on what the payer receives (a sell), the project
+       hands the payout to the account, which pays the payer minus the fee. The payer approves nothing.
+   - The account records volume as well as fees, so the fee rate is on-chain; a bond can set a **fee
+     floor** (`minFeeBps`) the project must keep while it is live.
    - **Plain transfers** (x402 settlements, anything else sent to the account) are booked with `sweep()`.
      The indexer tells them apart: an x402 settlement carries the payer's EIP-3009 signature; any other
      transfer is shown as an unclassified inflow and never counts as verified revenue.
@@ -52,6 +58,7 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 ```
  Native : trader ─ approve/permit ─► SliceAccount.collect ─┬─► fee: history, then the bond share ─► SliceBond
           PumpLab.buy() ─────────────────────────┘          └─► rest ─► PumpLab
+          PumpLab.sell() ─ proceeds ─► SliceAccount.settleOut ─► fee kept (same split), rest ─► seller
  Watched: payer ─ x402 ─► facilitator ─ USDC ─► SliceAccount.sweep ─► same split
           Chainlink CRE ─ unpaid GET ─► agent's 402 offer ─ signed report ─► SliceCovenant ─ default ─► SliceBond
  Envio HyperIndex ◄─ factory / account / bond / covenant / USDC events ─► web app
@@ -172,7 +179,9 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 
 | Attack | Defense | Residual risk |
 |---|---|---|
-| Native project diverts fees | The account address is immutable in the project, and only the bound project can call `collect` | The project can still lower its own fee or stop operating (priced by the claim on Kuru) |
+| Native project diverts fees | The account address is immutable in the project, and only the bound project can call `collect`/`settleOut` | The project can stop operating or move users to a new contract (priced by the claim on Kuru) |
+| Issuer cuts its fee after raising | Optional `minFeeBps` bond term: payments below the floor revert while the bond is live | Bonds without a floor rely on review of the fee logic |
+| Bond raised in a token the issuer can mint | Not prevented (any token is allowed); the profile shows the asset and the default market view promotes only well-known assets | Investors' choice, disclosed |
 | Fake payer attribution | Native payments are pulled from the payer's own balance; the event carries the real source | Wash trading from wallets the business funds; caught by funding edges |
 | Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from verified revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
 | Investors fund a source that has gone bad | Every deposit re-checks review/binding (Native) or the latest CRE result (Watched) | — |
@@ -181,7 +190,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |
 
-- Foundry: 48 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
+- Foundry: 54 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
 - TypeScript: tests for scoring, observer, worker, agent and web (`pnpm -r test`).
 
 ## Limits, stated plainly

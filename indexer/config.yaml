@@ -5,7 +5,7 @@ description: Slice revenue bonds on Monad
 contracts:
   - name: SliceFactory
     events:
-      - event: "AccountCreated(address indexed issuer, address indexed account)"
+      - event: "AccountCreated(address indexed issuer, address indexed account, address indexed asset)"
       - event: "NativeApproval(address indexed project, bool approved)"
       - event: "BondCreated(address indexed issuer, address indexed account, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)"
         field_selection: { transaction_fields: [hash] }
@@ -15,6 +15,7 @@ contracts:
     events:
       - event: "Revenue(address indexed bond, address indexed payer, uint256 amount, uint256 toBond, uint256 toIssuer, bool collected)"
         field_selection: { transaction_fields: [hash] }
+      - event: "Collected(address indexed payer, uint256 gross, uint256 fee, bool outgoing)"
       - event: "ProjectBound(address indexed project)"
       - event: "Attached(address indexed bond)"
       - event: "Detached(address indexed bond)"

@@ -1,6 +1,6 @@
 // Slice event handlers: accounts and their revenue history, payer attribution, bond lifecycle, covenant.
 import { indexer } from 'envio';
-import { FACTORY } from '../deployment';
+import { FACTORY, INDEXED_ASSET } from '../deployment';
 
 const low = (a: string) => a.toLowerCase();
 const rowId = (e: any) => `${e.chainId}:${e.block.number}:${e.transaction?.hash ?? e.block.hash}:${e.logIndex}`;
@@ -24,11 +24,13 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
     id: account,
     chainId: event.chainId,
     issuer,
+    asset: low(event.params.asset),
     tier: undefined,
     project: undefined,
     projectApproved: undefined,
     activeBond: undefined,
     grossRevenue: 0n,
+    volume: 0n,
     toInvestors: 0n,
     toIssuer: 0n,
     payments: 0,
@@ -119,6 +121,17 @@ indexer.onEvent({ contract: 'SliceAccount', event: 'Revenue' }, async ({ event, 
     });
   if (event.params.collected)
     await recordPayment(context, event, account, payer, event.params.amount, 'native', rowId(event));
+  // Swept receipts in an asset whose Transfers are not indexed: unclassified (x402 settles only in INDEXED_ASSET).
+  else if (i && i.asset !== INDEXED_ASSET)
+    await recordPayment(context, event, account, payer, event.params.amount, 'transfer', rowId(event), [
+      'unclassified_inflow',
+    ]);
+});
+
+// Native payment, in (payer paid the project) or out (the project paid the payer): adds to volume.
+indexer.onEvent({ contract: 'SliceAccount', event: 'Collected' }, async ({ event, context }) => {
+  const i = await context.Issuer.get(low(event.srcAddress));
+  if (i) context.Issuer.set({ ...i, volume: i.volume + event.params.gross });
 });
 
 indexer.onEvent({ contract: 'SliceAccount', event: 'Attached' }, async ({ event, context }) => {

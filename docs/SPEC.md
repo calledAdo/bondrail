@@ -1,7 +1,7 @@
 # Slice v1 specification
 
 Single source of truth for the build. Supersedes everything in `docs/archive/`.
-Decided 9 October 2026 (user + Claude); Locked tier removed and issuance/deposit checks added 10 October 2026. Network: Monad testnet (10143); local anvil (31337) for tests.
+Decided 9 October 2026 (user + Claude). 10 October 2026: Locked tier removed; issuance and deposit checks; one asset per account (any token); payments out (`settleOut`); fee floor. Network: Monad testnet (10143); local anvil (31337) for tests.
 
 ## 1. Idea
 
@@ -15,17 +15,30 @@ When the business raises against that revenue, the account starts splitting a fi
 ### SliceAccount (one per business, clone created by SliceFactory)
 The business's revenue address and payment entrypoint. Replaces the earlier "router".
 
+**One asset per account, any token.** `createAccount(asset)` fixes the token the business charges fees in
+(USDC, WETH, WMON, ...). Fees, bonds, deposits, repayments and stake all use it; claims share its
+decimals. No allowlist: Slice does not vet assets. The marketplace's default view promotes well-known
+assets only and flags the rest. Fee-on-transfer tokens revert (balance checks); a downward rebase never
+bricks the account (a shortfall books nothing).
+
 **Bound parties**
 - `issuer`: the business owner; withdraws the business's share, binds the project once.
 - `project`: the Native project contract allowed to call `collect` (zero for Watched). Bound once by the issuer.
 - `factory`: attaches and detaches bonds.
 
-**Two ways money arrives**
-1. **Collected (Native).** The project calls `collect(payer, gross, fee)` or `collectWithPermit(...)`.
-   - The account pulls `gross` USDC from `payer` (`transferFrom`; with EIP-2612 permit, no standing approval is needed).
-   - It keeps `fee` and sends `gross − fee` to the project.
-   - The payer is proven by the pull itself. The fee is split immediately; no keeper is needed.
-2. **Received.** A plain USDC transfer to the account: an x402 settlement, or anything else anyone sends.
+**Three ways money moves through it**
+1. **In (Native).** The project calls `collect(payer, gross, fee)` or `collectWithPermit(...)`, for fees
+   charged on what the payer sends (a buy).
+   - The account pulls `gross` from `payer` (`transferFrom`; with EIP-2612 permit, no standing approval).
+   - It keeps `fee` and sends `gross − fee` to the project. The payer is proven by the pull.
+2. **Out (Native).** The project calls `settleOut(payer, gross, fee)`, for fees charged on what the payer
+   receives (a sell paid in the quote asset).
+   - The account pulls `gross` from the project (`SliceEarner._settleOut` approves exactly that), pays
+     `gross − fee` to the payer and keeps `fee`. The payer approves nothing, so it works for tokens without
+     permit (WETH) and for sellers who never bought here.
+   - Either way the fee is split immediately; no keeper is needed. Native projects charge fees only in the
+     account's asset; a fee earned in another token is converted by the project's own code first.
+3. **Received.** A plain USDC transfer to the account: an x402 settlement, or anything else anyone sends.
    Anyone calls `sweep()` to book unrecorded balance as revenue. The contract cannot tell transfers
    apart; the indexer does (section 3): x402 settlements carry the payer's EIP-3009 signature, every
    other transfer is an unclassified inflow that never counts as verified revenue.
@@ -38,7 +51,8 @@ The business's revenue address and payment entrypoint. Replaces the earlier "rou
 - When the bond closes (cap, maturity) or is cancelled, the account detaches it and returns to passthrough.
 
 **Credit history (on-chain, from the first payment)**
-- `cumulativeRevenue`, `paymentCount`, `collectedCount`, `uniquePayers` (collected payers only),
+- `cumulativeRevenue`, `cumulativeVolume` (gross behind collected fees, in and out), `paymentCount`,
+  `collectedCount`, `uniquePayers` (collected payers only),
   `firstRevenueAt`, `lastRevenueAt`.
 - `revenueByDay[day]`.
 - Bonds snapshot `cumulativeRevenue` at activation; the on-chain milestone reads the difference.
@@ -47,7 +61,7 @@ The business's revenue address and payment entrypoint. Replaces the earlier "rou
 never block payments or investors.
 
 ### SliceBond (one per issuance, clone)
-Vault plus ERC-20 claim (6 decimals, name and symbol per bond).
+Vault plus ERC-20 claim (the asset's decimals, name and symbol per bond).
 - **Funding:** deposits mint claims 1:1 until `raiseAmount`; every deposit requires `factory.depositAllowed(bond)` (below); transfers are locked while Funding; cancel and refund after `fundingDeadline`.
 - **Activation:** issuer (via factory), only when fully funded and the source is healthy.
   - Releases `firstReleaseBps` (2500 or 5000) to the issuer; the rest stays as undrawn principal.
@@ -58,11 +72,14 @@ Vault plus ERC-20 claim (6 decimals, name and symbol per bond).
 - **Undrawn principal** becomes investor recovery if the deadline passes, the bond defaults, or collection closes.
 - **Revenue cap** scales with released principal: `effectiveCap = repayCap × released / raise`.
 - **Redeem at any time after activation** for `tokens × pool / supply`. The last claim waits for Closed.
+- **Fee floor (Native, optional `minFeeBps`):** while the bond is Active, every `collect`/`settleOut` must
+  carry `fee × 10 000 ≥ gross × minFeeBps`, so the issuer cannot cut its fee after raising. Watched bonds
+  must set 0.
 - **Default (Watched only):** stake slashed into the pool; undrawn principal goes to recovery.
 - **Closing → Closed:** Watched bonds get a 120 s window for late evidence; Native bonds close immediately.
 
 ### SliceFactory
-- `createAccount()`; the issuer is `msg.sender`.
+- `createAccount(asset)`; the issuer is `msg.sender`; `asset` is any ERC-20 contract reporting `decimals()`.
 - `setNativeApproval(project, bool)`: the disclosed `reviewer` approves a Native project's code (it pays every fee through `collect`). History accrues before review; review is required to raise.
 - The factory never deploys projects: Native projects inherit `SliceEarner` and bind themselves (`account.bindProject`, issuer only, the project must point at the account).
 - `createBond(account, terms, config, name, symbol)`. Requires `minHistory` seconds (immutable, set at deploy:

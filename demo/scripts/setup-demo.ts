@@ -76,7 +76,7 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
   }
 }
 
-function terms(now: bigint, milestoneMode: 0 | 1) {
+function terms(now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
   // Funding 1 day; second release opens after 1 h of operation, closes at 5 days; matures at 7 days.
   return {
     raiseAmount: RAISE,
@@ -91,6 +91,7 @@ function terms(now: bigint, milestoneMode: 0 | 1) {
     revenueBps: 2500,
     firstReleaseBps: 5000,
     milestoneMode,
+    minFeeBps,
   };
 }
 
@@ -113,7 +114,7 @@ async function ensureAccount(id: string, name: string, tier: IssuerRecord['tier'
   if (d.issuers[id]?.account) return d;
   const issuer = account(`${id}-issuer`, { create: true });
   await fund(issuer.address, '1', STAKE, d.asset);
-  const r = await write(issuer, d.factory, factoryAbi, 'createAccount');
+  const r = await write(issuer, d.factory, factoryAbi, 'createAccount', [d.asset]); // the demo earns in USDC
   const { account: acct } = await eventArgs(r, 'AccountCreated');
   d.issuers[id] = { name, tier, issuer: issuer.address, account: acct };
   saveDeployment(d);
@@ -169,7 +170,14 @@ async function historyReady(id: string) {
   return false;
 }
 
-async function createBond(id: string, config: object, name: string, symbol: string, milestoneMode: 0 | 1) {
+async function createBond(
+  id: string,
+  config: object,
+  name: string,
+  symbol: string,
+  milestoneMode: 0 | 1,
+  minFeeBps = 0,
+) {
   const d = readDeployment();
   const rec = d.issuers[id]!;
   if (rec.bond) return true;
@@ -179,7 +187,7 @@ async function createBond(id: string, config: object, name: string, symbol: stri
   await write(issuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
   const r = await write(issuer, d.factory, factoryAbi, 'createBond', [
     rec.account,
-    terms(now, milestoneMode),
+    terms(now, milestoneMode, minFeeBps),
     config,
     name,
     symbol,
@@ -196,7 +204,7 @@ async function setupPumpLab() {
   const issuer = account('pumplab-issuer');
   if (!rec.source) {
     // The project deploys itself, pointed at its account (SliceEarner), and binds itself to it.
-    rec.source = await deploy(issuer, 'PumpLab', [d.asset, rec.account, 'PumpLab Meme', 'PLMEME']);
+    rec.source = await deploy(issuer, 'PumpLab', [rec.account, 'PumpLab Meme', 'PLMEME']);
     rec.token = (await publicClient.readContract({
       address: rec.source,
       abi: artifact('PumpLab').abi,
@@ -224,6 +232,7 @@ async function setupPumpLab() {
     'PumpLab Revenue Claim',
     'PLAB-RC',
     0,
+    100, // fee floor = PumpLab's fixed 1% fee: investors are protected even if a later version adds a setter
   );
   if (created) await fundAndActivate('pumplab');
 }

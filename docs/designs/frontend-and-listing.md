@@ -16,3 +16,7 @@
 - Contract hardening: `deposit` checks source health; minimum account age before `createBond`. Redeploy.
 - Kuru market creation is an issuer step in `/console`.
 - Console terms builder suggests a cap from verified revenue and warns below 1.2x coverage; validates `_validateTerms` client-side.
+
+## Assets (adopted 10 Oct 2026)
+- One asset per account, any token: the token the business charges fees in; bonds raise and repay in it.
+- The protocol does not vet assets. The marketplace keeps a frontend list of well-known assets (USDC, WMON, WETH); bonds in other assets are hidden from the default view and labelled "unrecognised asset" under "show all". Every card says which asset it repays in.
