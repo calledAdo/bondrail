@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="border-t border-foreground/10">
         <p className="mx-auto max-w-7xl px-6 py-8 font-mono text-[11px] text-foreground/60">
-          Monad testnet · demo businesses and their traffic are run by the Slice team · not investment advice
+          {chain.name} · demo businesses and their traffic are run by the Slice team · not investment advice
         </p>
       </footer>
     </>

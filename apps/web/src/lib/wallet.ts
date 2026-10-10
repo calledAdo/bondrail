@@ -33,7 +33,9 @@ export const walletConfig = createConfig({
   connectors: [
     passkey(process.env.NEXT_PUBLIC_RPC_URL || undefined),
     // DEV ONLY: NEXT_PUBLIC_DEV_IMPERSONATE=<address> connects as that address through "Browser wallet",
-    // for reviewing state-driven screens. Reads work on any chain; writes only on an unlocked anvil account.
+    // for reviewing state-driven screens. Reads work on any chain; transactions only from an unlocked anvil
+    // account. Its typed-data signatures come from anvil's first account, not the impersonated one, so sign
+    // profiles with a script when testing locally (real wallets sign with their own key).
     ...(isAddress(process.env.NEXT_PUBLIC_DEV_IMPERSONATE ?? '')
       ? [mock({ accounts: [process.env.NEXT_PUBLIC_DEV_IMPERSONATE as Address], features: { reconnect: true } })]
       : []),

@@ -18,7 +18,8 @@ const marketRegistered = parseAbi([
 ]);
 
 // ---- storage
-const memory = new Map<string, string>();
+// Dev fallback; kept on globalThis so hot reloads don't wipe it (production uses Upstash KV).
+const memory: Map<string, string> = ((globalThis as { __sliceRegistry?: Map<string, string> }).__sliceRegistry ??= new Map());
 const kv = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
   ? { url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN }
   : null;
@@ -85,7 +86,7 @@ export async function POST(req: Request) {
         signature: body.signature,
       });
       const issuer = (await client.readContract({ address: p.account, abi: accountAbi, functionName: 'issuer' })) as Address;
-      if (signer.toLowerCase() !== issuer.toLowerCase()) throw new Error('The profile must be signed by the account issuer');
+      if (signer.toLowerCase() !== issuer.toLowerCase()) throw new Error(`The profile must be signed by the account issuer (${issuer}), not ${signer}`);
       const old = await get<ProfileRecord>(`profile:${p.account.toLowerCase()}`);
       if (old && BigInt(old.profile.updatedAt) >= message.updatedAt) throw new Error('A newer profile is already stored');
       const record: ProfileRecord = {

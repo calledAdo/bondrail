@@ -4,7 +4,7 @@
 //   (06) bond terms + create  (07) raise and activate  (08) Kuru market  (09) manage
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useAccount, usePublicClient, useReadContracts, useWalletClient } from 'wagmi';
+import { useAccount, useBlock, usePublicClient, useReadContracts, useWalletClient } from 'wagmi';
 import {
   erc20Abi,
   getContractAddress,
@@ -85,8 +85,10 @@ function useSend(onDone: () => void) {
       onDone();
       return r;
     } catch (e) {
-      const m = e as { shortMessage?: string; message?: string };
-      setStatus({ text: `${label}: ${(m.shortMessage ?? m.message ?? 'failed').slice(0, 280)}`, error: true });
+      // viem puts the decoded contract error (e.g. "Error: InvalidTerms()") in metaMessages.
+      const m = e as { shortMessage?: string; message?: string; metaMessages?: string[] };
+      const reason = m.metaMessages?.find((x) => x.startsWith('Error:'))?.replace('Error: ', '');
+      setStatus({ text: `${label}: ${(reason ? `reverted with ${reason}` : m.shortMessage ?? m.message ?? 'failed').slice(0, 280)}`, error: true });
     } finally {
       setBusy(false);
     }
@@ -219,7 +221,10 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
   const [profile, setProfile] = useState({ name: p?.name ?? '', description: p?.description ?? '', website: p?.website ?? '', x: p?.x ?? '', useOfFunds: p?.useOfFunds ?? '' });
   const [profileNote, setProfileNote] = useState('');
 
-  const age = account?.firstRevenueAt ? Date.now() / 1000 - account.firstRevenueAt : 0;
+  // History age in chain time (what the factory checks), not the browser clock.
+  const { data: block } = useBlock({ watch: true, chainId: chain.id });
+  const chainNow = block ? Number(block.timestamp) : Date.now() / 1000;
+  const age = account?.firstRevenueAt ? chainNow - account.firstRevenueAt : 0;
   const historyOk = !!account?.firstRevenueAt && age >= Number(minHistory ?? 0n);
   const sourceOk = tier === 'Native' ? !!boundProject : !!manifest?.ok;
   const reviewed = tier === 'Watched' || !!approved;
@@ -416,7 +421,7 @@ function TermsBuilder({
   const client = usePublicClient();
   const factory = deployment.factory!;
   const [t, setT] = useState({
-    name: `${account.profile?.profile.name || 'Revenue'} Revenue Claim`,
+    name: '', // empty: falls back to "<profile name> Revenue Claim", even if the profile loads later
     symbol: 'SLC-01',
     raise: '100',
     share: '20',
@@ -460,6 +465,7 @@ function TermsBuilder({
     !(Number(t.minFeeBps) >= 0 && Number(t.minFeeBps) <= 10_000) && 'Fee floor is 0–10000 bps.',
   ].filter(Boolean) as string[];
   const u = (x: string | number) => parseUnits(String(x), account.asset.decimals);
+  const claimName = t.name.trim() || `${account.profile?.profile.name || 'Revenue'} Revenue Claim`;
 
   async function create() {
     if (!client) return;
@@ -523,7 +529,7 @@ function TermsBuilder({
           minFeeBps: tier === 'Native' ? Number(t.minFeeBps) : 0,
         },
         { adapter: tier === 'Native' ? 0 : 1, source: tier === 'Native' ? project : '0x0000000000000000000000000000000000000000', policyHash: policy },
-        t.name,
+        claimName,
         t.symbol,
       ],
     });
@@ -539,7 +545,7 @@ function TermsBuilder({
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Claim name">
-          <input value={t.name} onChange={set('name')} className={input} />
+          <input value={t.name} onChange={set('name')} placeholder={claimName} className={input} />
         </Field>
         <Field label="Symbol">
           <input value={t.symbol} onChange={(e) => setT({ ...t, symbol: e.target.value.toUpperCase() })} className={cn(input, 'font-mono')} />

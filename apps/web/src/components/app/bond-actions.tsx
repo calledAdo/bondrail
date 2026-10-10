@@ -68,8 +68,10 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
       await reads.refetch();
       onDone();
     } catch (e) {
-      const m = e as { shortMessage?: string; message?: string };
-      setStatus({ text: (m.shortMessage ?? m.message ?? 'Failed.').slice(0, 300), error: true });
+      // viem puts the decoded contract error (e.g. "Error: InvalidTerms()") in metaMessages.
+      const m = e as { shortMessage?: string; message?: string; metaMessages?: string[] };
+      const reason = m.metaMessages?.find((x) => x.startsWith('Error:'))?.replace('Error: ', '');
+      setStatus({ text: (reason ? `Reverted with ${reason}` : m.shortMessage ?? m.message ?? 'Failed.').slice(0, 300), error: true });
     } finally {
       setBusy(false);
     }
