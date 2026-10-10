@@ -9,7 +9,7 @@ business either cannot route around (Native) or gets punished for routing around
 
 - App: https://slice-flame.vercel.app (Monad testnet)
 - Demo issuer, a paid x402 AI API: https://slice-agent.vercel.app/api/oracle
-- Indexer (Envio HyperIndex): https://indexer.dev.hyperindex.xyz/b912a23/v1/graphql
+- Indexer (Envio HyperIndex): https://indexer.dev.hyperindex.xyz/1c05c91/v1/graphql
 - Specification: [`docs/SPEC.md`](docs/SPEC.md)
 
 Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
@@ -53,7 +53,7 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 | Tier | For | Why revenue can't be diverted | Demo |
 |---|---|---|---|
 | **Native** | New projects built on Slice: inherit `SliceEarner` | Every fee is pulled through the account, which is fixed into the project's contract. A disclosed Slice reviewer checks the code before the project can raise; history accrues before review: **impossible by construction** | PumpLab launchpad |
-| **Watched** | Revenue paid over HTTP (x402 agents) | The business publishes `/.well-known/slice.json` (its account and every paid endpoint). **Chainlink CRE** checks the manifest and every endpoint's offer every 30 s: any option paying elsewhere or below the price floor is a violation; two in a row, or a day unreachable, default the bond and slash the stake. Guarded buyers (`@slice/sdk/x402-guard`) refuse to pay a `payTo` that isn't the published account: **caught and punished** | Oracle Agent |
+| **Watched** | Revenue paid over HTTP (x402 agents) | The business publishes `/.well-known/slice.json` (its account and every paid endpoint). **Chainlink CRE** checks the manifest and every endpoint's offer (every 30 minutes on testnet; each report covers one 30 s epoch): any option paying elsewhere or below the price floor is a violation; two adjacent violations, or a day without a report, default the bond and slash the stake. Guarded buyers (`@slice/sdk/x402-guard`) refuse to pay a `payTo` that isn't the published account: **caught and punished** | Oracle Agent |
 
 ```
  Native : trader ─ approve/permit ─► SliceAccount.collect ─┬─► fee: history, then the bond share ─► SliceBond
@@ -135,7 +135,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
   Chainlink confirmed simulation is acceptable for Metropolis.
 
 ### Envio HyperIndex: the core data layer
-- [`indexer/`](indexer/) runs on Envio Cloud via HyperSync.
+- [`indexer/`](indexer/) runs on Envio Cloud (deployed from the `envio` branch).
 - Accounts, bonds and launchpads are registered dynamically from factory events (`indexer.contractRegister`).
 - Each payment is attributed exactly once:
   - **Native:** the account's `Revenue` event; the payer is proven by the pull.
@@ -144,7 +144,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
   - **Anything else** sent to an account is an unclassified inflow: booked on-chain, never verified.
 - Treasury `FundingEdge`s flag payers funded by the business itself.
 - This drives raw vs verified revenue, the payer table, market totals and the bond views in the app
-  ([`apps/web/src/lib/live.ts`](apps/web/src/lib/live.ts)).
+  ([`apps/web/src/lib/protocol.ts`](apps/web/src/lib/protocol.ts)).
 
 ### Kuru: a new asset class
 - Revenue-bond claims trade on a Kuru order book against USDC, with an AMM vault.
@@ -162,7 +162,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 
 ### Also used
 - **x402:** `@slice/sdk/x402` makes any paid API pay its SliceAccount; the Oracle Agent ([`demo/agent`](demo/agent)) is a real paid API built on it.
-- **ERC-8004:** the agent is registered (agentId 2091). A default triggers negative reputation feedback
+- **ERC-8004:** the agent is registered (agentId 2117). A default triggers negative reputation feedback
   from an independent reporter ([`demo/scripts/erc8004.ts`](demo/scripts/erc8004.ts)).
 - **Mera:** passkey accounts (Face ID / Touch ID) as a wagmi connector, so no wallet extension is needed.
 
@@ -184,7 +184,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Fake payer attribution | Native payments are pulled from the payer's own balance; the event carries the real source | Wash trading from wallets the business funds; caught by funding edges |
 | Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from verified revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
 | Investors fund a source that has gone bad | Every deposit re-checks review/binding (Native) or the latest CRE result (Watched) | — |
-| Issuer changes the x402 `payTo` (Watched) | CRE checks the manifest and every endpoint every 30 s; any option paying elsewhere is a violation; two adjacent → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
+| Issuer changes the x402 `payTo` (Watched) | CRE checks the manifest and every endpoint on every report; any option paying elsewhere is a violation; two adjacent → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
 | Issuer shows CRE the account but customers another wallet | Guarded buyers check each offer against the manifest before signing; the bond page alerts when verified x402 revenue collapses while CRE reports compliant | Unguarded buyers can still be misled (disclosed) |
 | Issuer goes dark to CRE while charging elsewhere | A day of Unknowns defaults the bond; an hour blocks deposits; gaps in monitoring never count | Up to a day of diverted revenue, covered by the stake |
 | Issuer adds a paid endpoint after raising | Every same-origin endpoint the manifest lists is checked too: it must pay the account (no price floor) | Endpoints never declared in the manifest cannot be seen |
@@ -199,29 +199,133 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 
 - **Testnet only.** All demo activity comes from team-controlled wallets. The organic and wash cohorts
   differ only in who funded them, which is exactly what the wash detector looks at.
-- **CRE runs as a local simulation** that broadcasts real reports, not a deployed DON. The observer is a
-  single disclosed signer.
+- **CRE runs as a simulation** that broadcasts real reports, not a deployed DON: a small server runs the
+  observer and `cre workflow simulate --broadcast` every 30 minutes ([`ops/covenant-server`](ops/covenant-server)).
+  The observer is a single disclosed signer.
 - **Native trust is a disclosed reviewer.** A contract can't verify arbitrary bytecode, so a reviewer
   approves Native projects' code; approved templates (code-hash registry) are the planned next step.
 - **Nansen** covers Monad mainnet, not testnet. Our fresh demo payers come back unlabelled.
+
+## Architecture
+
+```
+                    ┌────────────── Monad testnet ──────────────┐
+ payers ──────────► │ SliceAccount ──share──► SliceBond ◄── investors (deposit, redeem)
+ (Native: collect/  │      │ rest                 │ claims (ERC-20) ──► Kuru order book + vault
+  settleOut;        │      ▼                      ▲
+  x402: transfer    │   business           SliceFactory (accounts, bonds, activation, releases)
+  + sweep)          │                             ▲
+                    │                     SliceCovenant ◄── Chainlink CRE report (Watched only)
+                    └──────────────┬──────────────┘                ▲
+                                   │ events                        │ signed observation
+                         Envio HyperIndex ──► web app      observer ── unpaid GET ──► agent's 402 offer
+```
+
+- **Contracts** hold the money and the rules: accounts split each payment, bonds hold investor capital and
+  repayments, the factory gates issuance (minimum history, review, CRE health), the covenant records
+  observations and defaults.
+- **Off-chain services** never hold funds. Envio indexes events for the app (and flags payers funded by
+  the business); the observer and CRE prove that a Watched business still pays its account; the web app
+  reads the indexer and the chain, and writes through the user's wallet.
+
+## Tech stack
+
+| Layer | Technology |
+|---|---|
+| Chain | Monad testnet (chain 10143) |
+| Contracts | Solidity 0.8, Foundry, OpenZeppelin Contracts |
+| Indexing | Envio HyperIndex (Envio Cloud) |
+| Covenant checks | Chainlink CRE (TypeScript SDK, simulate + broadcast), observer service (Node, viem) |
+| Payments | x402 (`@x402/core`, `@x402/evm`), EIP-3009 USDC, EIP-2612 permits |
+| Market | Kuru order book and AMM vault (Kuru SDK) |
+| Identity | ERC-8004 identity and reputation registries |
+| Web | Next.js 16, React 19, Tailwind CSS v4, wagmi, viem, Fumadocs, Mera passkeys |
+| Demo agent | Next.js on Vercel, Upstash Redis, Groq-hosted open model |
+
+## Run it yourself
+
+Requirements: Node 22, pnpm 10, [Foundry](https://getfoundry.sh), and for the CRE workflow
+[Bun](https://bun.sh) and the [CRE CLI](https://docs.chain.link/cre).
+
+```bash
+git clone https://github.com/calledAdo/slice && cd slice
+pnpm install
+forge test --root contracts        # contract tests (fuzz + invariants)
+pnpm -r test                       # TypeScript tests
+```
+
+Local chain, end to end:
+
+```bash
+anvil                                                       # terminal 1
+SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts             # deploys MockUSDC + the protocol
+SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
+SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1
+SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab   # creates the bond (clock is advanced locally)
+SLICE_CHAIN_ID=31337 pnpm tsx scripts/dev-indexer.ts        # terminal 2: stands in for Envio on :8546
+```
+
+Then the app (terminal 3), with the addresses `deploy.ts` wrote to `docs/deployments/31337.json`:
+
+```bash
+cd apps/web
+NEXT_PUBLIC_CHAIN_ID=31337 NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545 \
+NEXT_PUBLIC_INDEXER_URL=http://127.0.0.1:8546 \
+NEXT_PUBLIC_USDC_ADDRESS=<asset> NEXT_PUBLIC_FACTORY_ADDRESS=<factory> pnpm dev
+```
+
+Testnet: `pnpm tsx scripts/deploy.ts` (deployer key in `~/.slice`, see [`scripts/lib.ts`](scripts/lib.ts)),
+then the same demo scripts without `SLICE_CHAIN_ID`, waiting `minHistory` (10 minutes) between the two
+`setup-demo.ts` runs. Test USDC comes from Circle's faucet; the app's drip only sends gas (MON).
+The indexer config is generated with `node indexer/gen-config.mjs 10143`; the CRE reporter setup is in
+[`ops/covenant-server`](ops/covenant-server).
 
 ## Repository
 
 ```
 contracts/src     PROTOCOL  SliceFactory, SliceAccount, SliceBond, SliceCovenant, SliceEarner
-packages/sdk      PRODUCT   @slice/sdk: ABIs, client, permit, x402 handler, revenue data
-apps/web          PRODUCT   markets, issuer evidence and credit history, bond workspace, onboarding, passkeys
-services/         PRODUCT   observer (signs payTo observations), worker (sweeps, closes, CRE loop)
+packages/sdk      PRODUCT   @slice/sdk: ABIs, client, permit, x402 handler and guard, revenue data
+packages/scoring  PRODUCT   revenue scoring, Envio and Nansen clients
+apps/web          PRODUCT   site, docs, markets, bond and account pages, portfolio, issuer console
+services/         PRODUCT   observer (signs payTo observations), worker (sweeps, closes)
 cre/              PRODUCT   Chainlink CRE covenant workflow
-indexer/          PRODUCT   Envio HyperIndex (protocol events only)
-scripts/          PRODUCT   protocol deploy
+indexer/          PRODUCT   Envio HyperIndex
+scripts/          PRODUCT   protocol deploy, local dev indexer
+ops/              PRODUCT   covenant reporter server (systemd)
 demo/             DEMO      contracts (PumpLab), agent (Oracle Agent), scripts
 ```
 
-Run locally: `pnpm install`; `forge test --root contracts`; `pnpm -r test`; start
-`anvil`, then run `SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts`, `demo/scripts/setup-demo.ts pumplab`,
-`demo/scripts/traffic-launchpad.ts pumplab organic 1`, and `setup-demo.ts pumplab` again (locally the
-minimum-history wait is skipped by advancing the chain clock).
+## Notices
 
-Built during the hackathon by calledAdo, with AI pair-programming (OpenAI Codex, then Claude Code).
-MIT licensed.
+- **Testnet only; not an offer.** Claim tokens are testnet demonstrations of a revenue-bond design. Nothing
+  here is an offer or solicitation of securities or investment, and nothing is issued, endorsed or
+  approved by the Monad Foundation or any sponsor.
+- **Simulated traffic.** Every payer, trade and payment on testnet comes from team-controlled wallets.
+  The "wash" cohort is a deliberate, labelled simulation of an attack that Slice's indexer detects and
+  excludes; none of it is presented as real volume or traction.
+
+## Build history and AI disclosure
+
+- All work was done during the Metropolis hackathon period (from 1 September 2026). The project began
+  as **Zeitgeist**, an attention-markets product, and pivoted to Slice, a finance primitive. Slice is a
+  new codebase; it shares no code with Zeitgeist, only a testnet deployer wallet.
+- The history starts on 9 October 2026 because work before then (in AI coding sessions) was imported as
+  snapshots: the first commits are named "Snapshot of Codex's … build".
+- **AI tools:** built with AI pair-programming, first OpenAI Codex, then Claude Code (Anthropic). The AI
+  wrote most of the code under the author's direction; design decisions, review, testing and deployments
+  were directed and checked by the author.
+
+## Attribution
+
+Built on open-source work, used under their licenses:
+[OpenZeppelin Contracts](https://github.com/OpenZeppelin/openzeppelin-contracts) (MIT),
+[Foundry](https://github.com/foundry-rs/foundry), [viem](https://github.com/wevm/viem) and
+[wagmi](https://github.com/wevm/wagmi) (MIT), [Next.js](https://github.com/vercel/next.js) (MIT),
+[Fumadocs](https://github.com/fuma-nama/fumadocs) (MIT), [Tailwind CSS](https://github.com/tailwindlabs/tailwindcss) (MIT),
+[lucide](https://github.com/lucide-icons/lucide) (ISC), [Geist font](https://github.com/vercel/geist-font) (OFL),
+[Envio HyperIndex](https://github.com/enviodev/hyperindex), [Chainlink CRE SDK](https://docs.chain.link/cre),
+[x402](https://github.com/coinbase/x402) (Apache 2.0), [Kuru SDK](https://www.npmjs.com/package/@kuru-labs/kuru-sdk),
+[Mera](https://www.npmjs.com/package/@category-labs/mera), and the Monad and ERC-8004 registries on testnet.
+The web design takes cues from the Kokonut UI design system; no assets were copied.
+
+Built by calledAdo. MIT licensed (see [`LICENSE`](LICENSE)).
