@@ -77,26 +77,25 @@ bound, and a Watched bond's latest CRE observation must not be a violation.
 
 ## Live on Monad testnet (chain 10143)
 
-> The testnet deployment below predates the removal of the Locked tier and the issuance and deposit
-> checks (10 Oct 2026). The current code is tested locally; the testnet redeploy is pending.
+Deployed 10 Oct 2026 from this code (two tiers, any-token accounts, x402 manifest).
 
 | What | Address |
 |---|---|
-| SliceFactory | `0x14160bb3838714fed6842214ca29e66b39d756e1` |
-| SliceCovenant (CRE receiver) | `0x599c8397c64b22794847f8644c0916064abbf780` |
+| SliceFactory | `0xd5860ae06955cd7531af491ae7d3363b0a3f893d` |
+| SliceCovenant (CRE receiver) | `0x5502d6e2b169f69364a4adac594e790e0f2fc7d7` |
 | CRE MockKeystoneForwarder | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` |
 | Native reviewer (disclosed) | `0x10Be6883Ebbd9B610C43a97f338512a5e66f5893` |
-| PumpLab (Native): account / project / bond `PLAB-RC` | `0xD4e4959e39787bbDb448d7437f67ca32AbD204B2` / `0x700d8a4e125e3a32dd2be9f727cab4d2a5d2f59d` / `0x121a1294Ced6c90c25bB823e72416E89677a717F` |
-| Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0xa4a870a3b5Bc457266416C84441011e879141a26` / `0xaDF2916EFd32A4F603E00423Cd9fB5c453a16630` |
-| Kuru `PLAB-RC`/USDC market / AMM vault | `0xEd980DA024b1f5dcaaF3F103275F7a660ED00813` / `0x862f1372307162469DFc2bFe845bDCF0F634515E` |
+| PumpLab (Native): account / project / bond `PLAB-RC` | `0xA34FE8bd5900360b1f284054C4Bcc115A4BA1e81` / `0x793a25ff10e29f12975227b2ed283256b8530bec` / `0x4ecF7082ADF4C4092B480eDC3FB6054a96f0aff4` |
+| Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0x4a83E241BCF144f738276F10DbC922dc4f17ef58` / `0xf12f80905f96ff99688d2a5e719f5F208c385c06` |
+| Kuru `PLAB-RC`/USDC market / AMM vault | `0xBfb848729E3a87026B6A2d99960f78fA7Ad88F4D` / `0x53Da08F6Fd3Ae2552329fb913A7C4F0605BF91D3` |
 | ERC-8004 agentId | `2091` (Identity Registry `0x8004A818BFB912233c491871b3d84c89A494BD9e`) |
 
 | Transaction | Hash |
 |---|---|
-| CRE report that gated the Watched bond's activation | `0xd8d14065168c5f823f612c1108937b4dd9a6a1c72913f0ee7a69e72ba2f6c52f` |
-| Watched bond activated | `0xb7242d699e57a189d3dca80b5c988631f0d36c493b3ddea093582c59f41c3857` |
-| Paid x402 call settled to the agent's account | `0x895fda501203a0ef87aca1dc2cba77fbe0a77bdbabeb35401dcf7911ccc06bab` |
-| Kuru market deployed / vault seeded | `0x1d92020bf951d4f8f937d3ae868d536475c4ac1951607025e19ad0706141f28b` / `0x5b9ac046684a23d350ca11992d56f821feffedf07fabbce5bc7d58e5a764352c` |
+| CRE report that gated the Watched bond's activation | `0xf45bb15e5b862b2d9da535bf3988cbe049ef4d408671bbe96d75ca24d0c5fe4c` |
+| Watched bond activated | `0xf2c0ac5b206d62ddbd82e43b62edcf38b61506a8fe3c5ea56fe668acdc530a8a` |
+| Paid x402 call settled to the agent's account | `0x0e59e514bc73b5182096b6ae3c41c8afba4cb0dc777d1d9e00dab837f9dc0b16` |
+| Kuru market deployed / vault seeded | `0x40427209cea15888e13da5e65ad67b4093b9a535599cc8ea021cf373f4431b17` / `0x2400dc20c88683df6c8fd433465058938dab4662e0bc53b5a853c8556bf83a1a` |
 
 All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json).
 
