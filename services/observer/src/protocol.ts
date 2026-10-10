@@ -217,11 +217,43 @@ export interface FetchedResponse {
   header?: string;
   body?: string;
 }
-/** Classify a full check from the fetched manifest and endpoint responses (same order as p.endpoints). */
-export function classify(p: WatchPolicy, manifest: FetchedResponse, offers: FetchedResponse[]): ParsedOffer {
+/** Scheme and host of a URL, by pattern (the CRE WASM runtime has no URL global). */
+export function originOf(url: string): string | undefined {
+  return /^(https?:\/\/[^/?#@\s]+)/i.exec(url)?.[1]?.toLowerCase();
+}
+
+export const MAX_CHECKED_ENDPOINTS = 16;
+/**
+ * Everything a check fetches: the policy's endpoints (with their price floors), plus any other paid
+ * endpoint the manifest now lists on the same origin. Those were added after issuance, so they have no
+ * floor, but they must still pay the account. Undeclared endpoints cannot be seen by anyone.
+ */
+export function endpointsToCheck(p: WatchPolicy, manifest: FetchedResponse): PaidEndpoint[] {
+  const out = [...p.endpoints];
+  let listed: unknown;
+  try {
+    listed = manifest.status === 200 && manifest.body ? JSON.parse(manifest.body)?.endpoints : undefined;
+  } catch {}
+  if (!Array.isArray(listed)) return out;
+  const origin = originOf(p.manifestUrl);
+  for (const url of listed) {
+    if (out.length >= MAX_CHECKED_ENDPOINTS) break;
+    if (typeof url !== 'string' || url.length > 2048 || originOf(url) !== origin) continue;
+    if (!out.some((e) => e.url === url)) out.push({ url, minAmount: '1' });
+  }
+  return out;
+}
+
+/** Classify a full check: the manifest, then each endpoint's response (same order as `endpoints`). */
+export function classify(
+  p: WatchPolicy,
+  manifest: FetchedResponse,
+  endpoints: PaidEndpoint[],
+  offers: FetchedResponse[],
+): ParsedOffer {
   return combine([
     parseManifest(manifest.status, manifest.body, p),
-    ...p.endpoints.map((e, i) => parseOffer(offers[i]?.status ?? 0, offers[i]?.header, p, e)),
+    ...endpoints.map((e, i) => parseOffer(offers[i]?.status ?? 0, offers[i]?.header, p, e)),
   ]);
 }
 export function typedObservation(o: Observation) {

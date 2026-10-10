@@ -24,3 +24,4 @@ docs/deployments/31337.json
 .vercel
 .env*
 **/.cre_build_tmp.js
+cre/slice-covenant/dist/

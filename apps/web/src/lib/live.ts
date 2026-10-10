@@ -5,7 +5,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { erc20Abi, formatUnits, type Address } from 'viem';
-import { accountAbi, bondAbi } from './abi';
+import { accountAbi, bondAbi, covenantAbi } from './abi';
 import { markets as fixtures, type Market, type PayerRow, type Phase } from './data';
 import { deployment } from './wallet';
 
@@ -128,6 +128,29 @@ async function loadMarket(
   const capPer = eligible / 10;
   const adjusted = payers.filter((p) => !p.related).reduce((s, p) => s + Math.min(p.amount, capPer), 0);
   const daily = d.DailyRevenue.map((x) => ({ day: x.day, raw: amt(x.gross), verified: amt(x.verified) }));
+
+  // Watched: the covenant's dark-period and deposit state, and a revenue-drop alert. A business could show
+  // the monitor its account and unguarded customers another wallet: the monitor stays green while
+  // verified x402 revenue falls. Compare the last 24 h with the prior 7-day daily average.
+  const watched = Number(adapter) === 1;
+  let darkFor = 0,
+    depositsPaused = false,
+    revenueDrop: { last24h: number; dailyAverage: number } | null = null;
+  if (watched) {
+    const covenant = (await client.readContract({ address: bond, abi: bondAbi, functionName: 'covenant' })) as Address;
+    const [dark, paused] = await Promise.all([
+      client.readContract({ address: covenant, abi: covenantAbi, functionName: 'darkFor', args: [bond] }),
+      client.readContract({ address: covenant, abi: covenantAbi, functionName: 'inViolation', args: [bond] }),
+    ]);
+    darkFor = Number(dark);
+    depositsPaused = Boolean(paused);
+    const now = Date.now() / 1000;
+    const x402 = d.Payment.filter((p) => p.source === 'x402' && !p.related);
+    const sum = (from: number, to: number) =>
+      x402.filter((p) => Number(p.timestamp) >= from && Number(p.timestamp) < to).reduce((s, p) => s + amt(p.amount), 0);
+    const dailyAverage = sum(now - 8 * 86_400, now - 86_400) / 7;
+    if (dailyAverage > 0) revenueDrop = { last24h: sum(now - 86_400, now + 1), dailyAverage };
+  }
   const peak = Math.max(1e-9, ...daily.map((x) => x.raw));
 
   return {
@@ -172,6 +195,9 @@ async function loadMarket(
     pool: amt(b?.pool),
     supply: amt(b?.totalSupply),
     checks: d.CovenantCheck.map((c) => ({ result: c.result, at: Number(c.observedAt), txHash: c.txHash })),
+    darkFor,
+    depositsPaused,
+    revenueDrop,
     defaulted: !!b?.defaulted,
   };
 }

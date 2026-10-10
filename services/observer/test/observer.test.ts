@@ -9,6 +9,7 @@ import { LocalStore } from '../src/store.js';
 import { publicAddress, validateURL } from '../src/fetch.js';
 import {
   classify,
+  endpointsToCheck,
   parseManifest,
   parseOffer,
   policyHash,
@@ -90,12 +91,26 @@ test('a check covers the manifest and every endpoint: violation wins, then all c
   const ok0 = { status: 402, header: encoded(offer()) };
   const ok1 = { status: 402, header: encoded(offer([option({ amount: e1.minAmount })], e1.url)) };
   const m = { status: 200, body: manifest() };
-  assert.equal(classify(p, m, [ok0, ok1]).result, 1);
-  assert.equal(classify(p, m, [ok0, { status: 500 }]).result, 0);
+  const E = p.endpoints;
+  assert.equal(classify(p, m, E, [ok0, ok1]).result, 1);
+  assert.equal(classify(p, m, E, [ok0, { status: 500 }]).result, 0);
   const diverted = { status: 402, header: encoded(offer([option({ payTo: OTHER })], e1.url)) };
-  assert.equal(classify(p, m, [{ status: 500 }, diverted]).result, 2);
-  assert.equal(classify(p, m, [{ status: 500 }, diverted]).observedPayTo, OTHER);
-  assert.equal(classify(p, { status: 404 }, [ok0, ok1]).result, 0);
+  assert.equal(classify(p, m, E, [{ status: 500 }, diverted]).result, 2);
+  assert.equal(classify(p, m, E, [{ status: 500 }, diverted]).observedPayTo, OTHER);
+  assert.equal(classify(p, { status: 404 }, E, [ok0, ok1]).result, 0);
+});
+test('paid endpoints added to the manifest after issuance are checked too (same origin only)', () => {
+  const added = 'https://agent.example/api/new';
+  const m = { status: 200, body: manifest({ endpoints: [...p.endpoints.map((e) => e.url), added, 'https://evil.example/x'] }) };
+  const all = endpointsToCheck(p, m);
+  assert.deepEqual(all.map((e) => e.url), [...p.endpoints.map((e) => e.url), added]);
+  const ok0 = { status: 402, header: encoded(offer()) };
+  const ok1 = { status: 402, header: encoded(offer([option({ amount: e1.minAmount })], e1.url)) };
+  const cheap = { status: 402, header: encoded(offer([option({ amount: '1' })], added)) };
+  const elsewhere = { status: 402, header: encoded(offer([option({ payTo: OTHER })], added)) };
+  assert.equal(classify(p, m, all, [ok0, ok1, cheap]).result, 1); // no floor on an endpoint added later
+  assert.equal(classify(p, m, all, [ok0, ok1, elsewhere]).result, 2); // but it must pay the account
+  assert.equal(endpointsToCheck(p, { status: 404 }).length, 2);
 });
 test('full offer canonical hash stable across field order, sensitive to extensions', () => {
   const a = offer(),

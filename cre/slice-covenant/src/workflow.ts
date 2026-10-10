@@ -16,6 +16,7 @@ import {
   observationDomain,
   observationTypes,
   classify,
+  endpointsToCheck,
   policyHash,
   type FetchedResponse,
   typedObservation,
@@ -63,10 +64,13 @@ function independentlyObserve(
       return { status: 0 };
     }
   };
+  const manifest = get(c.policy.manifestUrl);
+  const endpoints = endpointsToCheck(c.policy, manifest);
   const parsed = classify(
     c.policy,
-    get(c.policy.manifestUrl),
-    c.policy.endpoints.map((e) => get(e.url)),
+    manifest,
+    endpoints,
+    endpoints.map((e) => get(e.url)),
   );
   // Only canonical policy-relevant content reaches identical consensus, never Date/Server headers.
   return canonical({

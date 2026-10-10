@@ -9,6 +9,7 @@ import {
   observationDomain,
   observationTypes,
   classify,
+  endpointsToCheck,
   policyHash,
   typedObservation,
   type WatchPolicy,
@@ -110,10 +111,12 @@ export class Observer {
     if (!(await this.store.cas(key, null, pending))) return awaitCommitted();
     const local = this.local && p.chainId === 31337;
     const get = (url: string) => this.fetcher(url, p, local).catch((): FetchedResponse => ({ status: 0 }));
-    const [manifest, ...offers] = await Promise.all([get(p.manifestUrl), ...p.endpoints.map((e) => get(e.url))]);
+    const manifest = await get(p.manifestUrl);
+    const endpoints = endpointsToCheck(p, manifest);
+    const offers = await Promise.all(endpoints.map((e) => get(e.url)));
     const observedAt = this.now();
     if (Math.floor(observedAt / 30) !== epoch) throw new Error('Epoch changed while observing');
-    const result = classify(p, manifest!, offers);
+    const result = classify(p, manifest, endpoints, offers);
     const observation: Observation = {
       bond: p.bond,
       policyHash: policyHash(p),
@@ -126,7 +129,8 @@ export class Observer {
       evidenceHash: digest({
         policyHash: policyHash(p),
         epoch,
-        status: [manifest!.status, ...offers.map((o) => o.status)],
+        checked: endpoints.map((e) => e.url),
+        status: [manifest.status, ...offers.map((o) => o.status)],
         ...result,
       }),
     };

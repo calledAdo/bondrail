@@ -3,4 +3,5 @@ export {
   sliceBondAbi as bondAbi,
   sliceAccountAbi as accountAbi,
   sliceFactoryAbi as factoryAbi,
+  sliceCovenantAbi as covenantAbi,
 } from '@slice/sdk/abis';

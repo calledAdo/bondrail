@@ -109,7 +109,9 @@ withdraw paths could still divert fees, and making it safe needed Native-level r
   `{version: 1, chainId, account, endpoints: [...]}`, listing every paid endpoint (an unpaid GET returns
   the 402 offer). The bond's policy covers all of them and commits to a **price floor** per endpoint. The
   same file is the marketplace's domain proof.
-- **Each check** (observer and CRE independently) reads the manifest and every endpoint:
+- **Each check** (observer and CRE independently) reads the manifest, every covered endpoint, and every
+  other same-origin endpoint the manifest now lists (up to 16): endpoints added after issuance have no price
+  floor but must still pay the account. Endpoints the business never declares cannot be seen by anyone.
   - **Violation:** the manifest names another account or drops a covered endpoint; or **any** payment
     option on any endpoint pays someone else, uses another network/asset/scheme, or prices below the floor.
     A higher price is fine. Several options are fine if all pay the account.
@@ -118,6 +120,9 @@ withdraw paths could still divert fees, and making it safe needed Native-level r
 - **Buyers can verify too.** `@slice/sdk/x402-guard` (`sliceGuard`) wraps the x402 client's fetch and
   refuses to sign an offer whose `payTo` is not the manifest's account (optionally confirmed on-chain via
   `factory.isAccount`). This defeats showing the monitor one `payTo` and customers another.
+- **Unguarded buyers** can still be shown another `payTo` (no code can make a buyer verify). The bond page
+  raises an alert when verified x402 revenue in the last 24 h falls under a quarter of the prior 7-day daily
+  average while the monitor reports compliant, and shows dark periods and paused deposits.
 
 ### SliceCovenant
 CRE receiver. Only `onReport` from the pinned forwarder, carrying an observation with the pinned

@@ -485,16 +485,42 @@ function SourceHealth({ market: m }: { market: Market }) {
     );
   const last = m.checks?.[0];
   const label = !last ? 'No CRE report yet' : last.result === 1 ? 'Compliant' : last.result === 2 ? 'Violation' : 'Unknown';
+  const dark = m.darkFor ?? 0;
+  const drop = m.revenueDrop;
+  // A green monitor with collapsing verified revenue can mean customers are being shown another payTo.
+  const dropped = !!drop && last?.result === 1 && drop.last24h < drop.dailyAverage / 4;
   return (
-    <div className="source-health">
-      <span className={`status-dot ${last?.result === 1 ? 'good' : last?.result === 2 ? 'danger' : ''}`} />
-      {label}
-      <span>
-        {last
-          ? `Last Chainlink CRE report ${Math.max(0, Math.round(Date.now() / 1000 - last.at))} s ago · ${m.checks!.length} recent`
-          : 'Waiting for the first covenant report'}
-      </span>
-    </div>
+    <>
+      <div className="source-health">
+        <span className={`status-dot ${last?.result === 1 ? 'good' : last?.result === 2 ? 'danger' : ''}`} />
+        {label}
+        <span>
+          {last
+            ? `Last Chainlink CRE report ${Math.max(0, Math.round(Date.now() / 1000 - last.at))} s ago · ${m.checks!.length} recent`
+            : 'Waiting for the first covenant report'}
+        </span>
+      </div>
+      {dark > 0 && (
+        <p className="notice danger" role="status">
+          Unreachable to the monitor for {Math.round(dark / 60)} min.{' '}
+          {dark >= 3600
+            ? 'Deposits are paused; a full day unreachable while the bond is live defaults it.'
+            : 'After an hour, deposits pause.'}
+        </p>
+      )}
+      {m.depositsPaused && dark < 3600 && !m.defaulted && (
+        <p className="notice danger" role="status">
+          Deposits are paused: the latest covenant report is a violation.
+        </p>
+      )}
+      {dropped && (
+        <p className="notice danger" role="status">
+          Verified x402 revenue in the last 24 h ({money(drop!.last24h, 2, m.unit)}) is under a quarter of the prior
+          7-day daily average ({money(drop!.dailyAverage, 2, m.unit)}) while the monitor reports compliant. Customers
+          may be shown a different payTo; only buyers using a guarded client verify it themselves.
+        </p>
+      )}
+    </>
   );
 }
 

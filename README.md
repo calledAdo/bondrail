@@ -186,9 +186,9 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from verified revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
 | Investors fund a source that has gone bad | Every deposit re-checks review/binding (Native) or the latest CRE result (Watched) | — |
 | Issuer changes the x402 `payTo` (Watched) | CRE checks the manifest and every endpoint every 30 s; any option paying elsewhere is a violation; two adjacent → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
-| Issuer shows CRE the account but customers another wallet | Guarded buyers check each offer against the manifest before signing | Unguarded buyers can still be misled |
+| Issuer shows CRE the account but customers another wallet | Guarded buyers check each offer against the manifest before signing; the bond page alerts when verified x402 revenue collapses while CRE reports compliant | Unguarded buyers can still be misled (disclosed) |
 | Issuer goes dark to CRE while charging elsewhere | A day of Unknowns defaults the bond; an hour blocks deposits; gaps in monitoring never count | Up to a day of diverted revenue, covered by the stake |
-| Issuer adds an uncovered paid endpoint | The manifest must keep listing every covered endpoint; the policy fixes them at issuance | New endpoints not in the policy are not monitored |
+| Issuer adds a paid endpoint after raising | Every same-origin endpoint the manifest lists is checked too: it must pay the account (no price floor) | Endpoints never declared in the manifest cannot be seen |
 | Forged default through the permissionless forwarder | Pinned observer EIP-712 signature, freshness and per-epoch replay checks | Trust in one observer key (disclosed) |
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |

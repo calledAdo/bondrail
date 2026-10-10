@@ -53,6 +53,12 @@ export type Market = {
   pool?: number;
   supply?: number;
   checks?: { result: number; at: number; txHash: string }[];
+  /** Watched: seconds the covenant has seen only Unknown reports (0 = not dark). */
+  darkFor?: number;
+  /** Watched: the covenant currently refuses deposits (violation, dark for an hour, or defaulted). */
+  depositsPaused?: boolean;
+  /** Watched: verified x402 revenue in the last 24 h vs the prior 7-day daily average (null = no baseline). */
+  revenueDrop?: { last24h: number; dailyAverage: number } | null;
 };
 /** Deliberately synthetic scenario fixtures; never use for chain accounting or authorizations. */
 export const markets: Market[] = [
