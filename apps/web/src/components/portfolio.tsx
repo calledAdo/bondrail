@@ -64,7 +64,7 @@ export function Portfolio() {
             Use Connect wallet in the header. This view reads actual claim balances from configured testnet
             contracts.
           </p>
-          <Link href="/" className="button">
+          <Link href="/markets" className="button">
             {live ? 'Explore the markets' : 'Explore the preview markets'}
           </Link>
         </section>

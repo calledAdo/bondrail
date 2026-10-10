@@ -4,7 +4,7 @@ export default function NotFound() {
     <div className="empty">
       <h1>Market not found</h1>
       <p>This financing series is not in the configured directory.</p>
-      <Link className="button primary" href="/">
+      <Link className="button primary" href="/markets">
         Back to markets
       </Link>
     </div>

@@ -1,9 +1,44 @@
 # Slice interface
 
-The application is a financing workbench, not a marketing landing page. Its characteristic visual is a segmented capital ribbon that separates released capital, undrawn escrow, and principal earmarked for recovery. Use it consistently from marketplace to instrument detail.
+Based on Kokonut DS (docs/Robaire Design System.pdf), set dark-first for a DeFi product.
+Monochrome, tight, quiet. Colour only where it means something.
 
-Canvas #f3f6fa; document #ffffff; navy ink #152b4a; cobalt #2d5be7; teal #217c70; amber #ba7525. Light finance surfaces, readable sentence-case labels, tabular figures, restrained corners. Aptos/Segoe UI/system sans for text; numerals use tabular figures. Left-aligned content. A wide activity ledger and narrower decision panel replace a grid of identical statistic cards.
+## Brand
+- Idea: *Your revenue is your credit.* A fixed slice of every payment repays investors automatically.
+- The recurring visual is **the split**: a payment arrives and a slice peels off (animated beam: payer to
+  SliceAccount to business and bond). Supporting motifs: the capital ribbon (released / escrowed /
+  recovered), the live payment ticker, and the logo mark (a circle with one wedge cut out).
+- Voice: plain sentences, concrete numbers, every claim checkable on-chain. No speculative APR, no
+  invented customers or testimonials. Synthetic data is labelled.
 
-The finance marketplace skill search is guidance; generic conversion heroes and its suggested aesthetic are overridden by the supplied financial workbench brief. Do not use speculative APR, invented customer counts, or unqualified green credit scores. Synthetic scenario data is visibly labeled. Live contract reads are displayed in their own configured-network panel and never inherit fixture values.
+## Foundations (Tailwind v4 + shadcn tokens, `next-themes` class `dark`, dark by default)
+- Neutral tokens at 0% saturation. Hierarchy comes from white or black at an alpha step, never a new grey:
+  /2–/5 hover washes and watermarks, /10–/20 hairlines and dashed frames, /60–/70 body and nav, 1.0 headings.
+  Small text never below /60.
+- Dark surfaces: background `#0a0a0a`, card `#0a0a0a`, border `#262626`, muted text `#a3a3a3`. Ink panels
+  carry film grain (feTurbulence overlay). Light mode mirrors with black alpha on white.
+- **Signals** (Tailwind 500/600, borders at /20):
+  - emerald: the investor slice, repaid, compliant, positive deltas;
+  - purple: Watched tier and CRE monitoring;
+  - blue: Native tier, links, primary chart series;
+  - orange: warnings (dark period, coverage below 1.2×);
+  - red: violation, default, destructive.
+- Type: Geist, headlines tracking −0.05em, UI −0.025em. Geist Mono for indices `(01)`, addresses, hashes
+  and bracketed live figures `[184]`. Tabular figures everywhere numbers align.
+- Space: 4 px base; section padding py-32 on the site. Radius: lg 8 px buttons and inputs, xl 12 px cards
+  and framed hero, 2xl 16 px panels, full for pills.
+- Depth without shadows: hairline, dashed frame (bento, empty states), ring plus hover lift, frosted tier.
+- Motion: hover colour 200–300 ms; arrow nudge +4 px; label roll on the primary CTA; reveal on scroll once
+  (y 20–30, 0.5 s); stagger 0.15 s cards / 0.05 s rows; mesh drift 20/25/30 s. `prefers-reduced-motion`
+  drops reveals, drift and the beam animation; colour transitions stay.
 
-Mobile: collapse rows into labeled detail groups, retain stage labels, 44px controls and visible keyboard focus. Charts have text summaries and legends. Network, transaction, indexing and service failures are meaningful UI states.
+## Surfaces
+- **Site** (`(site)`): dark framed hero with the split beam and a giant "slice" watermark, live stats strip
+  (number tickers), payment marquee, how it works, two tiers bento (Native / Watched), builders vs investors,
+  trust disclosure FAQ with `(01)` indices, sponsor logos.
+- **Docs** (`(docs)`, Fumadocs): same tokens; code blocks on ink panels.
+- **App** (`(app)`): a financing workbench in the same language. A wide activity ledger plus a narrower
+  decision panel instead of a grid of identical stat cards. The capital ribbon appears from the market card
+  to the bond page. Network, transaction, indexing and service failures are explicit UI states.
+- Mobile: rows collapse into labelled groups, 44 px controls, visible keyboard focus. Charts have text
+  summaries and legends.

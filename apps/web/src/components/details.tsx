@@ -44,7 +44,7 @@ export function Details({ market, issuer = false }: { market: Market; issuer?: b
         : market;
   return (
     <>
-      <Link className="back-link" href="/">
+      <Link className="back-link" href="/markets">
         <ArrowLeft size={15} />
         All markets
       </Link>

@@ -110,7 +110,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
         </Link>
         <nav aria-label="Main navigation">
           {[
-            ['/', 'Markets'],
+            ['/markets', 'Markets'],
             ['/portfolio', 'Portfolio'],
             ['/issue', 'Raise capital'],
           ].map(([href, label]) => (
@@ -134,8 +134,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
             require a configured testnet deployment.
           </span>
         )}
-        <Link href="/demo">
-          Readiness <ArrowUpRight size={13} aria-hidden />
+        <Link href="/docs">
+          Docs <ArrowUpRight size={13} aria-hidden />
         </Link>
       </div>
       <main id="main" className="main">
@@ -148,7 +148,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
           <span className="footer-dot" />
           One claim class. Two capital releases.
         </span>
-        <Link href="/demo">Integration readiness</Link>
+        <Link href="/docs">Docs</Link>
       </footer>
     </>
   );
