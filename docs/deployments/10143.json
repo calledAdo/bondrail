@@ -2,66 +2,61 @@
   "schemaVersion": 1,
   "chainId": 10143,
   "network": "Monad Testnet",
-  "deployedAt": "2026-10-09T22:09:21.487Z",
-  "startBlock": "69654585",
+  "deployedAt": "2026-10-10T12:42:49.284Z",
+  "startBlock": "69828092",
   "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
-  "factory": "0x14160bb3838714fed6842214ca29e66b39d756e1",
-  "covenant": "0x599c8397c64b22794847f8644c0916064abbf780",
+  "factory": "0xd5860ae06955cd7531af491ae7d3363b0a3f893d",
+  "covenant": "0x5502d6e2b169f69364a4adac594e790e0f2fc7d7",
   "forwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
   "observer": "0x0c95c87Ce958d75f6aF56E6bd921884752cbC12B",
   "milestoneSigner": "0xafa1A1589E0E05edD67CF82C41dff802b0f8cBca",
   "reviewer": "0x10Be6883Ebbd9B610C43a97f338512a5e66f5893",
-  "bondImplementation": "0x421d2d24e481e43dfc5ecdedacff083d1a275545",
-  "accountImplementation": "0x9bda639633d529619dd4f821d63af659f17edea6",
+  "minHistory": 600,
+  "bondImplementation": "0x536dbdbae5db2bae2d5d1cefa710ae2f42f32db1",
+  "accountImplementation": "0xc742123c62b21877c4dd521ec9be6329a2375ba2",
   "issuers": {
     "pumplab": {
       "name": "PumpLab",
       "tier": "native",
       "issuer": "0x3711031Ff66392A249d6f052D5BECdacCb00324f",
-      "account": "0xD4e4959e39787bbDb448d7437f67ca32AbD204B2",
-      "source": "0x700d8a4e125e3a32dd2be9f727cab4d2a5d2f59d",
-      "token": "0x03447F76b573C4c7e825F4C3514d75a8888eD23f",
-      "bond": "0x121a1294Ced6c90c25bB823e72416E89677a717F",
-      "kuruMarket": "0xEd980DA024b1f5dcaaF3F103275F7a660ED00813",
-      "kuruVault": "0x862f1372307162469DFc2bFe845bDCF0F634515E"
-    },
-    "classic": {
-      "name": "PumpLab Classic",
-      "tier": "locked",
-      "issuer": "0xD17de47258443D0302Fb51bA925fc460fbCF5A72",
-      "account": "0x2BA8145ebc85feB8A7E8Ebf55A03B37E8fB42A75",
-      "source": "0x297b0fb25ffe786a88bf20c100c4476ea82dd8c7",
-      "token": "0x4c3a17A66743eCC0569668960d4944EA339Bf095",
-      "guard": "0x04744483190D4373Ee55cE065c69374cc0f5C38B",
-      "bond": "0x9fcA536a68f0a47d029f93D1a28549288Ba163b5"
+      "account": "0xA34FE8bd5900360b1f284054C4Bcc115A4BA1e81",
+      "source": "0x793a25ff10e29f12975227b2ed283256b8530bec",
+      "token": "0x7e2BE3910c7E1A31Eb4159d109fAe6a51B91a877",
+      "bond": "0x4ecF7082ADF4C4092B480eDC3FB6054a96f0aff4",
+      "kuruMarket": "0xBfb848729E3a87026B6A2d99960f78fA7Ad88F4D",
+      "kuruVault": "0x53Da08F6Fd3Ae2552329fb913A7C4F0605BF91D3"
     },
     "agent": {
       "name": "Oracle Agent",
       "tier": "watched",
       "issuer": "0xd1ef0BD715Ca18d1cCe7198111A0eF2BB26d56bb",
-      "account": "0xa4a870a3b5Bc457266416C84441011e879141a26",
-      "bond": "0xaDF2916EFd32A4F603E00423Cd9fB5c453a16630",
-      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health",
-      "agentId": "2091"
+      "account": "0x4a83E241BCF144f738276F10DbC922dc4f17ef58",
+      "bond": "0xf12f80905f96ff99688d2a5e719f5F208c385c06",
+      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health"
     }
   },
   "watchPolicy": {
     "id": "slice-agent",
     "chainId": 10143,
     "chainSelector": "2183018362218727504",
-    "covenant": "0x599c8397c64b22794847f8644c0916064abbf780",
-    "bond": "0xaDF2916EFd32A4F603E00423Cd9fB5c453a16630",
-    "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+    "covenant": "0x5502d6e2b169f69364a4adac594e790e0f2fc7d7",
+    "bond": "0xf12f80905f96ff99688d2a5e719f5F208c385c06",
+    "manifestUrl": "https://slice-agent.vercel.app/.well-known/slice.json",
+    "endpoints": [
+      {
+        "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+        "minAmount": "10000"
+      }
+    ],
     "method": "GET",
     "headers": {
       "accept": "application/json"
     },
     "network": "eip155:10143",
     "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
-    "expectedPayTo": "0xa4a870a3b5Bc457266416C84441011e879141a26",
-    "amount": "10000",
+    "expectedPayTo": "0x4a83E241BCF144f738276F10DbC922dc4f17ef58",
     "maxTimeoutSeconds": 300,
-    "parserVersion": "slice-x402-v2-exact-eip3009/1",
+    "parserVersion": "slice-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,
     "freshnessSeconds": 90
   }

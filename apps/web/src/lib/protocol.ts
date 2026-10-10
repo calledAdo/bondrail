@@ -91,36 +91,6 @@ export type BondView = {
 
 export type Protocol = { accounts: AccountView[]; bonds: BondView[]; indexedAt: number };
 
-// TRANSITIONAL: bonds from the previous protocol build return terms without `minFeeBps`. Remove this
-// fallback after the testnet redeploy.
-const legacyTermsAbi = [
-  {
-    type: 'function',
-    name: 'terms',
-    stateMutability: 'view',
-    inputs: [],
-    outputs: [
-      {
-        type: 'tuple',
-        components: [
-          { name: 'raiseAmount', type: 'uint256' },
-          { name: 'repayCap', type: 'uint256' },
-          { name: 'stake', type: 'uint256' },
-          { name: 'minRevenue', type: 'uint256' },
-          { name: 'fundingDeadline', type: 'uint64' },
-          { name: 'maturity', type: 'uint64' },
-          { name: 'secondReleaseNotBefore', type: 'uint64' },
-          { name: 'secondReleaseDeadline', type: 'uint64' },
-          { name: 'minOperatingPeriod', type: 'uint32' },
-          { name: 'revenueBps', type: 'uint16' },
-          { name: 'firstReleaseBps', type: 'uint16' },
-          { name: 'milestoneMode', type: 'uint8' },
-        ],
-      },
-    ],
-  },
-] as const;
-
 async function gql(query: string) {
   const r = await fetch(INDEXER_URL, {
     method: 'POST',
@@ -243,9 +213,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       (d.Bond as any[]).map(async (b): Promise<BondView> => {
         const address = b.id as Address;
         const [terms, name, symbol, backing, allowed] = await Promise.all([
-          (client.readContract({ address, abi: bondAbi, functionName: 'terms' }) as Promise<any>).catch(
-            () => client.readContract({ address, abi: legacyTermsAbi, functionName: 'terms' }) as Promise<any>,
-          ),
+          client.readContract({ address, abi: bondAbi, functionName: 'terms' }) as Promise<any>,
           client.readContract({ address, abi: bondAbi, functionName: 'name' }),
           client.readContract({ address, abi: bondAbi, functionName: 'symbol' }),
           client.readContract({ address, abi: bondAbi, functionName: 'backingPerToken' }),

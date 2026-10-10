@@ -58,7 +58,7 @@ contracts:
         field_selection: { transaction_fields: [hash] }
 chains:
   - id: 10143
-    start_block: 69654585
+    start_block: 69828092
     rpc:
       - url: https://testnet-rpc.monad.xyz
         for: sync
@@ -67,9 +67,9 @@ chains:
         interval_ceiling: 100
     contracts:
       - name: SliceFactory
-        address: "0x14160bb3838714fed6842214ca29e66b39d756e1"
+        address: "0xd5860ae06955cd7531af491ae7d3363b0a3f893d"
       - name: SliceCovenant
-        address: "0x599c8397c64b22794847f8644c0916064abbf780"
+        address: "0x5502d6e2b169f69364a4adac594e790e0f2fc7d7"
       - name: USDC
         address: "0x534b2f3A21130d7a60830c2Df862319e593943A3"
       - name: SliceAccount
