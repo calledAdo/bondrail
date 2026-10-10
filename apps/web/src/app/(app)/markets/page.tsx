@@ -1,4 +1,6 @@
-import { Marketplace } from '@/components/marketplace';
+import { Markets } from '@/components/app/markets';
+
+export const metadata = { title: 'Markets' };
 export default function Page() {
-  return <Marketplace />;
+  return <Markets />;
 }

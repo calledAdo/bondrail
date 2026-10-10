@@ -1,10 +1,11 @@
 import Link from 'next/link';
+
 export default function NotFound() {
   return (
-    <div className="empty">
-      <h1>Market not found</h1>
-      <p>This financing series is not in the configured directory.</p>
-      <Link className="button primary" href="/markets">
+    <div className="space-y-4 py-24 text-center">
+      <p className="font-mono text-xs text-foreground/60">(404)</p>
+      <h1 className="text-3xl font-semibold">Not in the market.</h1>
+      <Link href="/markets" className="text-sm text-foreground/70 underline-offset-4 hover:underline">
         Back to markets
       </Link>
     </div>

@@ -1,5 +1,7 @@
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;450;500;600;700&display=swap');
-:root {
+/* LEGACY: the pre-redesign workbench styles, scoped to .legacy (used by /issue until the console rebuild).
+   Plain CSS nesting: every rule applies only inside an element with class "legacy". */
+.legacy {
+& {
   --canvas: #f3f6fa;
   --paper: #fff;
   --ink: #152b4a;
@@ -15,7 +17,7 @@
 * {
   box-sizing: border-box;
 }
-body {
+& {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
@@ -1786,3 +1788,5 @@ footer > span:nth-child(2) {
 .wallet-menu button { text-align: left; padding: 10px 12px; min-height: 44px; border: 0; background: none; border-radius: 8px; font: inherit; color: inherit; cursor: pointer; }
 .wallet-menu button:hover, .wallet-menu button:focus-visible { background: var(--canvas, #f3f6fa); }
 .nansen-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 4px 0 14px; }
+
+}
