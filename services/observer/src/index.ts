@@ -8,15 +8,16 @@ import {
   digest,
   observationDomain,
   observationTypes,
-  parseOffer,
+  classify,
   policyHash,
   typedObservation,
   type WatchPolicy,
   type SignedObservation,
   type Observation,
+  type FetchedResponse,
 } from './protocol.js';
 import type { DurableStore } from './store.js';
-import { fetchOffer, validateURL } from './fetch.js';
+import { fetchURL, validateURL } from './fetch.js';
 
 export async function loadRegistry(path: string, local = false): Promise<WatchPolicy[]> {
   const data: unknown = JSON.parse(await readFile(path, 'utf8'));
@@ -32,8 +33,10 @@ export async function loadRegistry(path: string, local = false): Promise<WatchPo
       ![p.covenant, p.bond, p.asset, p.expectedPayTo].every(address) ||
       p.method !== 'GET' ||
       p.network !== `eip155:${p.chainId}` ||
-      !/^(0|[1-9][0-9]*)$/.test(p.amount) ||
-      BigInt(p.amount) <= 0n ||
+      !Array.isArray(p.endpoints) ||
+      p.endpoints.length === 0 ||
+      p.endpoints.length > 8 ||
+      p.endpoints.some((e) => typeof e.url !== 'string' || !/^[1-9][0-9]*$/.test(e.minAmount)) ||
       p.parserVersion !== PARSER_VERSION ||
       p.epochSeconds !== 30 ||
       p.freshnessSeconds !== 90 ||
@@ -44,7 +47,12 @@ export async function loadRegistry(path: string, local = false): Promise<WatchPo
       throw new Error('Invalid watch policy');
     if ([p.covenant, p.bond, p.asset, p.expectedPayTo].some((v) => /^0x0{40}$/i.test(v)))
       throw new Error('Replace zero-address registry placeholders');
-    validateURL(p.url, local && p.chainId === 31337);
+    // The manifest and every endpoint live on one origin: the business's own domain.
+    const local_ = local && p.chainId === 31337;
+    const manifest = validateURL(p.manifestUrl, local_);
+    if (manifest.pathname !== '/.well-known/slice.json') throw new Error('Manifest must be /.well-known/slice.json');
+    for (const e of p.endpoints)
+      if (validateURL(e.url, local_).origin !== manifest.origin) throw new Error('Endpoints must share the manifest origin');
     if (
       !p.headers ||
       Object.entries(p.headers).some(
@@ -67,7 +75,7 @@ export class Observer {
     private store: DurableStore,
     signerKey: Hex,
     private local = false,
-    private fetcher = fetchOffer,
+    private fetcher: (url: string, p: WatchPolicy, local: boolean) => Promise<FetchedResponse> = fetchURL,
     private now = () => Math.floor(Date.now() / 1000),
   ) {
     this.signer = privateKeyToAccount(signerKey);
@@ -100,15 +108,12 @@ export class Observer {
     }
     const pending = JSON.stringify({ state: 'fetching' });
     if (!(await this.store.cas(key, null, pending))) return awaitCommitted();
-    let response: { status: number; header?: string };
-    try {
-      response = await this.fetcher(p, this.local && p.chainId === 31337);
-    } catch {
-      response = { status: 0 };
-    }
+    const local = this.local && p.chainId === 31337;
+    const get = (url: string) => this.fetcher(url, p, local).catch((): FetchedResponse => ({ status: 0 }));
+    const [manifest, ...offers] = await Promise.all([get(p.manifestUrl), ...p.endpoints.map((e) => get(e.url))]);
     const observedAt = this.now();
     if (Math.floor(observedAt / 30) !== epoch) throw new Error('Epoch changed while observing');
-    const result = parseOffer(response.status, response.header, p);
+    const result = classify(p, manifest!, offers);
     const observation: Observation = {
       bond: p.bond,
       policyHash: policyHash(p),
@@ -121,7 +126,7 @@ export class Observer {
       evidenceHash: digest({
         policyHash: policyHash(p),
         epoch,
-        status: response.status,
+        status: [manifest!.status, ...offers.map((o) => o.status)],
         ...result,
       }),
     };

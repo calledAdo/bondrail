@@ -96,21 +96,41 @@ Vault plus ERC-20 claim (the asset's decimals, name and symbol per bond).
 | Tier | Source | Why fees can't be diverted |
 |---|---|---|
 | Native | `PumpLab`: charges fees through `account.collect`; account is immutable | No other payment path exists in the code |
-| Watched | x402 API whose `payTo` is the account | Chainlink CRE checks `payTo` every 30 s; two adjacent violations default the bond and slash the stake |
+| Watched | x402 API whose `payTo` is the account | Chainlink CRE checks the manifest and every paid endpoint every 30 s; two adjacent violations, or 24 h dark, default the bond and slash the stake |
 
 Existing contracts can point their fee recipient at an account to build history (unclassified inflows)
 but raise only as Native. The Locked tier (a FeeGuard holding an existing contract's ownership) was
 removed: the guard only checks the getters it is configured with, so other admin roles, proxies or
 withdraw paths could still divert fees, and making it safe needed Native-level review with weaker payer data.
 
+### Watched businesses (x402)
+- The whole x402 price is revenue: it settles straight to the account (EIP-3009, so in USDC) and is booked by `sweep()`.
+- **Manifest.** The business serves `https://<its host>/.well-known/slice.json`:
+  `{version: 1, chainId, account, endpoints: [...]}`, listing every paid endpoint (an unpaid GET returns
+  the 402 offer). The bond's policy covers all of them and commits to a **price floor** per endpoint. The
+  same file is the marketplace's domain proof.
+- **Each check** (observer and CRE independently) reads the manifest and every endpoint:
+  - **Violation:** the manifest names another account or drops a covered endpoint; or **any** payment
+    option on any endpoint pays someone else, uses another network/asset/scheme, or prices below the floor.
+    A higher price is fine. Several options are fine if all pay the account.
+  - **Unknown:** no readable offer or manifest (outage, error, malformed).
+  - **Compliant:** everything checks out.
+- **Buyers can verify too.** `@slice/sdk/x402-guard` (`sliceGuard`) wraps the x402 client's fetch and
+  refuses to sign an offer whose `payTo` is not the manifest's account (optionally confirmed on-chain via
+  `factory.isAccount`). This defeats showing the monitor one `payTo` and customers another.
+
 ### SliceCovenant
 CRE receiver. Only `onReport` from the pinned forwarder, carrying an observation with the pinned
 observer's EIP-712 signature. 30 s epochs, 90 s freshness, replay and equivocation protection.
-Two adjacent Violations after activation trigger `markDefault`.
+- Two adjacent Violations after activation trigger `markDefault`.
+- **Going dark:** a run of Unknowns with no gap over 1 h is one dark period. After 1 h it blocks deposits
+  (`inViolation`); after 24 h while Active it defaults the bond. A Compliant or Violation ends the
+  period; a gap in reports (the monitor itself stopped) restarts it, so a stopped monitor never defaults.
 
 ## 3. Off-chain
-- **Observer:** fetches the x402 offer and signs Compliant, Violation or Unknown.
-- **CRE workflow:** fetches independently, checks agreement with the observer, writes the report.
+- **Observer:** fetches the manifest and every covered endpoint and signs Compliant, Violation or Unknown.
+- **CRE workflow:** fetches the same independently, checks agreement with the observer, writes the report.
+- **Configs:** `demo/scripts/write-watch-config.ts` writes the observer registry and the CRE config from the deployment.
 - **Agent:** x402 paid API; `payTo` = its SliceAccount.
 - **Envio indexer:** accounts, bonds, payments, treasury funding edges, covenant checks, daily revenue
   (raw and verified). Payment classes:

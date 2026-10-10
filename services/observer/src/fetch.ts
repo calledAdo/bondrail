@@ -2,7 +2,7 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import https from 'node:https';
 import http from 'node:http';
-import type { WatchPolicy } from './protocol.js';
+import type { FetchedResponse, WatchPolicy } from './protocol.js';
 
 export function publicAddress(ip: string): boolean {
   if (isIP(ip) === 4) {
@@ -43,11 +43,9 @@ export function validateURL(value: string, local = false): URL {
     throw new Error('Only HTTPS port 443 is supported');
   return u;
 }
-export async function fetchOffer(
-  p: WatchPolicy,
-  local = false,
-): Promise<{ status: number; header?: string }> {
-  const u = validateURL(p.url, local),
+/** One pinned, bounded GET: status, the PAYMENT-REQUIRED header and the body (for the manifest). */
+export async function fetchURL(url: string, p: WatchPolicy, local = false): Promise<FetchedResponse> {
+  const u = validateURL(url, local),
     fixture = local && u.protocol === 'http:';
   const addresses = await lookup(u.hostname.replace(/^\[|\]$/g, ''), {
     all: true,
@@ -75,14 +73,17 @@ export async function fetchOffer(
       },
       (res) => {
         const values = res.headersDistinct['payment-required'];
+        const chunks: Buffer[] = [];
         res.on('data', (chunk: Buffer) => {
           bytes += chunk.length;
           if (bytes > 65536) req.destroy(new Error('Response exceeds limit'));
+          else chunks.push(chunk);
         });
         res.on('end', () =>
           resolve({
             status: res.statusCode ?? 0,
             header: values?.length === 1 ? values[0] : undefined,
+            body: Buffer.concat(chunks).toString('utf8'),
           }),
         );
         res.on('error', reject);

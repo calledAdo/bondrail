@@ -47,7 +47,10 @@ Structs, exact field order:
 
 **SliceCovenant** (CRE receiver)
 - `onReport(metadata, report)`: forwarder only; `report = abi.encode(Observation, observerSignature)`.
-- Views: `isHealthy(bond)` (fresh Compliant), `inViolation(bond)` (defaulted or latest is Violation),
-  `hashObservation(Observation)`, `observationAt(bond, epoch)`.
+- Views: `isHealthy(bond)` (fresh Compliant), `inViolation(bond)` (defaulted, latest is Violation, or dark
+  for `DARK_WARN`), `darkFor(bond)`, `darkSince`, `darkLast`, `lastDecisiveAt`, `hashObservation(Observation)`,
+  `observationAt(bond, epoch)`.
+- Constants: `DARK_MAX_GAP` 1 h, `DARK_WARN` 1 h, `DARK_DEFAULT` 24 h. Events: `CovenantDefault` (two
+  adjacent violations), `DarkDefault` (24 h of Unknowns).
 
 EIP-712 domains: observations `SliceCovenant` v1, milestones `SliceFactory` v1, actual chainId and contract.

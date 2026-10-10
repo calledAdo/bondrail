@@ -5,15 +5,22 @@
     "chainSelector": "2183018362218727504",
     "covenant": "0x0000000000000000000000000000000000000000",
     "bond": "0x0000000000000000000000000000000000000000",
-    "url": "https://REPLACE-AGENT-HOST/api/oracle?question=health",
+    "manifestUrl": "https://REPLACE-AGENT-HOST/.well-known/slice.json",
+    "endpoints": [
+      {
+        "url": "https://REPLACE-AGENT-HOST/api/oracle?question=health",
+        "minAmount": "10000"
+      }
+    ],
     "method": "GET",
-    "headers": { "accept": "application/json" },
+    "headers": {
+      "accept": "application/json"
+    },
     "network": "eip155:10143",
     "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
     "expectedPayTo": "0x0000000000000000000000000000000000000000",
-    "amount": "10000",
     "maxTimeoutSeconds": 300,
-    "parserVersion": "slice-x402-v2-exact-eip3009/1",
+    "parserVersion": "slice-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,
     "freshnessSeconds": 90
   }

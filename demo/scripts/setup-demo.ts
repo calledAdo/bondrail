@@ -249,19 +249,21 @@ async function setupAgent() {
     // The policy commits to the bond address, which the factory creates next with CREATE.
     const nonce = await publicClient.getTransactionCount({ address: d.factory });
     const bond = getContractAddress({ from: d.factory, nonce: BigInt(nonce) });
+    // Every paid endpoint the agent lists in its manifest is covered; the price is a floor.
+    const origin = new URL(agentUrl).origin;
     const policy: WatchPolicy = {
       id: 'slice-agent',
       chainId: chainId as 10143,
       chainSelector: '2183018362218727504',
       covenant: d.covenant,
       bond,
-      url: agentUrl,
+      manifestUrl: `${origin}/.well-known/slice.json`,
+      endpoints: [{ url: agentUrl, minAmount: '10000' }],
       method: 'GET',
       headers: { accept: 'application/json' },
       network: `eip155:${chainId}`,
       asset: d.asset,
       expectedPayTo: rec.account,
-      amount: '10000',
       maxTimeoutSeconds: 300,
       parserVersion: PARSER_VERSION,
       epochSeconds: 30,

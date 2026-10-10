@@ -20,6 +20,13 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
     uint64 public constant EPOCH_SECONDS = 30;
     uint64 public constant MAX_AGE = 90;
     uint64 public constant MAX_CLOCK_SKEW = 5;
+    /// @notice "Going dark": the observer keeps reporting Unknown (the offer is unreachable or unreadable).
+    /// A run of Unknowns with no gap longer than DARK_MAX_GAP is one dark period. After DARK_WARN it blocks
+    /// deposits; after DARK_DEFAULT while the bond is Active it defaults the bond like two violations.
+    /// Gaps in monitoring itself (no reports at all) restart the run, so a stopped monitor never defaults.
+    uint64 public constant DARK_MAX_GAP = 1 hours;
+    uint64 public constant DARK_WARN = 1 hours;
+    uint64 public constant DARK_DEFAULT = 24 hours;
     bytes32 public constant OBSERVATION_TYPEHASH = keccak256(
         "Observation(address bond,bytes32 policyHash,uint64 epoch,uint64 observedAt,uint64 expiresAt,uint8 result,address observedPayTo,bytes32 offerHash,bytes32 evidenceHash)"
     );
@@ -35,6 +42,11 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
     mapping(address => mapping(uint8 => Slot)) private slots;
     mapping(address => uint64) public latestEpoch;
     mapping(address => bool) public hasObservation;
+    /// @notice Current dark period per bond: first and last Unknown observation times (0 when none).
+    mapping(address => uint64) public darkSince;
+    mapping(address => uint64) public darkLast;
+    /// @notice Latest Compliant or Violation observation time: it ends any dark period before it.
+    mapping(address => uint64) public lastDecisiveAt;
     event FactoryInitialized(address indexed factory);
     event WatchRegistered(address indexed bond, bytes32 indexed policyHash);
     event ObservationAccepted(
@@ -46,6 +58,7 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
         bytes32 digest
     );
     event CovenantDefault(address indexed bond, uint64 firstEpoch, uint64 secondEpoch, bytes32 evidenceHash);
+    event DarkDefault(address indexed bond, uint64 darkSince, uint64 darkLast, bytes32 evidenceHash);
 
     constructor(address forwarder_, address signer_) EIP712("SliceCovenant", "1") {
         if (forwarder_ == address(0) || signer_ == address(0)) revert Unauthorized();
@@ -123,6 +136,15 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
             hasObservation[o.bond] = true;
         }
         emit ObservationAccepted(o.bond, o.epoch, o.result, o.observedAt, o.evidenceHash, digest);
+        if (o.result == 0) {
+            _trackDark(b, o.bond, o.observedAt, p);
+            return;
+        }
+        if (o.observedAt > lastDecisiveAt[o.bond]) lastDecisiveAt[o.bond] = o.observedAt;
+        if (darkSince[o.bond] != 0 && darkSince[o.bond] <= o.observedAt) {
+            darkSince[o.bond] = 0;
+            darkLast[o.bond] = 0;
+        }
         if (o.result != 2 || p == SliceTypes.Phase.Funding || b.defaultedAt() != 0) return;
         if (o.epoch > 0) _checkPair(b, o.bond, o.epoch - 1, o.epoch);
         if (b.defaultedAt() == 0) _checkPair(b, o.bond, o.epoch, o.epoch + 1);
@@ -142,6 +164,33 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
         emit CovenantDefault(bond, first, second, evidence);
     }
 
+    function _trackDark(ISliceBond b, address bond, uint64 at, SliceTypes.Phase p) private {
+        if (at <= lastDecisiveAt[bond]) return; // an older Unknown than the latest decisive result
+        uint64 since = darkSince[bond];
+        uint64 last = darkLast[bond];
+        if (since == 0 || at > last + DARK_MAX_GAP) {
+            (since, last) = (at, at); // a new dark period (or monitoring had a long gap: restart)
+        } else {
+            if (at < since) since = at;
+            if (at > last) last = at;
+        }
+        (darkSince[bond], darkLast[bond]) = (since, last);
+        if (p != SliceTypes.Phase.Active || b.defaultedAt() != 0) return;
+        uint64 start = since > b.activationTime() ? since : b.activationTime();
+        if (last < start + DARK_DEFAULT) return;
+        bytes32 evidence = keccak256(abi.encode("dark", bond, since, last));
+        b.markDefault(evidence);
+        emit DarkDefault(bond, since, last, evidence);
+    }
+
+    /// @notice How long the bond has been dark, if the dark period is still current (else 0).
+    function darkFor(address bond) public view returns (uint64) {
+        uint64 since = darkSince[bond];
+        uint64 last = darkLast[bond];
+        if (since == 0 || block.timestamp > uint256(last) + DARK_MAX_GAP) return 0;
+        return last - since;
+    }
+
     function isHealthy(address bond) external view returns (bool) {
         if (!hasObservation[bond]) return false;
         Slot storage s = slots[bond][uint8(latestEpoch[bond] % 8)];
@@ -149,10 +198,11 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
             && s.observedAt <= block.timestamp + MAX_CLOCK_SKEW && ISliceBond(bond).defaultedAt() == 0;
     }
 
-    /// @notice True when the bond defaulted or its latest observation is a Violation. Deposits check this:
-    /// unlike `isHealthy` it needs no fresh report, so a bond can raise between CRE runs.
+    /// @notice True when the bond defaulted, its latest observation is a Violation, or it has been dark for
+    /// DARK_WARN. Deposits check this: unlike `isHealthy` it needs no fresh report, so a bond can raise
+    /// between CRE runs.
     function inViolation(address bond) external view returns (bool) {
-        if (ISliceBond(bond).defaultedAt() != 0) return true;
+        if (ISliceBond(bond).defaultedAt() != 0 || darkFor(bond) >= DARK_WARN) return true;
         return hasObservation[bond] && slots[bond][uint8(latestEpoch[bond] % 8)].result == 2;
     }
 

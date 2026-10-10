@@ -19,10 +19,11 @@ Watched closing keeps a fixed 120-second historical-report window; each observat
 freshness and 5-second maximum clock skew. The observer and milestone signer are disclosed trusted
 evaluators; forwarder delivery alone cannot forge their signatures.
 
-Tests: 54 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
+Tests: 59 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
 cap scaling, cancellation, early redemption, signed and on-chain milestones, CRE-only observations,
 adjacent violations, the closing boundary, rounding carry, Native binding and review, the minimum-history
 gate, deposit health checks, accounts in any asset (an 18-decimal token without permit), payments out
-through `settleOut` with no payer approval, the fee floor and a downward-rebasing asset.
+through `settleOut` with no payer approval, the fee floor, a downward-rebasing asset, and going dark (a day of Unknowns defaults; monitoring gaps and
+a Compliant report restart it; an hour dark blocks deposits; never during Funding).
 
 Not established by these tests: live Kuru market/custody compatibility, Monad testnet USDC/facilitator support, CRE DON operation, observer honesty, external economic demand or production audit assurance. Those remain integration gates outside this contract package.

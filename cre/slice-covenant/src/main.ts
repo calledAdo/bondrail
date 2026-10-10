@@ -20,13 +20,16 @@ const configSchema = z
         chainSelector: z.literal('2183018362218727504'),
         covenant: address,
         bond: address,
-        url: url,
+        manifestUrl: url,
+        endpoints: z
+          .array(z.object({ url: url, minAmount: decimal }).strict())
+          .min(1)
+          .max(8),
         method: z.literal('GET'),
         headers: z.record(z.string(), z.string()),
         network: z.literal('eip155:10143'),
         asset: address,
         expectedPayTo: address,
-        amount: decimal,
         maxTimeoutSeconds: z.number().int().min(1).max(300),
         parserVersion: z.literal(PARSER_VERSION),
         epochSeconds: z.literal(30),

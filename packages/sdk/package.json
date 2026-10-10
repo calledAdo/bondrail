@@ -10,6 +10,7 @@
     "./client": "./src/client.ts",
     "./permit": "./src/permit.ts",
     "./x402": "./src/x402.ts",
+    "./x402-guard": "./src/x402-guard.ts",
     "./data": "./src/data.ts"
   },
   "scripts": {

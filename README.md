@@ -53,7 +53,7 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 | Tier | For | Why revenue can't be diverted | Demo |
 |---|---|---|---|
 | **Native** | New projects built on Slice: inherit `SliceEarner` | Every fee is pulled through the account, which is fixed into the project's contract. A disclosed Slice reviewer checks the code before the project can raise; history accrues before review: **impossible by construction** | PumpLab launchpad |
-| **Watched** | Revenue paid over HTTP (x402 agents) | **Chainlink CRE** checks the advertised `payTo` every 30 s; two adjacent violations default the bond and slash the issuer's stake: **caught and punished** | Oracle Agent |
+| **Watched** | Revenue paid over HTTP (x402 agents) | The business publishes `/.well-known/slice.json` (its account and every paid endpoint). **Chainlink CRE** checks the manifest and every endpoint's offer every 30 s: any option paying elsewhere or below the price floor is a violation; two in a row, or a day unreachable, default the bond and slash the stake. Guarded buyers (`@slice/sdk/x402-guard`) refuse to pay a `payTo` that isn't the published account: **caught and punished** | Oracle Agent |
 
 ```
  Native : trader ─ approve/permit ─► SliceAccount.collect ─┬─► fee: history, then the bond share ─► SliceBond
@@ -185,12 +185,15 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Fake payer attribution | Native payments are pulled from the payer's own balance; the event carries the real source | Wash trading from wallets the business funds; caught by funding edges |
 | Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from verified revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
 | Investors fund a source that has gone bad | Every deposit re-checks review/binding (Native) or the latest CRE result (Watched) | — |
-| Issuer changes the x402 `payTo` (Watched) | CRE check every 30 s; two adjacent violations → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
+| Issuer changes the x402 `payTo` (Watched) | CRE checks the manifest and every endpoint every 30 s; any option paying elsewhere is a violation; two adjacent → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
+| Issuer shows CRE the account but customers another wallet | Guarded buyers check each offer against the manifest before signing | Unguarded buyers can still be misled |
+| Issuer goes dark to CRE while charging elsewhere | A day of Unknowns defaults the bond; an hour blocks deposits; gaps in monitoring never count | Up to a day of diverted revenue, covered by the stake |
+| Issuer adds an uncovered paid endpoint | The manifest must keep listing every covered endpoint; the policy fixes them at issuance | New endpoints not in the policy are not monitored |
 | Forged default through the permissionless forwarder | Pinned observer EIP-712 signature, freshness and per-epoch replay checks | Trust in one observer key (disclosed) |
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |
 
-- Foundry: 54 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
+- Foundry: 59 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
 - TypeScript: tests for scoring, observer, worker, agent and web (`pnpm -r test`).
 
 ## Limits, stated plainly

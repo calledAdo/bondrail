@@ -12,11 +12,11 @@
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server';
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/core/types';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
-import { address, canonical, decodeBase64Json, digest, isRecord } from '@slice/observer/protocol';
+import { address, canonical, decodeBase64Json, digest, isRecord, type SliceManifest } from '@slice/observer/protocol';
 import type { DurableStore } from '@slice/observer/store';
 import { decodeEventLog, parseAbi, type Address, type Hex } from 'viem';
 
-export type { DurableStore };
+export type { DurableStore, SliceManifest };
 
 export interface PaymentRecord {
   state: 'processing' | 'work_failed' | 'settlement_pending' | 'complete';
@@ -54,6 +54,21 @@ export function exactUsdcRequirements(o: {
     maxTimeoutSeconds: o.maxTimeoutSeconds ?? 300,
     extra: { name: 'USDC', version: '2', assetTransferMethod: 'eip3009' },
   };
+}
+
+/**
+ * The manifest a Slice x402 business serves at `/.well-known/slice.json`: its account and every paid
+ * endpoint (each an unpaid GET returning the 402 offer). The covenant check, the marketplace's domain proof
+ * and guarded buyers (`sliceGuard`) all read it.
+ */
+export function sliceManifest(o: { chainId: number; account: Address; endpoints: string[] }): SliceManifest {
+  return { version: 1, chainId: o.chainId, account: o.account, endpoints: o.endpoints };
+}
+
+export function manifestResponse(manifest: SliceManifest): Response {
+  return Response.json(manifest, {
+    headers: { 'Cache-Control': 'public, max-age=60', 'Access-Control-Allow-Origin': '*' },
+  });
 }
 
 export function decodePayment(header: string): { payload: PaymentPayload; payer: string; nonce: string } {

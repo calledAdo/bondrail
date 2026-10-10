@@ -701,4 +701,83 @@ contract SliceTest is TestBase {
         eq(bond.stakeRecovery(), 0);
         _solvent();
     }
+
+    // ---- going dark: a long run of Unknown observations
+
+    function _longTerms() internal {
+        uint64 n = uint64(vm.getBlockTimestamp());
+        (t.secondReleaseDeadline, t.maturity) = (n + 2 days, n + 3 days);
+    }
+
+    /// Unknown observations every `step` seconds, `count` times, starting `step` after now.
+    function _dark(uint256 step, uint256 count) internal {
+        for (uint256 i; i < count; ++i) {
+            vm.warp(vm.getBlockTimestamp() + step);
+            _observe(uint64(vm.getBlockTimestamp()), 0);
+        }
+    }
+
+    function testGoingDarkForADayDefaultsTheBond() public {
+        _longTerms();
+        _activate(true);
+        _dark(1800, 48); // 23.5 hours of Unknowns
+        eq(bond.defaultedAt(), 0);
+        _dark(1800, 1); // 24 hours
+        yes(bond.defaultedAt() != 0);
+        eq(bond.stakeRecovery(), 20e6);
+        eq(bond.principalRecovery(), 50e6);
+        _solvent();
+    }
+
+    function testMonitoringGapsRestartTheDarkPeriod() public {
+        _longTerms();
+        _activate(true);
+        _dark(1800, 40); // 20 hours
+        vm.warp(vm.getBlockTimestamp() + 2 hours); // no reports at all: the monitor, not the server, went quiet
+        _dark(1800, 20); // 10 more hours: a new dark period
+        eq(bond.defaultedAt(), 0);
+        eq(covenant.darkLast(address(bond)) - covenant.darkSince(address(bond)), 9.5 hours);
+    }
+
+    function testACompliantReportEndsTheDarkPeriod() public {
+        _longTerms();
+        _activate(true);
+        _dark(1800, 40);
+        vm.warp(vm.getBlockTimestamp() + 60);
+        _observe(uint64(vm.getBlockTimestamp()), 1);
+        eq(covenant.darkSince(address(bond)), 0);
+        _dark(1800, 40);
+        eq(bond.defaultedAt(), 0);
+    }
+
+    function _longFunding() internal {
+        t.fundingDeadline = uint64(vm.getBlockTimestamp() + 1 days + 600);
+        (t.secondReleaseNotBefore, t.secondReleaseDeadline, t.maturity) =
+        (t.fundingDeadline + 60, t.fundingDeadline + 1 days, t.fundingDeadline + 2 days);
+    }
+
+    function testAnHourDarkBlocksDepositsUntilCompliant() public {
+        _longFunding();
+        _new(true);
+        _dark(1200, 3); // Unknowns spanning 40 minutes: still fine
+        vm.prank(investor);
+        bond.deposit(10e6);
+        _dark(1200, 2); // 80 minutes dark
+        vm.prank(investor);
+        vm.expectRevert(SliceBond.Unhealthy.selector);
+        bond.deposit(10e6);
+        vm.warp(vm.getBlockTimestamp() + 60);
+        _observe(uint64(vm.getBlockTimestamp()), 1);
+        vm.prank(investor);
+        bond.deposit(10e6);
+        eq(bond.fundingEscrow(), 20e6);
+    }
+
+    function testDarkDuringFundingNeverDefaults() public {
+        _longFunding();
+        _new(true);
+        _dark(1800, 49);
+        eq(bond.defaultedAt(), 0);
+        yes(covenant.inViolation(address(bond)));
+    }
 }

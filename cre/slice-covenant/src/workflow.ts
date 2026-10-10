@@ -15,8 +15,9 @@ import {
   encodeObservationReport,
   observationDomain,
   observationTypes,
-  parseOffer,
+  classify,
   policyHash,
+  type FetchedResponse,
   typedObservation,
   type SignedObservation,
   type WatchPolicy,
@@ -52,21 +53,21 @@ function independentlyObserve(
   if (attested.statusCode !== 200 || attested.body.length > 16384)
     throw new Error('Observer unavailable; no report');
   const signed = JSON.parse(text(attested)) as SignedObservation;
-  let parsed: ReturnType<typeof parseOffer>;
-  try {
-    const live = send
-      .sendRequest({
-        url: c.policy.url,
-        method: 'GET',
-        headers: c.policy.headers,
-        timeout: '8s',
-      })
-      .result();
-    if (live.body.length > 65536) throw new Error('Oversized response');
-    parsed = parseOffer(live.statusCode, getHeader(live, 'PAYMENT-REQUIRED'), c.policy);
-  } catch {
-    parsed = parseOffer(0, undefined, c.policy);
-  }
+  // Fetch the manifest and every covered endpoint ourselves; a failed fetch counts as no response.
+  const get = (url: string): FetchedResponse => {
+    try {
+      const live = send.sendRequest({ url, method: 'GET', headers: c.policy.headers, timeout: '8s' }).result();
+      if (live.body.length > 65536) return { status: 0 };
+      return { status: live.statusCode, header: getHeader(live, 'PAYMENT-REQUIRED'), body: text(live) };
+    } catch {
+      return { status: 0 };
+    }
+  };
+  const parsed = classify(
+    c.policy,
+    get(c.policy.manifestUrl),
+    c.policy.endpoints.map((e) => get(e.url)),
+  );
   // Only canonical policy-relevant content reaches identical consensus, never Date/Server headers.
   return canonical({
     signed,
@@ -87,7 +88,8 @@ export async function onCron(runtime: Runtime<WorkflowConfig>): Promise<string> 
   const observerOk =
     /^https:\/\/[^/@\s]+\/observe$/.test(c.observerURL) ||
     (c.simulationLoopbackObserver === true && /^http:\/\/127\.0\.0\.1:\d+\/observe$/.test(c.observerURL));
-  if (!/^https:\/\/[^/@\s]+\//.test(c.policy.url) || !observerOk)
+  const https = (u: string) => /^https:\/\/[^/@\s]+\//.test(u);
+  if (!https(c.policy.manifestUrl) || !c.policy.endpoints.every((e) => https(e.url)) || !observerOk)
     throw new Error('Public immutable HTTPS endpoints required');
   const token = runtime.getSecret({ id: 'OBSERVER_API_TOKEN' }).result().value;
   if (token.length < 32) throw new Error('Observer credential missing');
