@@ -1,6 +1,6 @@
 # Slice v1 specification
 
-Single source of truth for the build. Supersedes everything in `docs/archive/`.
+Single source of truth for the build.
 Decided 9 October 2026 (user + Claude). 10 October 2026: Locked tier removed; issuance and deposit checks; one asset per account (any token); payments out (`settleOut`); fee floor. Network: Monad testnet (10143); local anvil (31337) for tests.
 
 ## 1. Idea

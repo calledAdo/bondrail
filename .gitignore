@@ -26,3 +26,9 @@ docs/deployments/31337.json
 **/.cre_build_tmp.js
 cre/slice-covenant/dist/
 apps/web/.source/
+
+# Internal working notes (kept locally, not published)
+docs/archive/
+docs/verification-register.md
+AGENTS.md
+docs/*.pdf
