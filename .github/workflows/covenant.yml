@@ -1,0 +1,61 @@
+# Keeps the Watched bond's covenant fed: every 45 minutes, start the observer, run the Chainlink CRE
+# workflow once (it asks the observer for a signed payTo observation and writes the report to the
+# covenant on Monad testnet), then stop. The covenant goes dark after 1 hour without a report and can
+# default after 24 hours, so a missed run or two is tolerated.
+#
+# Secrets: OBSERVER_PRIVATE_KEY, OBSERVER_API_TOKEN (observer), CRE_ETH_PRIVATE_KEY (pays the broadcast
+# gas), CRE_API_KEY (CRE CLI auth, from the CRE dashboard).
+name: covenant
+
+on:
+  schedule:
+    - cron: '*/45 * * * *'
+  workflow_dispatch:
+
+concurrency:
+  group: covenant
+  cancel-in-progress: false
+
+jobs:
+  report:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: oven-sh/setup-bun@v2
+      - run: pnpm install --frozen-lockfile
+      - name: Install the CRE CLI
+        run: |
+          curl -sSL https://cre.chain.link/install.sh | bash
+          echo "$HOME/.cre/bin" >> "$GITHUB_PATH"
+
+      - name: Start the observer
+        working-directory: services/observer
+        env:
+          SLICE_ENV: local
+          SLICE_STORE: local
+          SLICE_DATA_DIR: ${{ runner.temp }}/observer
+          OBSERVER_REGISTRY: ./registry.json
+          OBSERVER_PRIVATE_KEY: ${{ secrets.OBSERVER_PRIVATE_KEY }}
+          OBSERVER_API_TOKEN: ${{ secrets.OBSERVER_API_TOKEN }}
+        run: |
+          nohup npx tsx src/server.ts > "$RUNNER_TEMP/observer.log" 2>&1 &
+          for i in $(seq 30); do curl -sf http://127.0.0.1:8787/health && exit 0; sleep 1; done
+          cat "$RUNNER_TEMP/observer.log"; exit 1
+
+      - name: Broadcast the CRE report
+        working-directory: cre
+        env:
+          CRE_API_KEY: ${{ secrets.CRE_API_KEY }}
+          CRE_ETH_PRIVATE_KEY: ${{ secrets.CRE_ETH_PRIVATE_KEY }}
+          OBSERVER_API_TOKEN: ${{ secrets.OBSERVER_API_TOKEN }}
+        run: cre workflow simulate slice-covenant --target testnet --non-interactive --trigger-index 0 --broadcast
+
+      - name: Observer log
+        if: always()
+        run: cat "$RUNNER_TEMP/observer.log" || true
