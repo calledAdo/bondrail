@@ -93,7 +93,7 @@ export function WalletButton() {
 const NAV = [
   ['/markets', 'Markets'],
   ['/portfolio', 'Portfolio'],
-  ['/issue', 'Raise'],
+  ['/console', 'Raise'],
   ['/docs', 'Docs'],
 ] as const;
 

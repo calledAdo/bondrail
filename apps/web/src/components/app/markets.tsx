@@ -107,7 +107,7 @@ export function Markets() {
             Every bond is backed by an account whose revenue is on-chain. Ranked by evidence, not by who paid for placement.
           </p>
         </div>
-        <Link href="/issue" className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
+        <Link href="/console" className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
           Raise against revenue <ArrowUpRight className="size-4" />
         </Link>
       </header>
@@ -157,7 +157,7 @@ export function Markets() {
           )}
           {hidden > 0 && (
             <button type="button" onClick={() => setAll(true)} className="text-sm text-foreground/60 underline-offset-4 hover:text-foreground hover:underline">
-              Show all ({hidden} hidden: unhealthy source, unrecognised asset, or too few payers)
+              Show all ({hidden} hidden: no signed profile, unhealthy source, unrecognised asset, or too few payers)
             </button>
           )}
           {all && <Badge tone="warn">Showing unverified listings</Badge>}

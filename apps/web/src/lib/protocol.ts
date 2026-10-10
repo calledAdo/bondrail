@@ -7,6 +7,7 @@ import { usePublicClient } from 'wagmi';
 import { erc20Abi, type Address } from 'viem';
 import { accountAbi, bondAbi, factoryAbi } from './abi';
 import { deployment } from './wallet';
+import type { KuruRecord, ProfileRecord } from './profile';
 
 export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || '';
 export const KNOWN_ASSETS = new Set([deployment.token?.toLowerCase()].filter(Boolean) as string[]);
@@ -42,6 +43,8 @@ export type AccountView = {
   activeBond?: Address;
   /** Verified x402 revenue in the last 24 h vs the prior 7-day daily average (null without a baseline). */
   revenueDrop: { last24h: number; dailyAverage: number } | null;
+  /** The issuer-signed profile, if any (name, links, use of funds; domain proof checked by the server). */
+  profile?: ProfileRecord;
 };
 
 export type BondView = {
@@ -83,6 +86,7 @@ export type BondView = {
   atRiskPct: number;
   flags: string[];
   checks: { result: number; at: number; txHash: string }[];
+  kuru?: KuruRecord;
 };
 
 export type Protocol = { accounts: AccountView[]; bonds: BondView[]; indexedAt: number };
@@ -147,6 +151,13 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
   }
   const now = Date.now() / 1000;
   const issuers = d.Issuer as any[];
+  // Signed profiles and Kuru listings (off-chain records, each verified by the registry).
+  const registry = (await fetch(
+    `/api/registry?accounts=${issuers.map((i) => i.id).join(',')}&bonds=${(d.Bond as any[]).map((b) => b.id).join(',')}`,
+    { cache: 'no-store' },
+  )
+    .then((r) => r.json())
+    .catch(() => ({}))) as { profiles?: Record<string, ProfileRecord | null>; kuru?: Record<string, KuruRecord | null> };
 
   // On-chain: each account's asset (decimals, symbol), each bond's terms, names, backing and health.
   const assetOf = new Map<string, Address>();
@@ -222,6 +233,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       bonds: (d.Bond as any[]).filter((b) => b.account === i.id).map((b) => b.id),
       activeBond: i.activeBond ?? undefined,
       revenueDrop,
+      profile: registry.profiles?.[i.id] ?? undefined,
     };
   });
   const accountMap = new Map(accounts.map((a) => [a.address, a]));
@@ -260,6 +272,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
         const perDay = (acct?.verifiedDaily ?? 0) * share;
         const coverage = remaining > 0 ? (perDay * daysLeft) / remaining : null;
         const flags: string[] = [];
+        if (!acct?.profile) flags.push('No signed profile');
         if (allowed === false) flags.push('Source unhealthy');
         if (!asset.known) flags.push('Unrecognised asset');
         if ((acct?.uniquePayers ?? 0) < 2) flags.push('Fewer than two verified payers');
@@ -269,7 +282,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
         return {
           address,
           account: b.account,
-          name: String(name).replace(/ Revenue Claim$/, ''),
+          name: acct?.profile?.profile.name || String(name).replace(/ Revenue Claim$/, ''),
           symbol: String(symbol),
           tier: Number(b.adapter) === 0 ? 'Native' : 'Watched',
           phase,
@@ -306,6 +319,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
           checks: (d.CovenantCheck as any[])
             .filter((c) => c.bond === address)
             .map((c) => ({ result: c.result, at: Number(c.observedAt), txHash: c.txHash })),
+          kuru: registry.kuru?.[address.toLowerCase()] ?? undefined,
         };
       }),
     )
@@ -334,8 +348,8 @@ export function marketTab(b: BondView): 'raising' | 'trading' | 'record' {
 }
 
 /** Default view hides listings with evidence problems; "show all" reveals them. */
-export const listed = (b: BondView) =>
-  !b.flags.includes('Source unhealthy') && !b.flags.includes('Unrecognised asset') && !b.flags.includes('Fewer than two verified payers');
+export const HIDING_FLAGS = ['No signed profile', 'Source unhealthy', 'Unrecognised asset', 'Fewer than two verified payers'];
+export const listed = (b: BondView) => !b.flags.some((f) => HIDING_FLAGS.includes(f));
 
 export const fmt = (n: number, a: Asset, digits = 2) =>
   /USD/i.test(a.symbol)

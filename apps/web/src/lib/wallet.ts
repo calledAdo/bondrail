@@ -1,5 +1,5 @@
 import { createConfig, http } from 'wagmi';
-import { injected } from 'wagmi/connectors';
+import { injected, mock } from 'wagmi/connectors';
 import { passkey } from './passkey-connector';
 import { defineChain, isAddress, type Address } from 'viem';
 const configuredId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 10143);
@@ -30,7 +30,15 @@ export const chain = defineChain({
 export const walletConfig = createConfig({
   chains: [chain],
   // Passkey (Mera) first: works with no extension. Browser wallets still connect if installed.
-  connectors: [passkey(process.env.NEXT_PUBLIC_RPC_URL || undefined), injected()],
+  connectors: [
+    passkey(process.env.NEXT_PUBLIC_RPC_URL || undefined),
+    // DEV ONLY: NEXT_PUBLIC_DEV_IMPERSONATE=<address> connects as that address through "Browser wallet",
+    // for reviewing state-driven screens. Reads work on any chain; writes only on an unlocked anvil account.
+    ...(isAddress(process.env.NEXT_PUBLIC_DEV_IMPERSONATE ?? '')
+      ? [mock({ accounts: [process.env.NEXT_PUBLIC_DEV_IMPERSONATE as Address], features: { reconnect: true } })]
+      : []),
+    injected(),
+  ],
   // Concurrent reads are coalesced: multicall for contract reads, JSON-RPC batching for the rest.
   batch: { multicall: { wait: 32 } },
   transports: { [chain.id]: http(undefined, { batch: { wait: 32 } }) } as Record<
