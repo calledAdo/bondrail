@@ -1,0 +1,27 @@
+---
+title: Raise against revenue
+description: Issue a bond, get listed and release capital in two stages.
+---
+
+## Before you can raise
+- **History:** at least `minHistory` since your first booked payment (10 minutes on testnet).
+- **Native:** your project is reviewer-approved and bound. **Watched:** approve a stake to the factory.
+- **Profile:** sign your profile (name, links, use of funds) and, for x402, serve your manifest. Listings
+  without a valid profile are hidden from the default market view.
+
+## Choose terms
+Coverage is what investors look at first: verified daily revenue × `revenueBps` × days to maturity, divided by
+`repayCap`. Below 1.0× investors are projected to lose money; most bonds should list above 1.2×.
+
+<Source file="demo/scripts/setup-demo.ts" from="function terms(" title="Demo terms (demo/scripts/setup-demo.ts)" />
+
+## Create, fund, activate
+
+```ts
+const bond = await slice.createBond({ account, terms, tier: Tier.Native, source: project, policyHash, name, symbol });
+// investors deposit until the raise is full
+await slice.activate(bond); // first release to you; credit mode starts
+await slice.releaseSecond(bond); // later, once the milestone is met (Onchain mode)
+```
+
+Withdraw your share of revenue at any time with `slice.withdraw(account, to, amount)`.

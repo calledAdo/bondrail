@@ -1,0 +1,28 @@
+---
+title: SliceAccount
+description: The business's revenue address, payment entrypoint and credit history.
+---
+
+One account per business, created by `factory.createAccount(asset)`. It holds one asset: the token the
+business charges fees in. Its bonds raise, repay and take stake in the same token.
+
+## Three ways money moves through it
+
+| Path | Who calls | What happens |
+|---|---|---|
+| `collect(payer, gross, fee)` | The bound Native project | Pulls `gross` from the payer, keeps `fee`, sends the rest to the project. The payer is proven by the pull. |
+| `settleOut(payer, gross, fee)` | The bound Native project | Pulls `gross` from the project, pays `gross − fee` to the payer, keeps `fee`. For fees on what the payer receives. |
+| `sweep()` | Anyone | Books any balance that arrived by plain transfer (x402 settlements, anything else). |
+
+## Modes
+- **Passthrough** (no bond, or the bond is still funding): 100% of revenue is credited to the issuer.
+- **Credit** (bond active): `revenueBps` of each payment goes to the bond, capped at its remaining cap.
+
+The issuer withdraws its share with `withdraw(to, amount)` at any time.
+
+## History
+`cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `collectedCount`, `uniquePayers`, `firstRevenueAt`,
+`lastRevenueAt`, `revenueByDay(day)`. Fee rate = revenue ÷ volume for collected payments.
+
+<Callout type="warn">The contract books every transfer it receives. The indexer separates proven payments
+(Native pulls, x402 signatures) from unclassified inflows, which never count as verified revenue.</Callout>

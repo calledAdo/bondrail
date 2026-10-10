@@ -1,0 +1,10 @@
+/* Docs: Fumadocs' neutral theme (matches Kokonut DS) plus the site's signal colours and utilities. */
+@import './site.css';
+@import 'fumadocs-ui/css/neutral.css';
+@import 'fumadocs-ui/css/preset.css';
+
+.dark {
+  --color-fd-background: #0a0a0a;
+  --color-fd-card: #0a0a0a;
+  --color-fd-border: #262626;
+}

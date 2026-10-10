@@ -1,0 +1,17 @@
+---
+title: SDK
+description: "@slice/sdk: typed client, permit, x402 seller and buyer helpers."
+---
+
+| Import | What it gives you |
+|---|---|
+| `@slice/sdk/client` | `sliceClient({ publicClient, walletClient, factory })`: `createAccount`, `bindProject`, `createBond`, `activate`, `releaseSecond`, `sweep`, `withdraw`, `deposit`, `redeem`, `depositAllowed`, `creditHistory` |
+| `@slice/sdk/permit` | `signAccountPermit`: an EIP-2612 permit for the account, for one-transaction Native payments |
+| `@slice/sdk/x402` | `handlePaidRequest`, `exactUsdcRequirements`, `httpFacilitator`, `sliceManifest`, `manifestResponse` |
+| `@slice/sdk/x402-guard` | `sliceGuard`, `isSliceAccount`: buyer-side payTo verification |
+| `@slice/sdk/abis` | Generated ABIs for every protocol contract |
+
+Every write simulates first, sends with a padded gas limit (Monad bills the limit) and waits for a successful
+receipt.
+
+<Source file="packages/sdk/src/client.ts" from="async creditHistory(" title="sliceClient.creditHistory" />

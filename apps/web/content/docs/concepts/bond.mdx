@@ -1,0 +1,25 @@
+---
+title: SliceBond
+description: The investors' vault and ERC-20 claim.
+---
+
+## Terms (fixed at creation)
+
+| Field | Meaning |
+|---|---|
+| `raiseAmount` | Capital raised; claims mint 1:1 |
+| `repayCap` | Most the bond can collect (≥ raise). Scales with released capital: `repayCap × released ÷ raise`. |
+| `revenueBps` | Investors' share of each payment while active (≤ 50%) |
+| `firstReleaseBps` | 25% or 50% released at activation |
+| `minRevenue`, `minOperatingPeriod` | The milestone for the second release |
+| `fundingDeadline`, `secondReleaseNotBefore`, `secondReleaseDeadline`, `maturity` | The schedule |
+| `stake` | Issuer stake, slashed to investors on default (required for Watched) |
+| `milestoneMode` | `Onchain` or `Signed` |
+| `minFeeBps` | Native fee floor while active (0 = none) |
+
+## Lifecycle
+- **Funding:** deposits until the raise is full; claims cannot be transferred; refunds if the deadline passes unfilled.
+- **Active:** revenue repays; claims trade; `redeem(tokens, to)` pays `tokens × pool ÷ supply` at any time.
+  The last claim waits for Closed.
+- **Closing → Closed:** at the cap or maturity. Watched bonds keep a 120 s window for late evidence.
+- Undrawn principal becomes investor recovery if the milestone deadline passes or the bond defaults.

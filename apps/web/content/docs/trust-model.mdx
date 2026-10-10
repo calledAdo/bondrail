@@ -1,0 +1,28 @@
+---
+title: Trust model
+description: What Slice enforces in code, and the disclosed parties it relies on.
+---
+
+<Callout title="Testnet">Slice runs on Monad testnet. All demo activity comes from team-controlled wallets.</Callout>
+
+## Enforced by contracts
+- Only the bound project can move payments through a Native account, and the account is immutable in it.
+- The split to investors happens inside every payment; the issuer's share is pull-based, so a reverting
+  wallet cannot block payments.
+- Bond accounting: assets always cover every liability (tested invariant).
+
+## Disclosed parties
+
+| Party | Can | Cannot |
+|---|---|---|
+| **Native reviewer** | Approve or revoke a Native project's code. Revoking blocks new deposits, activation and the second release. | Stop the split of an active bond, or move funds. |
+| **Milestone signer** | Attest wash-adjusted revenue for bonds that chose the Signed milestone mode. | Anything for bonds in On-chain milestone mode. |
+| **Observer** | Sign x402 observations (Compliant, Violation, Unknown) delivered through Chainlink CRE. | Deliver an observation without CRE, or reuse one. |
+
+## Residual risks
+- A business can stop operating or move users to a new contract. Coverage, the cap, the undrawn principal and
+  the Kuru price are the protection.
+- An x402 business can show unguarded buyers a different `payTo`. Guarded buyers refuse to pay, and the bond
+  page alerts when verified revenue collapses while monitoring reports compliant.
+- Accounts may hold any token. A token the issuer can mint makes its history meaningless; the market's
+  default view promotes well-known assets only.

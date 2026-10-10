@@ -1,0 +1,32 @@
+---
+title: Quickstart
+description: Run Slice locally and route your first payment through a SliceAccount.
+---
+
+You need Node 22+, pnpm and Foundry.
+
+```bash
+pnpm install
+forge test --root contracts
+anvil
+```
+
+In another terminal, deploy the protocol and the demo launchpad (a Native project) to the local chain:
+
+```bash
+SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts
+SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
+```
+
+The first run creates the account, deploys PumpLab bound to it and has the reviewer approve it. It then stops:
+a bond needs real history. Send traffic, then run setup again to issue, fund and activate the bond:
+
+```bash
+SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1
+SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
+```
+
+Every buy went in through `collect`, every sell out through `settleOut`, and the account's history is on-chain.
+Locally the minimum-history wait is skipped by advancing the chain clock; on testnet it is 10 minutes.
+
+Next: [build a Native project](/docs/guides/native) or [make an x402 API pay its account](/docs/guides/x402).

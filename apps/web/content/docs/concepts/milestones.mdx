@@ -1,0 +1,14 @@
+---
+title: Milestones
+description: How the second capital release is proven.
+---
+
+The rest of the raise is released only inside `[secondReleaseNotBefore, secondReleaseDeadline)`, with a
+healthy source and no default. The issuer picks the proof at creation:
+
+| Mode | Proof | Trust |
+|---|---|---|
+| `Onchain` | `account.cumulativeRevenue() − snapshot ≥ minRevenue` and `minOperatingPeriod` elapsed. Call `factory.releaseSecond(bond)`. | None. Counts all revenue, including wash, which still pays investors their share. |
+| `Signed` | An EIP-712 milestone from the disclosed milestone signer, with wash-adjusted revenue. Call `releaseSecondSigned`. | The milestone signer. |
+
+If the deadline passes, anyone calls `expireUndrawn()` and the undrawn capital goes to investors.

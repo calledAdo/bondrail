@@ -1,0 +1,23 @@
+---
+title: Native and Watched
+description: How each tier makes diversion impossible or expensive.
+---
+
+## Native: impossible by construction
+The project inherits `SliceEarner`, which fixes its SliceAccount at deploy. Every fee moves through
+`_collect` or `_settleOut`. The issuer binds the project to the account once, and a disclosed reviewer
+approves the code before it can raise. Before every deposit, activation and second release the factory checks
+that the project is still approved, bound and pointing at the account.
+
+## Watched: caught and punished
+For revenue paid over HTTP (x402). The business sets its `payTo` to the account and publishes
+`/.well-known/slice.json`. Every 30 seconds the observer and Chainlink CRE read the manifest and every paid
+endpoint independently:
+
+- **Violation:** any payment option pays someone else, uses another network, asset or scheme, or is priced
+  below the floor; or the manifest names another account or drops a covered endpoint.
+- **Unknown:** nothing readable (outage or error).
+- **Compliant:** everything pays the account.
+
+Two adjacent violations default the bond. A day of continuous Unknowns while active also defaults it; an hour
+pauses deposits. A Watched bond requires a stake, slashed to investors on default.

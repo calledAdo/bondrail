@@ -1,0 +1,54 @@
+---
+title: Build a Native project
+description: Inherit SliceEarner and move every fee through your SliceAccount.
+---
+
+## 1. Create the account
+
+Create it on day one, in the token you charge fees in. History starts at the first payment.
+
+```ts
+import { sliceClient } from '@slice/sdk/client';
+const slice = sliceClient({ publicClient, walletClient, factory });
+const account = await slice.createAccount(USDC);
+```
+
+## 2. Inherit SliceEarner
+
+`SliceEarner` fixes the account at deploy and gives you two calls, both in the account's asset:
+
+<Source file="contracts/src/SliceEarner.sol" from="function _collect(" />
+<Source file="contracts/src/SliceEarner.sol" from="function _settleOut(" />
+
+Use `_collect` when the fee comes off what the payer sends (a buy), and `_settleOut` when it comes off what
+the payer receives (a sell): the payout goes through the account, so the seller approves nothing. This is the
+demo launchpad, PumpLab:
+
+<Source file="demo/contracts/PumpLab.sol" from="function sell(" title="demo/contracts/PumpLab.sol (sell)" />
+
+<Callout title="Rules the reviewer checks">
+Every fee goes through `_collect` or `_settleOut`, in the account's asset (convert other tokens in your own
+code first). No other path moves fees out. The contract is not upgradeable. Only the protocol's own cut is
+revenue; LP fees and liquidity deposits do not go through the account.
+</Callout>
+
+## 3. Bind and get reviewed
+
+```ts
+await slice.bindProject(account, project); // issuer only, once; the project must point at the account
+```
+
+The disclosed reviewer then calls `factory.setNativeApproval(project, true)`. History accrues before review;
+review is required to raise.
+
+## 4. Payers approve the account, not your contract
+
+For buys, payers approve (or permit) the **account** for the payment token. With EIP-2612 tokens, one
+signature and no standing approval:
+
+<Source file="packages/sdk/src/permit.ts" from="export async function signAccountPermit(" />
+
+## 5. Protect investors with a fee floor
+
+When you raise, set `minFeeBps` to your fee rate. While the bond is active, any payment below the floor
+reverts, so investors know your fee cannot be cut after they fund you.

@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "fumadocs-mdx && tsc --noEmit",
+    "postinstall": "fumadocs-mdx"
   },
   "dependencies": {
     "@category-labs/mera": "^0.2.0",
@@ -15,8 +16,12 @@
     "@slice/sdk": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query": "^5.90.0",
+    "@types/mdx": "^2.0.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "fumadocs-core": "16.17.1",
+    "fumadocs-mdx": "15.4.7",
+    "fumadocs-ui": "16.17.1",
     "geist": "^1.7.2",
     "lucide-react": "^0.468.0",
     "motion": "^14.1.0",

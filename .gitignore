@@ -25,3 +25,4 @@ docs/deployments/31337.json
 .env*
 **/.cre_build_tmp.js
 cre/slice-covenant/dist/
+apps/web/.source/

@@ -1,0 +1,14 @@
+---
+title: Defaults and recovery
+description: What investors get back when things go wrong.
+---
+
+| Event | Effect |
+|---|---|
+| Milestone missed | Undrawn capital becomes investor recovery |
+| Watched default (two adjacent violations, or 24 h dark while active) | Stake slashed into the pool; undrawn capital to recovery; ERC-8004 feedback for agents |
+| Funding deadline unfilled | Bond cancelled; investors refund 1:1; stake returned |
+| Maturity | Bond closes; holders redeem the pool |
+
+Recovery never claws back capital already released to the business. Investors are protected by what is still
+in the bond and by the stake.

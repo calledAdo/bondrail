@@ -1,0 +1,41 @@
+---
+title: Make an x402 API pay its account
+description: Paid HTTP endpoints whose revenue builds history and repays investors.
+---
+
+[x402](https://x402.org) lets any client pay per request: the server answers `402 Payment Required` with an
+offer, the client signs an EIP-3009 USDC authorization, and a facilitator settles it on-chain, straight to the
+offer's `payTo`. Point `payTo` at your SliceAccount and every paid call becomes booked revenue.
+
+## 1. Serve paid requests with `@slice/sdk/x402`
+
+`handlePaidRequest` returns the 402 offer, verifies the payment, runs your work at most once per payment and
+settles to your account. This is the demo Oracle Agent's handler:
+
+<Source file="demo/agent/src/lib/payment.ts" from="export function handlePaidRequest(" />
+
+## 2. Publish your manifest
+
+Serve `/.well-known/slice.json` listing your account and every paid endpoint (each an unpaid GET returns its
+402 offer). Monitoring, guarded buyers and the marketplace's domain proof all read it.
+
+<Source file="demo/agent/src/app/.well-known/slice.json/route.ts" from="export async function GET()" />
+
+## 3. What the monitor checks
+
+Every 30 seconds the observer and Chainlink CRE independently fetch the manifest and every endpoint:
+
+- every payment option must pay your account, in the committed asset and network, at or above the price floor
+  (raising prices is fine);
+- the manifest must keep naming your account and listing every covered endpoint; endpoints you add later are
+  checked too.
+
+Two adjacent violations default your bond and slash your stake. A day unreachable while the bond is active
+does too; an hour pauses deposits.
+
+## 4. Buyers can verify you
+
+`sliceGuard` wraps any x402 client's fetch and refuses to sign an offer whose `payTo` is not your published
+account (optionally confirmed on-chain):
+
+<Source file="demo/scripts/traffic-agent.ts" from="const fetchers = payers.map(" />
