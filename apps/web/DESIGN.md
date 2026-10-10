@@ -17,23 +17,24 @@ Monochrome, tight, quiet. Colour only where it means something.
   Small text never below /60.
 - Dark surfaces: background `#0a0a0a`, card `#0a0a0a`, border `#262626`, muted text `#a3a3a3`. Ink panels
   carry film grain (feTurbulence overlay). Light mode mirrors with black alpha on white.
-- **Signals** (Tailwind 500/600, borders at /20):
-  - emerald: the investor slice, repaid, compliant, positive deltas;
-  - purple: Watched tier and CRE monitoring;
-  - blue: Native tier, links, primary chart series;
+- **Signals**, used sparingly (Tailwind 500, borders at /20). Never decorative: no coloured glows, mesh
+  blobs or per-tier hues on marketing surfaces, which read as generic AI templates.
+  - emerald: the investor slice and money returned to investors (the one accent on the site);
   - orange: warnings (dark period, coverage below 1.2×);
   - red: violation, default, destructive.
+  - Tiers (Native / Watched) are told apart by label and icon, not colour. Charts may use the chart ramp.
 - Type: Geist, headlines tracking −0.05em, UI −0.025em. Geist Mono for indices `(01)`, addresses, hashes
   and bracketed live figures `[184]`. Tabular figures everywhere numbers align.
 - Space: 4 px base; section padding py-32 on the site. Radius: lg 8 px buttons and inputs, xl 12 px cards
   and framed hero, 2xl 16 px panels, full for pills.
 - Depth without shadows: hairline, dashed frame (bento, empty states), ring plus hover lift, frosted tier.
 - Motion: hover colour 200–300 ms; arrow nudge +4 px; label roll on the primary CTA; reveal on scroll once
-  (y 20–30, 0.5 s); stagger 0.15 s cards / 0.05 s rows; mesh drift 20/25/30 s. `prefers-reduced-motion`
-  drops reveals, drift and the beam animation; colour transitions stay.
+  (y 20–30, 0.5 s); stagger 0.15 s cards / 0.05 s rows. `prefers-reduced-motion` drops reveals and the
+  beam animation; colour transitions stay.
 
 ## Surfaces
-- **Site** (`(site)`): dark framed hero with the split beam and a giant "slice" watermark, live stats strip
+- **Site** (`(site)`): monochrome framed hero (grain, one soft white light from above) with the split beam
+  and a giant "slice" watermark, live stats strip
   (number tickers), payment marquee, how it works, two tiers bento (Native / Watched), builders vs investors,
   trust disclosure FAQ with `(01)` indices, sponsor logos.
 - **Docs** (`(docs)`, Fumadocs): same tokens; code blocks on ink panels.
