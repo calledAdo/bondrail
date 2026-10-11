@@ -28,6 +28,7 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
     tier: undefined,
     project: undefined,
     projectApproved: undefined,
+      template: undefined,
     activeBond: undefined,
     grossRevenue: 0n,
     volume: 0n,
@@ -54,6 +55,23 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'NativeApproval' }, async ({ 
     context.Issuer.set({ ...i, projectApproved: event.params.approved });
 });
 
+// A project deployed from a reviewed template is approved with it; revoking the template revokes it.
+indexer.onEvent({ contract: 'SliceFactory', event: 'NativeDeployed' }, async ({ event, context }) => {
+  const i = await context.Issuer.get(low(event.params.account));
+  if (i)
+    context.Issuer.set({
+      ...i,
+      tier: NATIVE,
+      project: low(event.params.project),
+      projectApproved: true,
+      template: event.params.initCodeHash,
+    });
+});
+
+indexer.onEvent({ contract: 'SliceFactory', event: 'NativeTemplate' }, async ({ event, context }) => {
+  for (const i of await context.Issuer.getWhere({ template: { _eq: event.params.initCodeHash } }))
+    context.Issuer.set({ ...i, projectApproved: event.params.approved });
+});
 
 indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
   const account = low(event.params.account);

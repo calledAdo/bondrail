@@ -30,6 +30,8 @@ contracts:
     events:
       - event: "AccountCreated(address indexed issuer, address indexed account, address indexed asset)"
       - event: "NativeApproval(address indexed project, bool approved)"
+      - event: "NativeTemplate(bytes32 indexed initCodeHash, bool approved)"
+      - event: "NativeDeployed(address indexed account, address indexed project, bytes32 indexed initCodeHash)"
       - event: "BondCreated(address indexed issuer, address indexed account, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)"${tx}
       - event: "SecondReleaseApproved(address indexed bond, uint8 mode, uint256 eligibleRevenue)"${tx}
   - name: SliceAccount

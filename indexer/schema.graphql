@@ -9,7 +9,8 @@ type Issuer {
   asset: String! # the token the account earns, raises and repays in
   tier: Int # 0 Native, 1 Watched; Native once a project is bound, otherwise known at the first bond
   project: String @index # Native project bound to the account
-  projectApproved: Boolean # reviewer-approved as Native
+  projectApproved: Boolean # reviewer-approved as Native (individually, or via its template)
+  template: String @index # creation-code hash of the reviewed template it was deployed from
   activeBond: String
   grossRevenue: BigInt!
   volume: BigInt! # gross payments behind collected fees (in and out)
