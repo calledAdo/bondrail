@@ -7,7 +7,6 @@ import {
   defineChain,
   http,
   parseAbi,
-  decodeEventLog,
   type Address,
   type Hex,
 } from 'viem';
@@ -15,13 +14,13 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { address } from '@slice/observer/protocol';
 import { storeFromEnv } from '@slice/observer/store';
 import { nextOperation } from './plan.js';
-import { runCRE } from './cre.js';
 const bondABI = parseAbi([
   'function phase() view returns (uint8)',
   'function account() view returns (address)',
   'function undrawnPrincipal() view returns (uint256)',
   'function settleAfter() view returns (uint64)',
-  'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps))',
+  'function asset() view returns (address)',
+  'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps,uint8 milestoneMode,uint16 minFeeBps))',
   'function expireUndrawn()',
   'function finalizeSettlement()',
 ]);
@@ -33,28 +32,24 @@ const accountABI = parseAbi([
   'function cancelFunding(address expectedBond)',
 ]);
 const tokenABI = parseAbi(['function balanceOf(address account) view returns (uint256)']);
-const observationABI = parseAbi([
-  'event ObservationAccepted(address indexed bond,uint64 indexed epoch,uint8 result,uint64 observedAt,bytes32 evidenceHash,bytes32 digest)',
-]);
+// Contract maintenance only (sweeps, expiries, closes, settlement). Covenant reports for Watched bonds are
+// sent by the CRE reporter (ops/covenant-server), so each job has exactly one writer.
 interface Target {
   bond: Address;
   account: Address;
-  covenant?: Address;
-  creWorkflow?: string;
 }
 const chainId = Number(process.env.SLICE_CHAIN_ID ?? 10143);
 if (chainId !== 10143 && chainId !== 31337) throw new Error('Worker forbids mainnet writes');
-const { SLICE_RPC_URL, WORKER_TARGETS_FILE, WORKER_PRIVATE_KEY, WORKER_ASSET, CRE_PROJECT_DIR } = process.env;
-if (!SLICE_RPC_URL || !WORKER_TARGETS_FILE || !address(WORKER_ASSET))
-  throw new Error('Worker RPC, asset and targets file required');
+const { SLICE_RPC_URL, WORKER_TARGETS_FILE, WORKER_PRIVATE_KEY } = process.env;
+if (!SLICE_RPC_URL || !WORKER_TARGETS_FILE) throw new Error('Worker RPC and targets file required');
 const targets = JSON.parse(await readFile(WORKER_TARGETS_FILE, 'utf8')) as Target[];
 if (
   !Array.isArray(targets) ||
   targets.length > 16 ||
-  targets.some((t) => !address(t.bond) || !address(t.account) || (t.covenant && !address(t.covenant)))
+  targets.some((t) => !address(t.bond) || !address(t.account))
 )
   throw new Error('Invalid bounded worker targets');
-if (targets.some((t) => [t.bond, t.account, t.covenant].some((v) => v && /^0x0{40}$/i.test(v))))
+if (targets.some((t) => [t.bond, t.account].some((v) => /^0x0{40}$/i.test(v))))
   throw new Error('Replace zero-address worker placeholders');
 const chain = defineChain({
   id: chainId,
@@ -64,7 +59,8 @@ const chain = defineChain({
 });
 const client = createPublicClient({
   chain,
-  transport: http(SLICE_RPC_URL, { timeout: 10000, retryCount: 1 }),
+  // Public RPCs rate-limit (Monad testnet: 15 requests/s); retries back off.
+  transport: http(SLICE_RPC_URL, { timeout: 10000, retryCount: 4, retryDelay: 400 }),
 });
 let rpcChain: number;
 try {
@@ -81,26 +77,23 @@ if (!enabled || process.argv.includes('--check')) {
       targets: targets.length,
       writesEnabled: enabled,
       keyConfigured: !!WORKER_PRIVATE_KEY,
-      creConfigured: !!CRE_PROJECT_DIR,
       mode: 'diagnostic; no writes sent',
     }),
   );
   process.exit(0);
 }
 if (!/^0x[0-9a-fA-F]{64}$/.test(WORKER_PRIVATE_KEY ?? '')) throw new Error('Worker signer key missing');
-if (chainId === 10143 && targets.some((t) => t.covenant && (!t.creWorkflow || !CRE_PROJECT_DIR)))
-  throw new Error('Watched targets require actual CRE workflow configuration');
-const account = privateKeyToAccount(WORKER_PRIVATE_KEY as Hex),
+const signer = privateKeyToAccount(WORKER_PRIVATE_KEY as Hex),
   wallet = createWalletClient({
     chain,
-    account,
+    account: signer,
     transport: http(SLICE_RPC_URL, { timeout: 10000, retryCount: 0 }),
   });
 const store = storeFromEnv(),
   owner = randomUUID(),
   controller = new AbortController();
 for (const name of ['SIGTERM', 'SIGINT']) process.on(name, () => controller.abort());
-const pendingKey = `worker-pending:${chainId}:${account.address.toLowerCase()}`;
+const pendingKey = `worker-pending:${chainId}:${signer.address.toLowerCase()}`;
 const unfinished = await store.get(pendingKey);
 if (unfinished && JSON.parse(unfinished).state !== 'confirmed')
   throw new Error('Unresolved prior worker transaction; reconcile its hash/nonce before restarting');
@@ -109,7 +102,7 @@ async function submitMaintenance(operation: string, bond: Address, send: () => P
   if (previous && JSON.parse(previous).state !== 'confirmed')
     throw new Error('Prior transaction remains unresolved');
   const nonce = await client.getTransactionCount({
-    address: account.address,
+    address: signer.address,
     blockTag: 'pending',
   });
   let raw = JSON.stringify({
@@ -160,12 +153,12 @@ async function submitMaintenance(operation: string, bond: Address, send: () => P
 }
 const maxCycles = Math.min(120, Math.max(1, Number(process.env.WORKER_MAX_CYCLES ?? 120)));
 if (!Number.isSafeInteger(maxCycles)) throw new Error('Invalid cycle bound');
-const maxGasPrice = BigInt(process.env.WORKER_MAX_GAS_PRICE_WEI ?? '100000000000');
+const maxGasPrice = BigInt(process.env.WORKER_MAX_GAS_PRICE_WEI ?? '200000000000');
 let lease: string | null = null;
 try {
   for (let cycle = 0; cycle < maxCycles && !controller.signal.aborted; cycle++) {
     const start = Date.now(),
-      key = `worker-lease:${chainId}:${account.address.toLowerCase()}`;
+      key = `worker-lease:${chainId}:${signer.address.toLowerCase()}`;
     const previous = await store.get(key);
     if (previous !== lease && previous && JSON.parse(previous).expiresAt > Date.now())
       throw new Error('Another worker holds the signer lease');
@@ -181,94 +174,18 @@ try {
           abi: bondABI,
           functionName: 'phase',
         });
-        const account = await client.readContract({
-          address: target.bond,
-          abi: bondABI,
-          functionName: 'account',
-        });
-        if (account.toLowerCase() !== target.account.toLowerCase()) throw new Error('Target account mismatch');
-        // CRE is the only operational report transport; local mode exercises contract maintenance only.
-        if (
-          chainId === 10143 &&
-          target.covenant &&
-          target.creWorkflow &&
-          CRE_PROJECT_DIR &&
-          (phase === 0 || phase === 1)
-        ) {
-          const epoch = Math.floor(Date.now() / 30000),
-            reportKey = `worker-report:${target.bond}:${epoch}`;
-          if (!(await store.get(reportKey)))
-            try {
-              writes++;
-              const transaction = await runCRE(CRE_PROJECT_DIR, target.creWorkflow, controller.signal);
-              const receipt = await client.waitForTransactionReceipt({
-                hash: transaction,
-                confirmations: 1,
-                timeout: 30000,
-              });
-              if (
-                receipt.status !== 'success' ||
-                !receipt.logs.some((log) => {
-                  if (log.address.toLowerCase() !== target.covenant!.toLowerCase()) return false;
-                  try {
-                    const event = decodeEventLog({
-                      abi: observationABI,
-                      data: log.data,
-                      topics: log.topics,
-                    });
-                    return event.args.bond.toLowerCase() === target.bond.toLowerCase();
-                  } catch {
-                    return false;
-                  }
-                })
-              )
-                throw new Error('CRE receipt did not confirm target observation');
-              await store.cas(reportKey, null, JSON.stringify({ transaction, confirmed: true }));
-            } catch {
-              console.error(
-                JSON.stringify({
-                  bond: target.bond,
-                  status: 'monitor_unavailable',
-                  message: 'Continuing permissionless expiry and closure checks',
-                }),
-              );
-            }
-        }
+        const revenueAccount = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'account' });
+        const asset = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'asset' });
+        if (revenueAccount.toLowerCase() !== target.account.toLowerCase()) throw new Error('Target account mismatch');
         if (writes >= 4) break;
         const block = await client.getBlock();
-        const [terms, undrawnPrincipal, settleAfter, balance, credit, freshPhase] = await Promise.all([
-          client.readContract({
-            address: target.bond,
-            abi: bondABI,
-            functionName: 'terms',
-          }),
-          client.readContract({
-            address: target.bond,
-            abi: bondABI,
-            functionName: 'undrawnPrincipal',
-          }),
-          client.readContract({
-            address: target.bond,
-            abi: bondABI,
-            functionName: 'settleAfter',
-          }),
-          client.readContract({
-            address: WORKER_ASSET,
-            abi: tokenABI,
-            functionName: 'balanceOf',
-            args: [account],
-          }),
-          client.readContract({
-            address: account,
-            abi: accountABI,
-            functionName: 'issuerCredit',
-          }),
-          client.readContract({
-            address: target.bond,
-            abi: bondABI,
-            functionName: 'phase',
-          }),
-        ]);
+        // One read at a time: public RPCs rate-limit bursts (Monad testnet: 15 requests/s per IP).
+        const terms = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'terms' });
+        const undrawnPrincipal = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'undrawnPrincipal' });
+        const settleAfter = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'settleAfter' });
+        const balance = await client.readContract({ address: asset, abi: tokenABI, functionName: 'balanceOf', args: [revenueAccount] });
+        const credit = await client.readContract({ address: revenueAccount, abi: accountABI, functionName: 'issuerCredit' });
+        const freshPhase = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'phase' });
         const operation = nextOperation({
           phase: freshPhase,
           now: block.timestamp,
@@ -282,7 +199,7 @@ try {
         let tx: Hex;
         if (operation === 'expireUndrawn' || operation === 'finalizeSettlement') {
           const { request } = await client.simulateContract({
-            account,
+            account: signer,
             address: target.bond,
             abi: bondABI,
             functionName: operation,
@@ -292,15 +209,15 @@ try {
           tx = await submitMaintenance(operation, target.bond, () => wallet.writeContract(request));
         } else if (operation === 'sweep') {
           const active = await client.readContract({
-            address: account,
+            address: revenueAccount,
             abi: accountABI,
             functionName: 'activeBond',
           });
           if (active.toLowerCase() !== target.bond.toLowerCase())
             throw new Error('Account reserved for another bond');
           const { request } = await client.simulateContract({
-            account,
-            address: account,
+            account: signer,
+            address: revenueAccount,
             abi: accountABI,
             functionName: 'sweep',
             gas: 1000000n,
@@ -309,8 +226,8 @@ try {
           tx = await submitMaintenance(operation, target.bond, () => wallet.writeContract(request));
         } else {
           const { request } = await client.simulateContract({
-            account,
-            address: account,
+            account: signer,
+            address: revenueAccount,
             abi: accountABI,
             functionName: operation,
             args: [target.bond],
@@ -333,12 +250,16 @@ try {
             status: 'confirmed',
           }),
         );
-      } catch {
+      } catch (e) {
+        // viem's shortMessage names the failure (e.g. a revert reason) without request or provider details.
+        const err = e as { shortMessage?: string; details?: string };
+        const reason = [err.shortMessage ?? (e instanceof Error ? e.message : 'unknown'), err.details].filter(Boolean).join(': ');
         console.error(
           JSON.stringify({
             bond: target.bond,
             status: 'failed',
             error: 'worker_operation_failed; check chain state and durable transaction journal',
+            reason: reason.slice(0, 200),
           }),
         );
       }
@@ -351,7 +272,7 @@ try {
 } finally {
   if (lease)
     await store.cas(
-      `worker-lease:${chainId}:${account.address.toLowerCase()}`,
+      `worker-lease:${chainId}:${signer.address.toLowerCase()}`,
       lease,
       JSON.stringify({ owner, expiresAt: 0 }),
     );

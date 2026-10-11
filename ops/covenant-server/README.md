@@ -1,6 +1,8 @@
-# Covenant reporter (server)
+# Server: covenant reporter and maintenance worker
 
-Runs the Watched bond's covenant report every 30 minutes: `report.sh` starts the observer, runs the
+Two systemd timers on one small Linux server.
+
+**Covenant reporter** (`slice-covenant.timer`, every 30 minutes): `report.sh` starts the observer, runs the
 Chainlink CRE workflow (`cre workflow simulate --broadcast`) and stops. GitHub Actions can't do this
 without a `CRE_API_KEY`, which needs CRE deploy access, so it runs on a small Linux server that keeps
 its CRE login in `/root/.cre/cre.yaml`.
@@ -12,3 +14,11 @@ the unit files to `/etc/systemd/system` and `systemctl enable --now slice-covena
 
 Logs: `journalctl -u slice-covenant.service`. If the CRE login expires, sign in again and recopy
 `~/.cre/cre.yaml`.
+
+**Maintenance worker** (`slice-worker.timer`, every 10 minutes): one cycle of
+[`services/worker`](../../services/worker): it books x402 receipts (`sweep`), returns undrawn capital after the
+second-release deadline, closes bonds at maturity and finalizes settlement. Its own key (`worker`, MON for gas
+only), `.env` with `SLICE_ENABLE_TESTNET_WRITES=1` and `WORKER_MAX_CYCLES=1`, and a `targets.json` of bonds.
+
+**RPC:** Monad's public endpoint allows 15 requests/s per IP, which a shared server can exhaust. Both jobs use
+`https://rpc-testnet.monadinfra.com` there (the worker's `SLICE_RPC_URL`; `cre/project.yaml` on the server).

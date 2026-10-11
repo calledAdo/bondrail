@@ -1,0 +1,11 @@
+[Unit]
+Description=Slice maintenance worker, one cycle (sweeps, expiries, closes, settlement)
+After=network-online.target
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/slice/services/worker
+ExecStart=/usr/bin/env node --env-file=.env --import tsx src/main.ts
+Nice=19
+IOSchedulingClass=idle
+MemoryMax=400M
+TimeoutStartSec=300
