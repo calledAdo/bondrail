@@ -77,7 +77,7 @@ function Payers({ a }: { a: AccountView }) {
                   <td className="py-2 text-right font-mono tabular">{p.payments}</td>
                   <td className="py-2 text-right font-mono tabular">{fmt(p.amount, a.asset)}</td>
                   <td className="py-2 pl-4">
-                    {p.related ? <Badge tone="warn">{p.reasons.map((r) => REASONS[r] ?? r).join(', ') || 'Excluded'}</Badge> : <span className="text-foreground/60">Verified</span>}
+                    {p.related ? <Badge tone="warn">{p.reasons.map((r) => REASONS[r] ?? r).join(', ') || 'Excluded'}</Badge> : <span className="text-foreground/60">No link found</span>}
                   </td>
                   {Object.keys(nansen).length > 0 && (
                     <td className="py-2 text-xs text-foreground/70">{nansen[p.payer]?.labels?.map((l) => l.label).join(', ') || '–'}</td>
@@ -97,9 +97,9 @@ function History({ a }: { a: AccountView }) {
   return (
     <Panel title="Credit history" aside={<span className="font-mono text-xs text-foreground/60">since {a.firstRevenueAt ? date(a.firstRevenueAt).slice(0, 10) : '–'}</span>}>
       <dl className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <Figure label="Verified revenue" value={fmt(a.verified, a.asset)} hint={`raw ${fmt(a.revenue, a.asset)}`} />
-        <Figure label="Verified per day" value={fmt(a.verifiedDaily, a.asset)} hint="trailing 7 days" />
-        <Figure label="Verified payers" value={a.uniquePayers} hint={a.topPayerShare ? `top payer ${(a.topPayerShare * 100).toFixed(0)}%` : undefined} />
+        <Figure label="Attributed revenue" value={fmt(a.verified, a.asset)} hint={`raw ${fmt(a.revenue, a.asset)}`} />
+        <Figure label="Attributed per day" value={fmt(a.verifiedDaily, a.asset)} hint="trailing 7 days" />
+        <Figure label="Attributed payers" value={a.uniquePayers} hint={a.topPayerShare ? `top payer ${(a.topPayerShare * 100).toFixed(0)}%` : undefined} />
         <Figure label={feeRate !== null ? 'Fee rate' : 'History'} value={feeRate !== null ? `${feeRate.toFixed(2)}%` : days(a.ageDays)} hint={feeRate !== null ? `on ${fmt(a.volume!, a.asset)} volume` : 'account age'} />
       </dl>
       <RevenueBars daily={a.daily} label={`Daily revenue for the last ${a.daily.length} days`} />
@@ -171,7 +171,7 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
       )}
       {dropped && (
         <p className="mt-3 flex gap-2 text-sm text-orange-500">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> Verified x402 revenue in the last 24 h ({fmt(drop!.last24h, b.asset)}) is under a quarter of the prior 7-day average ({fmt(drop!.dailyAverage, b.asset)}) while monitoring reports compliant. Customers may be shown a different payTo; only guarded buyers verify it.
+          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> Attributed x402 revenue yesterday ({fmt(drop!.last24h, b.asset)}) was under a quarter of the 7-day average before it ({fmt(drop!.dailyAverage, b.asset)}) while monitoring reports compliant. Customers may be shown a different payTo; only guarded buyers verify it.
         </p>
       )}
       {b.checks.length > 0 && (

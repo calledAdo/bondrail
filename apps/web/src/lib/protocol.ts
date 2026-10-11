@@ -103,22 +103,17 @@ async function gql(query: string) {
   return j.data;
 }
 
-const query = (current: boolean) => `{
-  Issuer { id issuer tier project projectApproved activeBond grossRevenue toInvestors payments firstRevenueAt ${current ? 'asset volume' : ''} }
+const query = `{
+  Issuer { id issuer tier project projectApproved activeBond grossRevenue toInvestors payments firstRevenueAt asset volume }
   Bond(order_by: { createdAt: desc }) { id account adapter phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool totalSupply effectiveCap defaulted createdAt }
-  DailyRevenue(order_by: { day: asc }) { account day gross verified }
-  Payment(order_by: { timestamp: desc }, limit: 2000) { account payer amount related reasons source timestamp }
+  DailyRevenue(order_by: { day: asc }) { account day gross verified x402 }
+  PayerTotal(order_by: { amount: desc }) { account payer amount payments related reasons source }
   CovenantCheck(order_by: { observedAt: desc }, limit: 200) { bond result observedAt txHash }
 }`;
 
-/** Load and assemble everything. Older indexer deployments lack `asset`/`volume`; fall back without them. */
+/** Load and assemble everything: per-payer and per-day aggregates come from the indexer, so nothing is truncated. */
 async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Promise<Protocol> {
-  let d: any;
-  try {
-    d = await gql(query(true));
-  } catch {
-    d = await gql(query(false));
-  }
+  const d: any = await gql(query);
   const now = Date.now() / 1000;
   const issuers = d.Issuer as any[];
   // Signed profiles and Kuru listings (off-chain records, each verified by the registry).
@@ -156,23 +151,10 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
 
   const accounts: AccountView[] = issuers.map((i) => {
     const asset = assetFor(i.id);
-    const byPayer = new Map<string, Payer>();
-    for (const p of (d.Payment as any[]).filter((p) => p.account === i.id)) {
-      const row: Payer = byPayer.get(p.payer) ?? { payer: p.payer, amount: 0, payments: 0, related: false, reasons: [], source: p.source };
-      row.amount += unit(p.amount, asset);
-      row.payments += 1;
-      row.related ||= p.related;
-      for (const r of p.reasons) if (!row.reasons.includes(r)) row.reasons.push(r);
-      byPayer.set(p.payer, row);
-    }
-    const payers = [...byPayer.values()].sort((a, b) => b.amount - a.amount);
-    // A business could show the monitor its account and unguarded customers another wallet: the monitor
-    // stays green while verified x402 revenue falls. Compare the last 24 h with the prior 7-day average.
-    const x402 = (d.Payment as any[]).filter((p) => p.account === i.id && p.source === 'x402' && !p.related);
-    const sum = (from: number, to: number) =>
-      x402.filter((p) => Number(p.timestamp) >= from && Number(p.timestamp) < to).reduce((s, p) => s + unit(p.amount, asset), 0);
-    const dailyAverage = sum(now - 8 * DAY, now - DAY) / 7;
-    const revenueDrop = dailyAverage > 0 ? { last24h: sum(now - DAY, now + 1), dailyAverage } : null;
+    const payers: Payer[] = (d.PayerTotal as any[])
+      .filter((p) => p.account === i.id)
+      .map((p) => ({ payer: p.payer, amount: unit(p.amount, asset), payments: p.payments, related: p.related, reasons: p.reasons, source: p.source }))
+      .sort((a, b) => b.amount - a.amount);
     const verifiedPayers = payers.filter((p) => !p.related);
     const verified = verifiedPayers.reduce((s, p) => s + p.amount, 0);
     const daily = (d.DailyRevenue as any[])
@@ -180,6 +162,11 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       .map((x) => ({ day: Number(x.day), raw: unit(x.gross, asset), verified: unit(x.verified, asset) }));
     const today = Math.floor(now / DAY);
     const verified7 = daily.filter((x) => x.day > today - 7).reduce((s, x) => s + x.verified, 0);
+    // A business could show the monitor its account and unguarded customers another wallet: the monitor
+    // stays green while attributed x402 revenue falls. Compare yesterday with the 7 days before it.
+    const x402Day = (day: number) => unit((d.DailyRevenue as any[]).find((x) => x.account === i.id && Number(x.day) === day)?.x402 ?? '0', asset);
+    const dailyAverage = Array.from({ length: 7 }, (_, k) => x402Day(today - 2 - k)).reduce((s, v) => s + v, 0) / 7;
+    const revenueDrop = dailyAverage > 0 ? { last24h: x402Day(today - 1), dailyAverage } : null;
     const first = i.firstRevenueAt ? Number(i.firstRevenueAt) : undefined;
     return {
       address: i.id,
@@ -243,7 +230,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
         if (!acct?.profile) flags.push('No signed profile');
         if (allowed === false) flags.push('Source unhealthy');
         if (!asset.known) flags.push('Unrecognised asset');
-        if ((acct?.uniquePayers ?? 0) < 2) flags.push('Fewer than two verified payers');
+        if ((acct?.uniquePayers ?? 0) < 2) flags.push('Fewer than two attributed payers');
         if ((acct?.topPayerShare ?? 0) > 0.5) flags.push('One payer is over half of revenue');
         if (coverage !== null && coverage < 1.2 && (phase === 'Funding' || phase === 'Active')) flags.push('Coverage below 1.2×');
         const released = u(b.released);
@@ -317,7 +304,7 @@ export function marketTab(b: BondView): 'raising' | 'trading' | 'record' {
 }
 
 /** Default view hides listings with evidence problems; "show all" reveals them. */
-export const HIDING_FLAGS = ['No signed profile', 'Source unhealthy', 'Unrecognised asset', 'Fewer than two verified payers'];
+export const HIDING_FLAGS = ['No signed profile', 'Source unhealthy', 'Unrecognised asset', 'Fewer than two attributed payers'];
 export const listed = (b: BondView) => !b.flags.some((f) => HIDING_FLAGS.includes(f));
 
 export const fmt = (n: number, a: Asset, digits = 2) =>

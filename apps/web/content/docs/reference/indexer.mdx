@@ -3,7 +3,12 @@ title: Indexer
 description: The Envio HyperIndex GraphQL schema.
 ---
 
-Accounts, bonds, payments (classified `native`, `x402` or `transfer`), daily revenue, treasury funding edges
-and covenant checks. Query it with any GraphQL client.
+Accounts, bonds, payments (classified `native`, `x402` or `transfer`), per-payer totals, daily revenue, treasury
+funding links and covenant checks. Query it with any GraphQL client.
+
+Limits, stated plainly: funding links are one hop (a wallet the issuer's treasury paid directly) and are tracked
+for the indexed asset (USDC); a Native payment is attributed when the transaction calls the project directly, so
+a payment routed through another contract shows as an unclassified transfer. "Attributed" means a proven payer
+with no detected link to the issuer, not proof of an independent customer.
 
 <Source file="indexer/schema.graphql" />

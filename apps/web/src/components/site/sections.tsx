@@ -219,7 +219,7 @@ export function Audiences() {
         <Reveal delay={0.15} className="rounded-2xl border border-foreground/10 p-10">
           <p className="font-mono text-xs text-foreground/60">(04) For investors</p>
           <h3 className="mt-4 text-3xl font-semibold">Underwrite evidence, not promises.</h3>
-          <p className="mt-3 text-foreground/60">Verified revenue, payer concentration and coverage for every bond. Redeem at any time or trade on Kuru.</p>
+          <p className="mt-3 text-foreground/60">Attributed revenue, payer concentration and coverage for every bond. Redeem at any time or trade on Kuru.</p>
           <div className="mt-8">
             <CTA href="/markets" outline>
               Browse markets

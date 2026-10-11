@@ -58,7 +58,7 @@ function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
       <p className="text-xs text-foreground/60">
         {account ? (
           <>
-            Verified {fmt(account.verifiedDaily, b.asset)}/day · {account.uniquePayers} payers · {days(account.ageDays)} of history
+            Attributed {fmt(account.verifiedDaily, b.asset)}/day · {account.uniquePayers} payers · {days(account.ageDays)} of history
           </>
         ) : (
           'No indexed history'
@@ -79,7 +79,7 @@ function AccountRow({ a }: { a: AccountView }) {
     <Link href={`/accounts/${a.address}`} className="grid grid-cols-2 gap-3 py-4 text-sm transition-colors hover:bg-foreground/[0.02] sm:grid-cols-[1.4fr_1fr_1fr_1fr_auto] sm:items-center">
       <span className="font-mono">{short(a.address)}</span>
       <span className="text-foreground/60">{a.tier ?? 'No source yet'}</span>
-      <span className="font-mono tabular">{fmt(a.verified, a.asset)} verified</span>
+      <span className="font-mono tabular">{fmt(a.verified, a.asset)} attributed</span>
       <span className="text-foreground/60">{a.uniquePayers} payers · {days(a.ageDays)}</span>
       <ArrowUpRight className="hidden size-4 text-foreground/40 sm:block" />
     </Link>

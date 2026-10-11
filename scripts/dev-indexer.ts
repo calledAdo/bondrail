@@ -103,7 +103,8 @@ async function snapshot() {
   );
 
   const Payment = [];
-  const daily = new Map<string, { account: string; day: number; gross: bigint; verified: bigint }>();
+  const daily = new Map<string, { account: string; day: number; gross: bigint; verified: bigint; x402: bigint }>();
+  const payerTotals = new Map<string, { account: string; payer: string; amount: bigint; payments: number; related: boolean; reasons: string[]; source: string }>();
   for (const r of revenue) {
     const t = await ts(r.blockNumber);
     const account = low(r.address);
@@ -118,16 +119,25 @@ async function snapshot() {
       txHash: r.transactionHash,
     });
     const key = `${account}-${Math.floor(t / DAY)}`;
-    const row = daily.get(key) ?? { account, day: Math.floor(t / DAY), gross: 0n, verified: 0n };
+    const row = daily.get(key) ?? { account, day: Math.floor(t / DAY), gross: 0n, verified: 0n, x402: 0n };
     row.gross += r.args.amount;
     if (r.args.collected) row.verified += r.args.amount;
     daily.set(key, row);
+    const payer = low(r.args.payer);
+    const pt = payerTotals.get(`${account}-${payer}`) ?? {
+      account, payer, amount: 0n, payments: 0, related: false, reasons: [] as string[], source: r.args.collected ? 'native' : 'transfer',
+    };
+    pt.amount += r.args.amount;
+    pt.payments += 1;
+    if (!r.args.collected) { pt.related = true; if (!pt.reasons.includes('unclassified_inflow')) pt.reasons.push('unclassified_inflow'); }
+    payerTotals.set(`${account}-${payer}`, pt);
   }
   const checks = await logs(ev.observation, d.covenant);
   return {
     Issuer,
     Bond: Bond.sort((a, b) => Number(b.createdAt) - Number(a.createdAt)),
-    DailyRevenue: [...daily.values()].map((x) => ({ ...x, gross: String(x.gross), verified: String(x.verified) })),
+    DailyRevenue: [...daily.values()].map((x) => ({ ...x, gross: String(x.gross), verified: String(x.verified), x402: String(x.x402) })),
+    PayerTotal: [...payerTotals.values()].map((x) => ({ ...x, amount: String(x.amount) })),
     Payment: Payment.reverse(),
     CovenantCheck: await Promise.all(
       checks.map(async (c) => ({ bond: low(c.args.bond), result: Number(c.args.result), observedAt: String(c.args.observedAt), txHash: c.transactionHash })),

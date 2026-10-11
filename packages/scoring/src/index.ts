@@ -6,7 +6,7 @@ export interface RevenuePayment {
   payer: string;
   amount: string;
   timestamp: number;
-  source: 'x402' | 'launchpad';
+  source: 'native' | 'x402' | 'transfer';
   /** Shared-control evidence is required before assigning a shared cluster. */
   controlCluster?: string;
   synthetic: boolean;
@@ -175,7 +175,7 @@ export interface Receipt {
 }
 export interface Attribution {
   receiptId: string;
-  source: 'x402' | 'launchpad';
+  source: 'native' | 'x402' | 'transfer';
   payer: string;
   amount: string;
   evidenceId: string;

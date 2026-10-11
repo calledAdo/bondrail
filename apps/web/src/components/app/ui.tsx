@@ -105,7 +105,7 @@ export function RevenueBars({ daily, label }: { daily: { day: number; raw: numbe
         ))}
       </div>
       <figcaption className="mt-3 flex flex-wrap gap-4 text-xs text-foreground/60">
-        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-foreground/70" /> Verified</span>
+        <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-foreground/70" /> Attributed</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm border border-foreground/30" /> Raw</span>
         <span className="sr-only">{label}</span>
       </figcaption>

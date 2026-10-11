@@ -85,7 +85,8 @@ export async function indexedScore(options: EnvioOptions, window: Omit<RevenueWi
       },
     );
     for (const row of result.Payment) {
-      if (row.source !== 'launchpad' && row.source !== 'x402')
+      // The indexer's sources: Native pulls, x402 settlements, and unclassified transfers (always flagged related).
+      if (row.source !== 'native' && row.source !== 'x402' && row.source !== 'transfer')
         throw new Error('Unknown source in recognized payment ledger');
       payments.push({ ...row, timestamp: Number(row.timestamp), source: row.source });
     }

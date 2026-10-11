@@ -8,7 +8,7 @@ import '@/styles/site.css';
 
 export const metadata: Metadata = {
   title: { default: 'Slice | Revenue markets', template: '%s | Slice' },
-  description: 'Revenue bonds on Monad testnet: verified revenue, coverage and live repayment for every bond.',
+  description: 'Revenue bonds on Monad testnet: attributed revenue, coverage and live repayment for every bond.',
 };
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

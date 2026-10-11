@@ -37,7 +37,8 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
     createdAt: BigInt(event.block.timestamp),
     firstRevenueAt: undefined,
   });
-  context.Treasury.set({ id: issuer, account });
+  const treasury = await context.Treasury.get(issuer);
+  context.Treasury.set({ id: issuer, accounts: [...(treasury?.accounts ?? []), account] });
 });
 
 // Native: the account binds a project that inherits SliceEarner (pointed at this account forever).
@@ -157,10 +158,9 @@ async function recordPayment(
 ) {
   const issuer = await context.Issuer.get(account);
   if (!issuer) return;
-  const wallet = await context.Wallet.get(payer);
   const reasons: string[] = [...extraReasons];
   if (payer === issuer.issuer) reasons.push('issuer_wallet');
-  if (wallet?.fundedByAccount === account) reasons.push('funded_by_issuer_treasury');
+  if (await context.FundingLink.get(`${account}-${payer}`)) reasons.push('funded_by_issuer_treasury');
   const related = reasons.length > 0;
   const ts = BigInt(event.block.timestamp);
   context.Payment.set({
@@ -187,13 +187,33 @@ async function recordPayment(
     day,
     gross: 0n,
     verified: 0n,
+    x402: 0n,
     payments: 0,
   };
   context.DailyRevenue.set({
     ...d,
     gross: d.gross + amount,
     verified: d.verified + (related ? 0n : amount),
+    x402: d.x402 + (related || source !== 'x402' ? 0n : amount),
     payments: d.payments + 1,
+  });
+  const payerId = `${account}-${payer}`;
+  const t = (await context.PayerTotal.get(payerId)) ?? {
+    id: payerId,
+    account,
+    payer,
+    amount: 0n,
+    payments: 0,
+    related: false,
+    reasons: [] as string[],
+    source,
+  };
+  context.PayerTotal.set({
+    ...t,
+    amount: t.amount + amount,
+    payments: t.payments + 1,
+    related: t.related || related,
+    reasons: [...new Set([...t.reasons, ...reasons])],
   });
 }
 
@@ -214,18 +234,22 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
   const viaSlice = low(event.transaction.to ?? '') === FACTORY || !!(await context.Bond.get(to));
   const treasury = await context.Treasury.get(from);
   if (treasury && !viaSlice && !(await context.Issuer.get(to))) {
-    context.FundingEdge.set({
-      id: rowId(event),
-      chainId: event.chainId,
-      issuerAccount: treasury.account,
-      sender: from,
-      recipient: to,
-      amount: value,
-      timestamp: BigInt(event.block.timestamp),
-      txHash: event.transaction.hash,
-    });
-    const w = (await context.Wallet.get(to)) ?? { id: to, fundedByAccount: undefined, fundedAmount: 0n };
-    context.Wallet.set({ ...w, fundedByAccount: treasury.account, fundedAmount: w.fundedAmount + value });
+    // The sender issued each of these accounts, so the recipient is linked to all of them.
+    for (const account of treasury.accounts) {
+      context.FundingEdge.set({
+        id: `${rowId(event)}-${account}`,
+        chainId: event.chainId,
+        issuerAccount: account,
+        sender: from,
+        recipient: to,
+        amount: value,
+        timestamp: BigInt(event.block.timestamp),
+        txHash: event.transaction.hash,
+      });
+      const id = `${account}-${to}`;
+      const link = await context.FundingLink.get(id);
+      context.FundingLink.set({ id, account, wallet: to, amount: (link?.amount ?? 0n) + value });
+    }
   }
 
   // A transfer into an account is one of:

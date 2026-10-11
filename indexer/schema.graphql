@@ -22,15 +22,17 @@ type Issuer {
 
 # An issuer's treasury wallet -> its account.
 type Treasury {
-  id: ID! # address
-  account: String! # account address
+  id: ID! # issuer wallet address
+  accounts: [String!]! # every account this wallet issued (one issuer can run several)
 }
 
-# Wallets the indexer has learned something about (issuer treasury links).
-type Wallet {
-  id: ID! # address
-  fundedByAccount: String # set when an issuer's treasury sent this wallet USDC
-  fundedAmount: BigInt!
+# One per (issuer account, wallet) pair once that issuer's treasury has sent the wallet the asset. A wallet
+# funded by several issuers has several links; each FundingEdge is one underlying transfer.
+type FundingLink {
+  id: ID! # `${account}-${wallet}`
+  account: String! @index
+  wallet: String! @index
+  amount: BigInt!
 }
 
 type Bond {
@@ -153,8 +155,21 @@ type DailyRevenue {
   account: String! @index
   day: Int!
   gross: BigInt!
-  verified: BigInt!
+  verified: BigInt! # attributed: a proven payer with no detected link to the issuer
+  x402: BigInt! # attributed x402 settlements (the revenue-drop check compares days)
   payments: Int!
+}
+
+# Per (account, payer) totals, so pages never need the full payment history.
+type PayerTotal {
+  id: ID! # `${account}-${payer}`
+  account: String! @index
+  payer: String!
+  amount: BigInt!
+  payments: Int!
+  related: Boolean! # any payment from this payer was linked to the issuer
+  reasons: [String!]!
+  source: String! # the first payment's source
 }
 
 # An EIP-3009 authorization used in a transaction (tx hash : authorizer). Marks x402 settlements.

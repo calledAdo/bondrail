@@ -324,7 +324,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
           <p className="text-foreground/70">No payments booked yet. Real traffic through your source starts the clock.</p>
         ) : (
           <p className="text-foreground/70">
-            {account.payments} payments, {account.uniquePayers} verified payers, {fmt(account.verified, account.asset)} verified revenue.{' '}
+            {account.payments} payments, {account.uniquePayers} attributed payers, {fmt(account.verified, account.asset)} attributed revenue.{' '}
             {historyOk ? 'Old enough to raise.' : `The factory needs ${Math.ceil((Number(minHistory ?? 0n) - age) / 60)} more minute(s) of history.`}
           </p>
         )}
@@ -554,7 +554,7 @@ function TermsBuilder({
         {n('share', 'Revenue share (%)', 'Of every payment while the bond is live')}
         {n('termHours', 'Term (hours after funding)')}
         {n('fundingHours', 'Funding window (hours)')}
-        <Field label={`Repayment cap (${account.asset.symbol})`} hint={`Suggested ${suggested.toFixed(2)} from your verified revenue (coverage 1.5×)`}>
+        <Field label={`Repayment cap (${account.asset.symbol})`} hint={`Suggested ${suggested.toFixed(2)} from your attributed revenue (coverage 1.5×)`}>
           <input inputMode="decimal" value={t.cap} onChange={set('cap')} placeholder={suggested.toFixed(2)} className={cn(input, 'font-mono')} />
         </Field>
         <Field label="Released at activation">
@@ -581,8 +581,8 @@ function TermsBuilder({
         </p>
         <p className={cn('mt-1 text-xs', coverage >= 1.2 ? 'text-foreground/60' : 'text-orange-500')}>
           {coverage >= 1.2
-            ? `At ${fmt(account.verifiedDaily, account.asset)}/day verified, investors are projected to be repaid within the term.`
-            : 'Below 1.2×: at your current verified revenue, investors are projected not to be repaid in full. Lower the raise or cap, or extend the term.'}
+            ? `At ${fmt(account.verifiedDaily, account.asset)}/day attributed, investors are projected to be repaid within the term.`
+            : 'Below 1.2×: at your current attributed revenue, investors are projected not to be repaid in full. Lower the raise or cap, or extend the term.'}
         </p>
       </div>
       {errors.length > 0 && (

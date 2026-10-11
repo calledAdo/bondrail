@@ -105,7 +105,7 @@ test('5 recognized fees,9 receipts; attribution and duplicate prevention', () =>
   }));
   const a = {
     receiptId: '0',
-    source: 'launchpad' as const,
+    source: 'native' as const,
     payer: 'trader',
     amount: '2000000',
     evidenceId: 'trade',

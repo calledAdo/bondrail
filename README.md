@@ -29,7 +29,7 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
      floor** (`minFeeBps`) the project must keep while it is live.
    - **Plain transfers** (x402 settlements, anything else sent to the account) are booked with `sweep()`.
      The indexer tells them apart: an x402 settlement carries the payer's EIP-3009 signature; any other
-     transfer is shown as an unclassified inflow and never counts as verified revenue.
+     transfer is shown as an unclassified inflow and never counts as attributed revenue.
 2. **The account keeps an on-chain credit history from its first payment:** total revenue, payments,
    distinct payers, first revenue date and revenue per day. This happens bond or no bond, so the record
    that underwrites a raise predates the raise.
@@ -146,9 +146,9 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
   - **Native:** the account's `Revenue` event; the payer is proven by the pull.
   - **x402:** USDC transfers into an account whose transaction also emits `AuthorizationUsed` for the
     sender (EIP-3009, how x402 settles); the payer signed it. This works before any bond exists.
-  - **Anything else** sent to an account is an unclassified inflow: booked on-chain, never verified.
+  - **Anything else** sent to an account is an unclassified inflow: booked on-chain, never attributed.
 - Treasury `FundingEdge`s flag payers funded by the business itself.
-- This drives raw vs verified revenue, the payer table, market totals and the bond views in the app
+- This drives raw vs attributed revenue (attributed: a proven payer with no detected link to the issuer; not proof of an independent customer), the payer table, market totals and the bond views in the app
   ([`apps/web/src/lib/protocol.ts`](apps/web/src/lib/protocol.ts)).
 
 ### Kuru: a new asset class
@@ -194,10 +194,10 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Issuer cuts its fee after raising | Optional `minFeeBps` bond term: payments below the floor revert while the bond is live | Bonds without a floor rely on review of the fee logic |
 | Bond raised in a token the issuer can mint | Not prevented (any token is allowed); the profile shows the asset and the default market view promotes only well-known assets | Investors' choice, disclosed |
 | Fake payer attribution | Native payments are pulled from the payer's own balance; the event carries the real source | Wash trading from wallets the business funds; caught by funding edges |
-| Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from verified revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
+| Issuer pads history by sending USDC to its own account | Indexer classifies it as an unclassified inflow, excluded from attributed revenue; `minHistory` makes a history take real time | The on-chain counter still includes it (the on-chain milestone mode is disclosed as trustless but wash-able) |
 | Investors fund a source that has gone bad | Every deposit re-checks review/binding (Native) or the latest CRE result (Watched) | — |
 | Issuer changes the x402 `payTo` (Watched) | CRE checks the manifest and every endpoint on every report; any option paying elsewhere is a violation; two adjacent → default; stake slashed; ERC-8004 feedback | Revenue between the switch and detection |
-| Issuer shows CRE the account but customers another wallet | Guarded buyers check each offer against the manifest before signing; the bond page alerts when verified x402 revenue collapses while CRE reports compliant | Unguarded buyers can still be misled (disclosed) |
+| Issuer shows CRE the account but customers another wallet | Guarded buyers check each offer against the manifest before signing; the bond page alerts when attributed x402 revenue collapses while CRE reports compliant | Unguarded buyers can still be misled (disclosed) |
 | Issuer goes dark to CRE while charging elsewhere | A day of Unknowns defaults the bond; an hour blocks deposits; gaps in monitoring never count | Up to a day of diverted revenue, covered by the stake |
 | Issuer adds a paid endpoint after raising | Every same-origin endpoint the manifest lists is checked too: it must pay the account (no price floor) | Endpoints never declared in the manifest cannot be seen |
 | Forged default through the permissionless forwarder | Pinned observer EIP-712 signature, freshness and per-epoch replay checks | Trust in one observer key (disclosed) |

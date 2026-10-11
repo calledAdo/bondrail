@@ -4,7 +4,11 @@ description: Read a credit profile, fund a bond, redeem or trade your claim.
 ---
 
 ## Read the profile
-- **Verified vs raw revenue:** verified excludes payers funded by the issuer and unclassified transfers.
+- **Attributed vs raw revenue:** attributed revenue is payments with a proven payer (a Native pull from the
+  payer's own balance, or an x402 payment the payer signed) and no detected link to the issuer: it excludes the
+  issuer's own wallets, payers its treasury funded, and unclassified transfers. It does not prove that a payer is
+  an independent customer or that a service was delivered; wallet diversity is not customer diversity, and the
+  funding check sees one hop.
 - **Payers and concentration:** how many distinct payers, and how much the largest one accounts for.
 - **Age and consistency:** time since the first payment; steady daily revenue vs a spike before listing.
 - **Track record:** earlier bonds on the same account and how they ended.
