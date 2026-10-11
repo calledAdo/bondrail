@@ -78,6 +78,21 @@ Before a bond, an account must have `minHistory` of payment history (time is the
 that can't be faked), and every deposit re-checks the source: a Native project must still be reviewed and
 bound, and a Watched bond's latest CRE observation must not be a violation.
 
+## Join the live raise (judges welcome)
+
+**CurveLab** (`CLAB-RC`, bond `0xD4E5901cce4A7173903F75e6e0327020f5C18B05`) is a second issuer on the same
+reviewed Native template as PumpLab. Its raise is open until **28 October 2026** (the end of judging), so you
+can take part with a testnet wallet:
+
+1. Get test USDC from [Circle's faucet](https://faucet.circle.com) (Monad testnet); the app's drip sends MON for gas.
+2. Open the bond in the app, approve and **Deposit**: you receive `CLAB-RC` claims 1:1.
+3. Changed your mind? **Withdraw** any time before the deadline (claims burn 1:1 for your deposit).
+4. When the raise is full the issuer activates it: from then on 25% of every CurveLab fee goes to claim
+   holders in the same transaction. If it never fills, anyone can cancel after the deadline and every
+   deposit is refunded in full.
+
+Testnet only; nothing here is an offer (see Notices).
+
 ## Live on Monad testnet (chain 10143)
 
 Deployed 10 Oct 2026 from this code (two tiers, any-token accounts, x402 manifest).
