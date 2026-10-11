@@ -29,6 +29,14 @@
       "tier": "watched",
       "issuer": "0xd1ef0BD715Ca18d1cCe7198111A0eF2BB26d56bb",
       "account": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc"
+    },
+    "curvelab": {
+      "name": "CurveLab",
+      "tier": "native",
+      "issuer": "0x7c6E3612cD66C66385487AB9150E72E1E7633cB7",
+      "account": "0x4295ba874FDf591AF88fD33C87A61b2e7A97b6D0",
+      "source": "0xe45b023483B9323e7a41baBeb0e5186EC1FA8afB",
+      "token": "0x0F548a4cb1EC9d6e0e8DFd668109b0f7E9597c05"
     }
   }
 }

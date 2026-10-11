@@ -2,6 +2,7 @@
 // created piece is saved to docs/deployments/<chain>.json before the next step.
 //
 //   pumplab  Native  : account -> issuer deploys PumpLab (a SliceEarner) -> binds it -> reviewer approves -> bond
+//   curvelab Native  : a second issuer on the same reviewed template; its raise stays open (judges can fund)
 //   agent    Watched : account (the x402 payTo) -> bond with stake; activation waits for a CRE report
 //
 //   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts [pumplab|agent ...]
@@ -78,18 +79,19 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
 }
 
 function terms(now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
-  // Funding 1 day; second release opens after 1 h of operation, closes 2 days before maturity;
-  // matures after MATURITY_DAYS (default 7; use 30+ so a series stays live through judging).
+  // Funding FUNDING_DAYS (default 1); second release opens 1 h after funding closes and ends 2 days
+  // before maturity; matures after MATURITY_DAYS (default 7; use 30+ to stay live through judging).
+  const fundingDays = BigInt(process.env.FUNDING_DAYS ?? '1');
   const days = BigInt(process.env.MATURITY_DAYS ?? '7');
-  if (days < 3n) throw new Error('MATURITY_DAYS must be at least 3');
+  if (days < fundingDays + 3n) throw new Error('MATURITY_DAYS must be at least FUNDING_DAYS + 3');
   return {
     raiseAmount: RAISE,
     repayCap: CAP,
     stake: STAKE,
     minRevenue: usdc('0.01'),
-    fundingDeadline: now + 24n * HOUR,
+    fundingDeadline: now + fundingDays * 24n * HOUR,
     maturity: now + days * 24n * HOUR,
-    secondReleaseNotBefore: now + 25n * HOUR,
+    secondReleaseNotBefore: now + fundingDays * 24n * HOUR + HOUR,
     secondReleaseDeadline: now + (days - 2n) * 24n * HOUR,
     minOperatingPeriod: 3600,
     revenueBps: 2500,
@@ -202,10 +204,12 @@ async function createBond(
   return true;
 }
 
-async function setupPumpLab() {
-  const d = await ensureAccount('pumplab', 'PumpLab', 'native');
-  const rec = d.issuers.pumplab!;
-  const issuer = account('pumplab-issuer');
+/** A Native launchpad from the reviewed PumpLab template. `open`: create the bond and leave the raise
+ * open for anyone (judges included) to fund; the issuer activates once it is full. */
+async function setupLaunchpad(id: string, name: string, tokenName: string, tokenSymbol: string, symbol: string, open: boolean) {
+  const d = await ensureAccount(id, name, 'native');
+  const rec = d.issuers[id]!;
+  const issuer = account(`${id}-issuer`);
   if (!rec.source) {
     // The disclosed reviewer approves the PumpLab template once (its creation code: every fee goes
     // through SliceEarner). Any issuer then deploys it through the factory, pointed at and bound to its
@@ -225,14 +229,14 @@ async function setupPumpLab() {
     }
     const args = encodeAbiParameters(parseAbiParameters('address, string, string'), [
       rec.account,
-      'PumpLab Meme',
-      'PLMEME',
+      tokenName,
+      tokenSymbol,
     ]);
     const r = await write(issuer, d.factory, factoryAbi, 'deployNative', [
       rec.account,
       bytecode,
       args,
-      keccak256(stringToHex('pumplab')),
+      keccak256(stringToHex(id)),
     ]);
     rec.source = (await eventArgs(r, 'NativeDeployed')).project;
     rec.token = (await publicClient.readContract({
@@ -241,17 +245,21 @@ async function setupPumpLab() {
       functionName: 'token',
     })) as Address;
     saveDeployment(d);
-    console.log(`  PumpLab: native launchpad ${rec.source}, deployed from the template and bound`);
+    console.log(`  ${name}: native launchpad ${rec.source}, deployed from the template and bound`);
   }
   const created = await createBond(
-    'pumplab',
-    { adapter: 0, source: rec.source, policyHash: keccak256(stringToHex('slice-native-pumplab-v1')) },
-    'PumpLab Revenue Claim',
-    'PLAB-RC',
+    id,
+    { adapter: 0, source: rec.source, policyHash: keccak256(stringToHex(`slice-native-${id}-v1`)) },
+    `${name} Revenue Claim`,
+    symbol,
     0,
     100, // fee floor = PumpLab's fixed 1% fee: investors are protected even if a later version adds a setter
   );
-  if (created) await fundAndActivate('pumplab');
+  if (!created) return;
+  if (open) {
+    console.log(`  ${name}: raise open to anyone until the funding deadline; activate with ACTIVATE=1 once full`);
+    if (process.env.ACTIVATE === '1') await fundAndActivate(id);
+  } else await fundAndActivate(id);
 }
 
 
@@ -306,7 +314,9 @@ async function main() {
   const which = process.argv.slice(2);
   const all = which.length === 0;
   console.log(`Setting up demo businesses on ${readDeployment().network}`);
-  if (all || which.includes('pumplab')) await setupPumpLab();
+  if (all || which.includes('pumplab')) await setupLaunchpad('pumplab', 'PumpLab', 'PumpLab Meme', 'PLMEME', 'PLAB-RC', false);
+  // A second issuer on the same reviewed template, raising in the open (e.g. FUNDING_DAYS=17 MATURITY_DAYS=45).
+  if (which.includes('curvelab')) await setupLaunchpad('curvelab', 'CurveLab', 'CurveLab Meme', 'CLMEME', 'CLAB-RC', true);
   if (all || which.includes('agent')) await setupAgent();
 }
 
