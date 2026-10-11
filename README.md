@@ -96,8 +96,12 @@ Deployed 10 Oct 2026 from this code (two tiers, any-token accounts, x402 manifes
 | Watched bond activated | `0xf2c0ac5b206d62ddbd82e43b62edcf38b61506a8fe3c5ea56fe668acdc530a8a` |
 | Paid x402 call settled to the agent's account | `0x0e59e514bc73b5182096b6ae3c41c8afba4cb0dc777d1d9e00dab837f9dc0b16` |
 | Kuru market deployed / vault seeded | `0x40427209cea15888e13da5e65ad67b4093b9a535599cc8ea021cf373f4431b17` / `0x2400dc20c88683df6c8fd433465058938dab4662e0bc53b5a853c8556bf83a1a` |
+| Repayment, Native: a PumpLab trade's fee split in the same transaction (25% of the fee to the bond) | `0xea9e18647dd0b3f834684d13174acfa0567214d416afc70fe114d9286e82c7a8` |
+| Repayment, Watched: paid x402 call after activation (one of five), then `sweep` books them (0.0125 USDC to the bond) | `0x835c59304f4d74a073033d985c304907aec6f6b8fd148f794074bb53ee9fc7f3` / `0xe21fa613d94ee438cc756f02ef53a1f0dc7e0cf08f5e26d038f74cf10448cff4` |
+| Investor redeems 0.5 `ORCL-RC` claims for 0.003125 USDC (0.5 × 0.00625 backing per claim) | `0x0ef0869998ed188d6ccb80051cb3571f7e791e576468c10eb804548b503e10cb` |
 
-All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json).
+All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json). Every payment above is labelled
+test activity from team-controlled wallets (see Notices).
 
 ## Product vs demo
 
