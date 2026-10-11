@@ -95,29 +95,28 @@ Testnet only; nothing here is an offer (see Notices).
 
 ## Live on Monad testnet (chain 10143)
 
-Deployed 10 Oct 2026 from this code (two tiers, any-token accounts, x402 manifest).
-
 | What | Address |
 |---|---|
-| SliceFactory | `0xd5860ae06955cd7531af491ae7d3363b0a3f893d` |
-| SliceCovenant (CRE receiver) | `0x5502d6e2b169f69364a4adac594e790e0f2fc7d7` |
+| SliceFactory | `0xef7916dc8c95338cd060d498528484e97aa3c597` |
+| SliceCovenant (CRE receiver) | `0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3` |
 | CRE MockKeystoneForwarder | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` |
-| Native reviewer (disclosed) | `0x10Be6883Ebbd9B610C43a97f338512a5e66f5893` |
-| PumpLab (Native): account / project / bond `PLAB-RC` | `0xA34FE8bd5900360b1f284054C4Bcc115A4BA1e81` / `0x793a25ff10e29f12975227b2ed283256b8530bec` / `0x4ecF7082ADF4C4092B480eDC3FB6054a96f0aff4` |
-| Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0x4a83E241BCF144f738276F10DbC922dc4f17ef58` / `0xf12f80905f96ff99688d2a5e719f5F208c385c06` |
-| Kuru `PLAB-RC`/USDC market / AMM vault | `0xBfb848729E3a87026B6A2d99960f78fA7Ad88F4D` / `0x53Da08F6Fd3Ae2552329fb913A7C4F0605BF91D3` |
+| PumpLab (Native, reviewed template): account / project / bond `PLAB-RC` | `0xd5edc79C2a8589c268d37353d77183374897799a` / `0x72E53DD9D209512788e6F3859ce07c56f47983E9` / `0x80e0EB68a1731d545E80e6e9e997f66e6b38dEd0` |
+| CurveLab (Native, same template, **raise open until 28 Oct**): account / project / bond `CLAB-RC` | `0x4295ba874FDf591AF88fD33C87A61b2e7A97b6D0` / `0xe45b023483B9323e7a41baBeb0e5186EC1FA8afB` / `0xD4E5901cce4A7173903F75e6e0327020f5C18B05` |
+| Oracle Agent (Watched): account = x402 `payTo` / bond `ORCL-RC` | `0x8ec5924A95828c855834d7F5F37126B833AC3fAc` / `0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21` |
+| Kuru `PLAB-RC`/USDC market / AMM vault | `0x6492423ca48E33C8D82D085a97B830C9f86a5720` / `0xE714Adae8c3F7E459dEcbA4120E246C8C8223Cf5` |
+| Reviewed PumpLab template (creation-code hash) | `0x1fced72c3e11090c89cf67c3ff0929d704f5a201e7b607fa4ec24c46a2972344` |
 | ERC-8004 agentId | `2117` (Identity Registry `0x8004A818BFB912233c491871b3d84c89A494BD9e`) |
 
 | Transaction | Hash |
 |---|---|
-| CRE report that gated the Watched bond's activation | `0xf45bb15e5b862b2d9da535bf3988cbe049ef4d408671bbe96d75ca24d0c5fe4c` |
-| Watched bond activated | `0xf2c0ac5b206d62ddbd82e43b62edcf38b61506a8fe3c5ea56fe668acdc530a8a` |
-| Paid x402 call settled to the agent's account | `0x0e59e514bc73b5182096b6ae3c41c8afba4cb0dc777d1d9e00dab837f9dc0b16` |
-| Kuru market deployed / vault seeded | `0x40427209cea15888e13da5e65ad67b4093b9a535599cc8ea021cf373f4431b17` / `0x2400dc20c88683df6c8fd433465058938dab4662e0bc53b5a853c8556bf83a1a` |
-| Repayment, Native: a PumpLab trade's fee split in the same transaction (25% of the fee to the bond) | `0xea9e18647dd0b3f834684d13174acfa0567214d416afc70fe114d9286e82c7a8` |
-| Repayment, Watched: paid x402 call after activation (one of five), then `sweep` books them (0.0125 USDC to the bond) | `0x835c59304f4d74a073033d985c304907aec6f6b8fd148f794074bb53ee9fc7f3` / `0xe21fa613d94ee438cc756f02ef53a1f0dc7e0cf08f5e26d038f74cf10448cff4` |
-| Investor redeems 0.5 `ORCL-RC` claims for 0.003125 USDC (0.5 × 0.00625 backing per claim) | `0x0ef0869998ed188d6ccb80051cb3571f7e791e576468c10eb804548b503e10cb` |
-| Kuru fills (test wallet): buy 0.1 USDC → 0.0898 `PLAB-RC`, then sell 0.05 `PLAB-RC` → 0.0571 USDC, each quoted by simulation with a 1% floor | `0x07ad92588fdae9cf0b3bc93bbe2c3b0e922b3f8ef184f71457a534ea9a286d33` / `0x36cecfdc2dab565e9292d23f11d7d8f036cf81152abb8ec4eadff56a8b19c665` |
+| CRE report (compliant) that gated the Watched bond's activation | `0xaf3145ff84f95aad172635f422fae94090c8169a3443d4b6bc4201b3c9d8e16f` |
+| Watched bond activated | `0xae0ff2f65e2fa4d75cfde285f90dd16fb1ee93f0a3550b85833e0fdd7fee624e` |
+| Paid x402 call settled to the agent's account | `0x07e90ba5d70e290d35b8e646873ef90e98bddc3678517bdff1cef58dfc6aa072` |
+| Kuru market deployed / vault seeded | `0xdc1d3d538e60e2e63cf76d0479b76e8ba1a7b44da8e4aa481735ab5945a35722` / `0x9143e52c3a365644a5da752285664b2f39259bf6a89ef9d525bd6380a99e5242` |
+| Kuru fills (test wallet): buy 0.5 USDC → 0.454 `PLAB-RC`, then sell 0.2 `PLAB-RC` → 0.229 USDC, each quoted by simulation with a 1% floor | `0xcc77e7752041e13898ebbf42f64727778352933a2a51658fd94130c789731900` / `0x3c40a9ab49be2bfd49724d10e1a604a33316ce726e994e28c8546587259bf9d8` |
+
+Native repayment is visible on-chain: `pool()` on the `PLAB-RC` bond holds the investors' 25% of every PumpLab
+fee since activation, split inside each trade's own transaction.
 
 All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json). Every payment above is labelled
 test activity from team-controlled wallets (see Notices).

@@ -22,13 +22,17 @@
       "account": "0xd5edc79C2a8589c268d37353d77183374897799a",
       "source": "0x72E53DD9D209512788e6F3859ce07c56f47983E9",
       "token": "0x7eC24b914917AeEfFdfD0752B6B0FBe8da0A658f",
-      "bond": "0x80e0EB68a1731d545E80e6e9e997f66e6b38dEd0"
+      "bond": "0x80e0EB68a1731d545E80e6e9e997f66e6b38dEd0",
+      "kuruMarket": "0x6492423ca48E33C8D82D085a97B830C9f86a5720",
+      "kuruVault": "0xE714Adae8c3F7E459dEcbA4120E246C8C8223Cf5"
     },
     "agent": {
       "name": "Oracle Agent",
       "tier": "watched",
       "issuer": "0xd1ef0BD715Ca18d1cCe7198111A0eF2BB26d56bb",
-      "account": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc"
+      "account": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
+      "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
+      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health"
     },
     "curvelab": {
       "name": "CurveLab",
@@ -39,5 +43,30 @@
       "token": "0x0F548a4cb1EC9d6e0e8DFd668109b0f7E9597c05",
       "bond": "0xD4E5901cce4A7173903F75e6e0327020f5C18B05"
     }
+  },
+  "watchPolicy": {
+    "id": "slice-agent",
+    "chainId": 10143,
+    "chainSelector": "2183018362218727504",
+    "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
+    "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
+    "manifestUrl": "https://slice-agent.vercel.app/.well-known/slice.json",
+    "endpoints": [
+      {
+        "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+        "minAmount": "10000"
+      }
+    ],
+    "method": "GET",
+    "headers": {
+      "accept": "application/json"
+    },
+    "network": "eip155:10143",
+    "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+    "expectedPayTo": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
+    "maxTimeoutSeconds": 300,
+    "parserVersion": "slice-x402-v2-exact-eip3009/2",
+    "epochSeconds": 30,
+    "freshnessSeconds": 90
   }
 }

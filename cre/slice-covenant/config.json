@@ -8,8 +8,8 @@
     "id": "slice-agent",
     "chainId": 10143,
     "chainSelector": "2183018362218727504",
-    "covenant": "0x5502d6e2b169f69364a4adac594e790e0f2fc7d7",
-    "bond": "0xf12f80905f96ff99688d2a5e719f5F208c385c06",
+    "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
+    "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
     "manifestUrl": "https://slice-agent.vercel.app/.well-known/slice.json",
     "endpoints": [
       {
@@ -23,7 +23,7 @@
     },
     "network": "eip155:10143",
     "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
-    "expectedPayTo": "0x4a83E241BCF144f738276F10DbC922dc4f17ef58",
+    "expectedPayTo": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
     "maxTimeoutSeconds": 300,
     "parserVersion": "slice-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,
