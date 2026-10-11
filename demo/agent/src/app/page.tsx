@@ -3,7 +3,7 @@ export default function Page() {
     <main>
       <h1>Slice paid research API</h1>
       <p>
-        One concise Kimi answer costs 0.01 testnet USDC. Use an x402 client with{' '}
+        One concise AI answer (an open model on Groq; see /api/config for the exact model) costs 0.01 testnet USDC. Use an x402 client with{' '}
         <code>GET /api/oracle?question=your-question</code>.
       </p>
       <p>

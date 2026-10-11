@@ -9,6 +9,10 @@ The project inherits `SliceEarner`, which fixes its SliceAccount at deploy. Ever
 approves the code before it can raise. Before every deposit, activation and second release the factory checks
 that the project is still approved, bound and pointing at the account.
 
+"Impossible" covers the reviewed contract's payment path. The business can still stop operating, lower volume, or
+move users to a new contract; a `minFeeBps` floor stops it cutting the fee on the bound contract, and the claim's
+Kuru price is where the remaining risk shows.
+
 ## Watched: caught and punished
 For revenue paid over HTTP (x402). The business sets its `payTo` to the account and publishes
 `/.well-known/slice.json`. On every check (every 30 minutes on testnet, each report covering one 30-second
