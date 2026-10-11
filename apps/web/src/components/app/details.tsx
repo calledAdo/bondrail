@@ -8,6 +8,7 @@ import { bondAbi, covenantAbi } from '@/lib/abi';
 import { chain } from '@/lib/wallet';
 import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
+import { creditLine, defaultCreditTerms } from '@slice/sdk/credit';
 import { BondActions } from './bond-actions';
 import { Trade } from './trade';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
@@ -288,6 +289,39 @@ export function BondPage({ address }: { address: string }) {
   );
 }
 
+/** What this history supports: the largest raise at standard terms, priced only on attributed revenue. */
+function CreditLinePanel({ a }: { a: AccountView }) {
+  const t = defaultCreditTerms;
+  const c = creditLine({ revenuePerDay: a.verifiedDaily, ageDays: a.ageDays, uniquePayers: a.uniquePayers, topPayerShare: a.topPayerShare });
+  const pct = (x: number) => `${Math.round(x * 100)}%`;
+  return (
+    <Panel title="Credit line">
+      <p className="font-mono text-2xl tabular">[{fmt(c.maxRaise, a.asset)}]</p>
+      <p className="mt-1 text-xs text-foreground/60">
+        {c.eligible
+          ? `largest raise this history supports at ${t.revenueBps / 100}% of revenue for ${t.termDays} days, ${t.capMultiple}× cap, ${t.targetCoverage}× coverage`
+          : c.reason}
+      </p>
+      <dl className="mt-3 space-y-1 text-xs">
+        {(
+          [
+            ['Attributed revenue', `${fmt(a.verifiedDaily, a.asset)}/day`],
+            ['Expected to investors', fmt(c.expectedRepayment, a.asset)],
+            ['Stress haircut', pct(c.factors.stress)],
+            [`History weight (${a.ageDays.toFixed(1)} of ${t.fullHistoryDays} days)`, pct(c.factors.history)],
+            [`Diversification (top payer ${pct(a.topPayerShare)})`, pct(c.factors.diversification)],
+          ] as const
+        ).map(([k, v]) => (
+          <div key={k} className="flex justify-between gap-4">
+            <dt className="text-foreground/60">{k}</dt>
+            <dd className="font-mono tabular">{v}</dd>
+          </div>
+        ))}
+      </dl>
+    </Panel>
+  );
+}
+
 export function AccountPage({ address }: { address: string }) {
   const { data, loading, error, configured } = useProtocol();
   if (!configured) return <Empty title="No indexer configured" />;
@@ -319,6 +353,7 @@ export function AccountPage({ address }: { address: string }) {
           <Payers a={a} />
         </div>
         <aside className="space-y-6">
+          <CreditLinePanel a={a} />
           <Panel title="Bonds" aside={<span className="font-mono text-xs text-foreground/60">[{bonds.length}]</span>}>
             {bonds.length === 0 ? (
               <p className="text-sm text-foreground/60">No bonds yet. This account is building history.</p>

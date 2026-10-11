@@ -26,6 +26,7 @@ import { LIMITS, profileDomain, profileTypes } from '@/lib/profile';
 import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
 import { Badge, Empty } from './ui';
+import { confirmedIn, receiptTimed } from '@/lib/tx';
 
 const KURU_ROUTER: Address = '0x7EFbE105Ca7415dE98F96622173458ac1c054630';
 const kuruAbi = [
@@ -80,9 +81,9 @@ function useSend(onDone: () => void) {
       const sim = (await client.simulateContract({ account: address, ...call } as never)) as unknown as { request: never };
       const hash = await wallet.writeContract(sim.request);
       setStatus({ text: `${label}: waiting for the receipt…`, hash });
-      const r = await client.waitForTransactionReceipt({ hash });
+      const { receipt: r, ms } = await receiptTimed(client as never, hash);
       if (r.status !== 'success') throw new Error('The transaction reverted.');
-      setStatus({ text: `${label}: confirmed.`, hash });
+      setStatus({ text: `${label}: ${confirmedIn(ms)}.`, hash });
       onDone();
       return r;
     } catch (e) {

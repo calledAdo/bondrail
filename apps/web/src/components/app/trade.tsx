@@ -9,6 +9,7 @@ import { ExternalLink } from 'lucide-react';
 import { chain, safeNetwork } from '@/lib/wallet';
 import type { BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
+import { confirmedIn, receiptTimed } from '@/lib/tx';
 
 const orderbookAbi = [
   {
@@ -157,11 +158,11 @@ export function Trade({ b }: { b: BondView }) {
     try {
       const hash = await fn();
       setStatus({ text: 'Waiting for the receipt…', hash });
-      const r = await client!.waitForTransactionReceipt({ hash });
+      const { receipt: r, ms } = await receiptTimed(client as never, hash);
       if (r.status !== 'success') throw new Error('The transaction reverted.');
       // Clear the order first: otherwise the balance refresh would requote it and replace this receipt.
       if (label !== 'Approve') setAmount('');
-      setStatus({ text: `${label}: confirmed.`, hash });
+      setStatus({ text: `${label}: ${confirmedIn(ms)}.`, hash });
       await reads.refetch();
     } catch (e) {
       setStatus({ text: reason(e), error: true });

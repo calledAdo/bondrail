@@ -74,6 +74,11 @@ removed: a guard can only check the getters it is told about, so a second admin 
 proxy or a withdraw function would still divert fees, and making it safe needed the same review as
 Native with weaker payer data.
 
+**Credit line.** Every account's credit profile shows the largest raise its own history supports: attributed
+revenue per day × investor share × term, discounted for stress (70%), history length (full weight at 30 days) and
+payer concentration, then sized for a 1.2× cap at 1.2× coverage ([`packages/sdk/src/credit.ts`](packages/sdk/src/credit.ts)).
+Only attributed revenue counts; issuer-funded and unclassified inflows never do.
+
 Before a bond, an account must have `minHistory` of payment history (time is the one part of a history
 that can't be faked), and every deposit re-checks the source: a Native project must still be reviewed and
 bound, and a Watched bond's latest CRE observation must not be a violation.
@@ -186,7 +191,10 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 
 ### Monad
 - Per-payment splitting and $0.01 x402 micropayments only make sense with fast, cheap transactions.
-- About 600 ms finality makes repayment visible live: the bond page shows backing per claim updating as payments land.
+- Measured, not assumed: five PumpLab buys on testnet, each splitting the investors' share inside the trade,
+  took **171–839 ms (median 755 ms)** from broadcast to receipt (e.g. `0x9ef69f2bbd068b9bd4d5c4219943c7ec058c41d693b60502af6f467cd3753e2a`).
+  The app shows the same measurement for every transaction a user sends ("confirmed on Monad in … ms"), and the
+  bond page's backing per claim updates as payments land.
 - The x402 facilitator settles on Monad and pays the gas, so payers need only USDC.
 
 ### Also used

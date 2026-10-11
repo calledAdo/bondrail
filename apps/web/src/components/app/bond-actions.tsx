@@ -9,6 +9,7 @@ import { accountAbi, bondAbi, factoryAbi } from '@/lib/abi';
 import { chain, deployment, safeNetwork } from '@/lib/wallet';
 import type { BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
+import { confirmedIn, receiptTimed } from '@/lib/tx';
 
 type Call = { address: Address; abi: Abi; functionName: string; args?: unknown[] };
 
@@ -68,9 +69,9 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
       const sim = (await client.simulateContract({ account: address, ...call } as never)) as unknown as { request: never };
       const hash = await wallet.writeContract(sim.request);
       setStatus({ text: 'Waiting for the receipt…', hash });
-      const r = await client.waitForTransactionReceipt({ hash });
+      const { receipt: r, ms } = await receiptTimed(client as never, hash);
       if (r.status !== 'success') throw new Error('The transaction reverted.');
-      setStatus({ text: `${label}: confirmed.`, hash });
+      setStatus({ text: `${label}: ${confirmedIn(ms)}.`, hash });
       await reads.refetch();
       onDone();
     } catch (e) {
