@@ -348,8 +348,9 @@ demo/             DEMO      contracts (PumpLab), agent (Oracle Agent), scripts
 - All work was done during the Metropolis hackathon period (from 1 September 2026). The project began
   as **Zeitgeist**, an attention-markets product, and pivoted to Slice, a finance primitive. Slice is a
   new codebase; it shares no code with Zeitgeist, only a testnet deployer wallet.
-- The history starts on 9 October 2026 because work before then (in AI coding sessions) was imported as
-  snapshots: the first commits are named "Snapshot of Codex's … build".
+- Slice was started on 9 October 2026, after the pivot. The first two commits ("Snapshot of Codex's …
+  build") are that day's Codex work, committed when the build moved to Claude Code; the git history covers
+  the whole build. Dates and evidence: [`BUILD_LOG.md`](BUILD_LOG.md).
 - **AI tools:** built with AI pair-programming, first OpenAI Codex, then Claude Code (Anthropic). The AI
   wrote most of the code under the author's direction; design decisions, review, testing and deployments
   were directed and checked by the author.
