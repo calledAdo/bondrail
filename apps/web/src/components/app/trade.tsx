@@ -96,17 +96,31 @@ export function Trade({ b }: { b: BondView }) {
   const ready = !!address && chainId === chain.id && safeNetwork && !busy && !!params;
 
   // Order size in the market's precision: buys are quote spent (price precision), sells are claims (size precision).
-  const size = (p: NonNullable<typeof params>) => parseUnits(amount, String(buy ? p[0] : p[1]).length - 1);
+  const decimals = (p: NonNullable<typeof params>) => String(buy ? p[0] : p[1]).length - 1;
+  const size = (p: NonNullable<typeof params>) => parseUnits(amount, decimals(p));
 
-  async function simulate(minOut: bigint) {
+  async function simulate(minOut: bigint, at = size(params!)) {
     const { result, request } = await client!.simulateContract({
       account: address!,
       address: market,
       abi: orderbookAbi,
       functionName: buy ? 'placeAndExecuteMarketBuy' : 'placeAndExecuteMarketSell',
-      args: [size(params!), minOut, false, false],
+      args: [at, minOut, false, false],
     });
     return { out: result as unknown as bigint, request };
+  }
+
+  /** Largest order (in market precision) the book can fill now; Kuru reverts rather than partially filling. */
+  async function maxFillable(upper: bigint) {
+    let lo = 0n,
+      hi = upper;
+    for (let i = 0; i < 12 && hi - lo > 1n; i++) {
+      const mid = (lo + hi) / 2n;
+      const ok = await simulate(0n, mid).then((r) => r.out > 0n, () => false);
+      if (ok) lo = mid;
+      else hi = mid;
+    }
+    return lo;
   }
 
   async function getQuote() {
@@ -117,13 +131,22 @@ export function Trade({ b }: { b: BondView }) {
       setQuote({ side, amount, out, at: Date.now() });
     } catch (e) {
       setQuote(undefined);
-      setStatus({ text: reason(e), error: true });
+      // A revert while quoting is almost always depth: say how much the market can take instead.
+      const max = await maxFillable(size(params!));
+      setStatus({
+        text:
+          max > 0n
+            ? `Not enough liquidity for this size: the market can fill at most ${formatUnits(max, decimals(params!))} ${buy ? b.asset.symbol : 'claims'} now.`
+            : `The market can't fill this order now (${reason(e)}).`,
+        error: true,
+      });
     }
   }
 
   // Requote whenever the order changes (approval permitting).
   useEffect(() => {
     setQuote(undefined);
+    if (!valid) return; // keeps the last receipt visible after a trade clears the amount
     if (ready && valid && (allowance ?? 0n) >= spend && (balance ?? 0n) >= spend) void getQuote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [side, amount, allowance, balance, ready]);
@@ -136,6 +159,8 @@ export function Trade({ b }: { b: BondView }) {
       setStatus({ text: 'Waiting for the receipt…', hash });
       const r = await client!.waitForTransactionReceipt({ hash });
       if (r.status !== 'success') throw new Error('The transaction reverted.');
+      // Clear the order first: otherwise the balance refresh would requote it and replace this receipt.
+      if (label !== 'Approve') setAmount('');
       setStatus({ text: `${label}: confirmed.`, hash });
       await reads.refetch();
     } catch (e) {
