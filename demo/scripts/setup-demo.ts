@@ -11,7 +11,7 @@
 // again once the history is old enough. On local anvil the wait is skipped by advancing the chain clock.
 //
 // Amounts are small on purpose (testnet USDC comes from a rate-limited faucet). Override with
-// RAISE_USDC / CAP_USDC / STAKE_USDC. Every wallet here is team-controlled demo activity.
+// RAISE_USDC / CAP_USDC / STAKE_USDC / MATURITY_DAYS. Every wallet here is team-controlled demo activity.
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -78,16 +78,19 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
 }
 
 function terms(now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
-  // Funding 1 day; second release opens after 1 h of operation, closes at 5 days; matures at 7 days.
+  // Funding 1 day; second release opens after 1 h of operation, closes 2 days before maturity;
+  // matures after MATURITY_DAYS (default 7; use 30+ so a series stays live through judging).
+  const days = BigInt(process.env.MATURITY_DAYS ?? '7');
+  if (days < 3n) throw new Error('MATURITY_DAYS must be at least 3');
   return {
     raiseAmount: RAISE,
     repayCap: CAP,
     stake: STAKE,
     minRevenue: usdc('0.01'),
     fundingDeadline: now + 24n * HOUR,
-    maturity: now + 7n * 24n * HOUR,
+    maturity: now + days * 24n * HOUR,
     secondReleaseNotBefore: now + 25n * HOUR,
-    secondReleaseDeadline: now + 5n * 24n * HOUR,
+    secondReleaseDeadline: now + (days - 2n) * 24n * HOUR,
     minOperatingPeriod: 3600,
     revenueBps: 2500,
     firstReleaseBps: 5000,
