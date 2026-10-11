@@ -7,7 +7,7 @@ records when, with what tools, and how the git history relates to the work.
 
 | Date (2026) | Work | Evidence |
 |---|---|---|
-| 3–8 Oct | **Zeitgeist**, an attention-markets idea for Metropolis (Bancor category markets, a GDELT attention oracle). Abandoned; no code carried over | Separate repository `calledAdo/zeitgeist` (created 8 Oct); Codex session logs of 3 Oct |
+| 3–8 Oct | **Zeitgeist**, an attention-markets idea for Metropolis (Bancor category markets, a GDELT attention oracle). Abandoned; no code carried over | Public repository [`calledAdo/zeitgeist`](https://github.com/calledAdo/zeitgeist) (created 8 Oct); Codex session logs of 3 Oct |
 | 9 Oct | **Pivot to Slice** (revenue bonds for onchain businesses, Track 1). First build in OpenAI Codex sessions, committed the same day as the two "Snapshot of Codex's … build" commits (`9fc79ac`, `5f26d57`), then handed over to Claude Code | Codex session logs of 9 Oct; this repository's first commits (9 Oct, 13:18 +01:00) |
 | 9–10 Oct | Contracts (account, bond, factory, covenant), SDK, Envio indexer, Chainlink CRE workflow, x402 demo agent, web app; first testnet deployment | 61 commits |
 | 11 Oct | Hackathon assessment; reviewed Native templates (`deployNative`), investor withdrawal during a raise, credit line, measured Monad confirmation times, the testnet deployment listed in the README, Kuru market, an open raise for judges | Commits from `e1c91f2` onwards; `llmtimeline/` |
