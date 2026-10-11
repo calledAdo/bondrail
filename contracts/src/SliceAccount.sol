@@ -79,6 +79,16 @@ contract SliceAccount is ReentrancyGuard {
     /// The project must already point at this account (ISliceEarner), which it cannot change later.
     function bindProject(address project_) external {
         if (msg.sender != issuer) revert Unauthorized();
+        _bind(project_);
+    }
+
+    /// @notice Binding done by the factory when it deploys a reviewed template for the issuer.
+    function bindProjectFromFactory(address project_) external {
+        if (msg.sender != factory) revert Unauthorized();
+        _bind(project_);
+    }
+
+    function _bind(address project_) private {
         if (project != address(0) || project_.code.length == 0) revert InvalidState();
         if (ISliceEarner(project_).sliceAccount() != address(this)) revert InvalidState();
         project = project_;

@@ -247,6 +247,73 @@ contract NativeTest is TestBase {
         vm.stopPrank();
     }
 
+    // ---- reviewed templates: one review, any issuer, no per-project approval
+
+    function _template() internal returns (SliceAccount fresh, bytes memory code, bytes memory args) {
+        code = type(PumpLab).creationCode;
+        vm.prank(REVIEWER);
+        factory.setNativeTemplate(keccak256(code), true);
+        vm.prank(issuer);
+        fresh = SliceAccount(factory.createAccount(address(asset)));
+        args = abi.encode(address(fresh), "Tpl", "TPL");
+    }
+
+    function testTemplateDeployBindsAndQualifiesWithoutReview() public {
+        (SliceAccount fresh, bytes memory code, bytes memory args) = _template();
+        vm.prank(issuer);
+        address project = factory.deployNative(address(fresh), code, args, bytes32(0));
+        eq(uint256(uint160(fresh.project())), uint256(uint160(project)));
+        yes(!factory.nativeApproved(project)); // never individually reviewed
+        vm.prank(issuer);
+        factory.createBond(
+            address(fresh),
+            t,
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, project, keccak256("native")),
+            "Tpl Revenue Claim",
+            "TPL-RC"
+        );
+    }
+
+    function testTemplateRevocationBlocksItsProjects() public {
+        (SliceAccount fresh, bytes memory code, bytes memory args) = _template();
+        vm.prank(issuer);
+        address project = factory.deployNative(address(fresh), code, args, bytes32(0));
+        vm.prank(REVIEWER);
+        factory.setNativeTemplate(keccak256(code), false);
+        vm.prank(issuer);
+        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        factory.createBond(
+            address(fresh),
+            t,
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, project, keccak256("native")),
+            "Tpl Revenue Claim",
+            "TPL-RC"
+        );
+    }
+
+    function testTemplateRejectsUnreviewedCodeOtherAccountsAndStrangers() public {
+        (SliceAccount fresh, bytes memory code, bytes memory args) = _template();
+        vm.startPrank(issuer);
+        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        factory.deployNative(address(fresh), bytes.concat(code, hex"00"), args, bytes32(0)); // not reviewed
+        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        factory.deployNative(address(fresh), code, abi.encode(address(account), "X", "X"), bytes32(0)); // wrong account
+        vm.stopPrank();
+        vm.prank(address(0xBAD));
+        vm.expectRevert(SliceFactory.Unauthorized.selector);
+        factory.deployNative(address(fresh), code, args, bytes32(0)); // not the issuer
+        vm.prank(address(0xBAD));
+        vm.expectRevert(SliceAccount.Unauthorized.selector);
+        fresh.bindProjectFromFactory(address(lab));
+    }
+
+    function testTemplateCannotRebindAnAccount() public {
+        (, bytes memory code,) = _template();
+        vm.prank(issuer);
+        vm.expectRevert(SliceAccount.InvalidState.selector);
+        factory.deployNative(address(account), code, abi.encode(address(account), "Y", "Y"), bytes32(0)); // already bound
+    }
+
     function _balance(address token, address who) internal view returns (uint256 b) {
         (, bytes memory r) = token.staticcall(abi.encodeWithSignature("balanceOf(address)", who));
         b = abi.decode(r, (uint256));

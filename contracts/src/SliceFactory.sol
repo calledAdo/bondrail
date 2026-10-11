@@ -44,9 +44,16 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     mapping(address => bool) public isBond;
     /// @notice Native projects whose code the reviewer has checked routes every fee through `collect`.
     mapping(address => bool) public nativeApproved;
+    /// @notice Reviewed templates, by the hash of their creation code (constructor arguments excluded).
+    /// Reviewed once; any issuer can then deploy one with `deployNative` and raise without a new review.
+    mapping(bytes32 initCodeHash => bool) public nativeTemplate;
+    /// @notice The template a project was deployed from by `deployNative` (zero for individually reviewed ones).
+    mapping(address project => bytes32) public templateOf;
 
     event AccountCreated(address indexed issuer, address indexed account, address indexed asset);
     event NativeApproval(address indexed project, bool approved);
+    event NativeTemplate(bytes32 indexed initCodeHash, bool approved);
+    event NativeDeployed(address indexed account, address indexed project, bytes32 indexed initCodeHash);
     event BondCreated(
         address indexed issuer,
         address indexed account,
@@ -96,6 +103,37 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         if (msg.sender != reviewer) revert Unauthorized();
         nativeApproved[project] = approved;
         emit NativeApproval(project, approved);
+    }
+
+    /// @notice Reviewer approves (or revokes) a template: creation code whose every fee goes through the
+    /// account passed as its first constructor argument. Revoking it revokes every project built from it.
+    function setNativeTemplate(bytes32 initCodeHash, bool approved) external {
+        if (msg.sender != reviewer) revert Unauthorized();
+        nativeTemplate[initCodeHash] = approved;
+        emit NativeTemplate(initCodeHash, approved);
+    }
+
+    /// @notice Deploys a reviewed template for the caller's account and binds it, in one transaction.
+    /// `args` is the ABI-encoded constructor arguments and must start with the account, so the deployed
+    /// code is exactly the reviewed code pointed at this account. No per-project review is needed.
+    function deployNative(address account, bytes calldata creationCode, bytes calldata args, bytes32 salt)
+        external
+        nonReentrant
+        returns (address project)
+    {
+        _issuerAccount(account);
+        bytes32 codeHash = keccak256(creationCode);
+        if (!nativeTemplate[codeHash]) revert InvalidAdapter();
+        if (args.length < 32 || abi.decode(args[:32], (address)) != account) revert InvalidAdapter();
+        bytes memory initCode = bytes.concat(creationCode, args);
+        bytes32 fullSalt = keccak256(abi.encode(account, salt));
+        assembly ("memory-safe") {
+            project := create2(0, add(initCode, 0x20), mload(initCode), fullSalt)
+        }
+        if (project == address(0)) revert InvalidAdapter();
+        templateOf[project] = codeHash;
+        SliceAccount(account).bindProjectFromFactory(project); // also checks it points at the account
+        emit NativeDeployed(account, project, codeHash);
     }
 
     // ---------------------------------------------------------------- bonds
@@ -223,7 +261,9 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     }
 
     function _nativeOk(address source, address account) private view returns (bool) {
-        return nativeApproved[source] && SliceAccount(account).project() == source
+        bytes32 template = templateOf[source];
+        bool reviewed = nativeApproved[source] || (template != bytes32(0) && nativeTemplate[template]);
+        return reviewed && SliceAccount(account).project() == source
             && ISliceEarner(source).sliceAccount() == account;
     }
 

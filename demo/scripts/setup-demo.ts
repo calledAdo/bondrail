@@ -16,9 +16,11 @@ import os from 'node:os';
 import path from 'node:path';
 import {
   decodeEventLog,
+  encodeAbiParameters,
   getContractAddress,
   keccak256,
   parseAbi,
+  parseAbiParameters,
   parseEther,
   parseUnits,
   stringToHex,
@@ -29,7 +31,6 @@ import {
   account,
   artifact,
   chainId,
-  deploy,
   publicClient,
   readDeployment,
   saveDeployment,
@@ -203,28 +204,41 @@ async function setupPumpLab() {
   const rec = d.issuers.pumplab!;
   const issuer = account('pumplab-issuer');
   if (!rec.source) {
-    // The project deploys itself, pointed at its account (SliceEarner), and binds itself to it.
-    rec.source = await deploy(issuer, 'PumpLab', [rec.account, 'PumpLab Meme', 'PLMEME']);
+    // The disclosed reviewer approves the PumpLab template once (its creation code: every fee goes
+    // through SliceEarner). Any issuer then deploys it through the factory, pointed at and bound to its
+    // own account in one transaction, with no per-project review.
+    const { bytecode } = artifact('PumpLab');
+    const templateHash = keccak256(bytecode);
+    const reviewed = await publicClient.readContract({
+      address: d.factory,
+      abi: factoryAbi,
+      functionName: 'nativeTemplate',
+      args: [templateHash],
+    });
+    if (!reviewed) {
+      await fund(account('reviewer').address, '0.2', 0n, d.asset);
+      await write(account('reviewer'), d.factory, factoryAbi, 'setNativeTemplate', [templateHash, true]);
+      console.log(`  PumpLab: template ${templateHash} approved by the reviewer`);
+    }
+    const args = encodeAbiParameters(parseAbiParameters('address, string, string'), [
+      rec.account,
+      'PumpLab Meme',
+      'PLMEME',
+    ]);
+    const r = await write(issuer, d.factory, factoryAbi, 'deployNative', [
+      rec.account,
+      bytecode,
+      args,
+      keccak256(stringToHex('pumplab')),
+    ]);
+    rec.source = (await eventArgs(r, 'NativeDeployed')).project;
     rec.token = (await publicClient.readContract({
       address: rec.source,
       abi: artifact('PumpLab').abi,
       functionName: 'token',
     })) as Address;
     saveDeployment(d);
-    await write(issuer, rec.account, artifact('SliceAccount').abi, 'bindProject', [rec.source]);
-    console.log(`  PumpLab: native launchpad ${rec.source}, bound to its account`);
-  }
-  const approved = await publicClient.readContract({
-    address: d.factory,
-    abi: factoryAbi,
-    functionName: 'nativeApproved',
-    args: [rec.source],
-  });
-  if (!approved) {
-    // The disclosed reviewer has checked PumpLab's code: every fee goes through SliceEarner._collect.
-    await fund(account('reviewer').address, '0.2', 0n, d.asset);
-    await write(account('reviewer'), d.factory, factoryAbi, 'setNativeApproval', [rec.source, true]);
-    console.log('  PumpLab: approved as Native by the reviewer');
+    console.log(`  PumpLab: native launchpad ${rec.source}, deployed from the template and bound`);
   }
   const created = await createBond(
     'pumplab',

@@ -52,7 +52,7 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
 
 | Tier | For | Why revenue can't be diverted | Demo |
 |---|---|---|---|
-| **Native** | New projects built on Slice: inherit `SliceEarner` | Every fee is pulled through the account, which is fixed into the project's contract. A disclosed Slice reviewer checks the code before the project can raise; history accrues before review: **impossible by construction for the reviewed contract's payment path** (the business can still stop operating or move users to a new contract) | PumpLab launchpad |
+| **Native** | New projects built on Slice: inherit `SliceEarner` | Every fee is pulled through the account, which is fixed into the project's contract. A disclosed reviewer approves a **template** once (by creation-code hash); any issuer deploys it through `SliceFactory.deployNative`, bound to its own account in the same transaction, and can raise with no per-project review (custom contracts are still reviewed individually); history accrues before review: **impossible by construction for the reviewed contract's payment path** (the business can still stop operating or move users to a new contract) | PumpLab launchpad |
 | **Watched** | Revenue paid over HTTP (x402 agents) | The business publishes `/.well-known/slice.json` (its account and every paid endpoint). **Chainlink CRE** checks the manifest and every endpoint's offer (every 30 minutes on testnet; each report covers one 30 s epoch): any option paying elsewhere or below the price floor is a violation; a violation is re-checked in the next 30 s epoch and two adjacent violations default the bond and slash the stake (so a diversion is caught within one check interval plus about a minute); a day of Unknown reports (offer unreachable) also defaults it, while a monitor outage never does. Guarded buyers (`@slice/sdk/x402-guard`) refuse to pay a `payTo` that isn't the published account: **caught and punished** | Oracle Agent |
 
 ```
@@ -204,7 +204,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |
 
-- Foundry: 59 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
+- Foundry: 63 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
 - TypeScript: tests for scoring, observer, worker, agent and web (`pnpm -r test`).
 
 ## Limits, stated plainly
@@ -214,8 +214,10 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 - **CRE runs as a simulation** that broadcasts real reports, not a deployed DON: a small server runs the
   observer and `cre workflow simulate --broadcast` every 30 minutes ([`ops/covenant-server`](ops/covenant-server)).
   The observer is a single disclosed signer.
-- **Native trust is a disclosed reviewer.** A contract can't verify arbitrary bytecode, so a reviewer
-  approves Native projects' code; approved templates (code-hash registry) are the planned next step.
+- **Native trust is a disclosed reviewer, applied once per template.** A contract can't verify arbitrary
+  bytecode, so the reviewer approves a template's creation-code hash; the factory then enforces that a
+  project is exactly that code, pointed at its own account. Revoking a template revokes every project
+  built from it. Custom contracts still need an individual review.
 - **Nansen** covers Monad mainnet, not testnet. Our fresh demo payers come back unlabelled.
 
 ## Architecture

@@ -4,7 +4,7 @@
 //   (06) bond terms + create  (07) raise and activate  (08) Kuru market  (09) manage
 import Link from 'next/link';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { useAccount, useBlock, usePublicClient, useReadContracts, useWalletClient } from 'wagmi';
+import { useAccount, useBlock, usePublicClient, useReadContract, useReadContracts, useWalletClient } from 'wagmi';
 import {
   erc20Abi,
   getContractAddress,
@@ -16,6 +16,7 @@ import {
   type Abi,
   type Address,
   type Hash,
+  type Hex,
 } from 'viem';
 import { Check, Circle, ExternalLink, Lock } from 'lucide-react';
 import { PARSER_VERSION, policyHash, type WatchPolicy } from '@slice/observer/protocol';
@@ -203,10 +204,22 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
       { address: account?.address, abi: accountAbi, functionName: 'issuerCredit', chainId: chain.id },
       { address: account?.address, abi: accountAbi, functionName: 'project', chainId: chain.id },
       { address: factory, abi: factoryAbi, functionName: 'covenant', chainId: chain.id },
+      { address: factory, abi: factoryAbi, functionName: 'templateOf', args: [account?.project ?? '0x0000000000000000000000000000000000000000'], chainId: chain.id },
     ] as never[],
     query: { enabled: !!factory, refetchInterval: 10_000 },
   });
-  const [minHistory, approved, credit, project, covenant] = (reads.data ?? []).map((r) => r.result) as [bigint?, boolean?, bigint?, Address?, Address?];
+  const [minHistory, approvedDirect, credit, project, covenant, template] = (reads.data ?? []).map((r) => r.result) as [bigint?, boolean?, bigint?, Address?, Address?, Hex?];
+  // A project deployed from a reviewed template (deployNative) needs no review of its own.
+  const fromTemplate = !!template && !/^0x0{64}$/i.test(template);
+  const { data: templateOk } = useReadContract({
+    address: factory,
+    abi: factoryAbi,
+    functionName: 'nativeTemplate',
+    args: [template ?? '0x0000000000000000000000000000000000000000000000000000000000000000'],
+    chainId: chain.id,
+    query: { enabled: !!factory && fromTemplate, refetchInterval: 10_000 },
+  });
+  const approved = !!approvedDirect || (fromTemplate && !!templateOk);
   const boundProject = project && !/^0x0{40}$/i.test(project) ? project : undefined;
 
   // (01) account
@@ -352,8 +365,8 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
       {tier === 'Native' && (
         <Step index={5} title="Code review" status={s(!!approved, !!boundProject)} summary={approved ? 'approved' : undefined}>
           <p className="text-foreground/70">
-            The disclosed reviewer checks that every fee in your contract goes through <code>SliceEarner</code>. History keeps accruing meanwhile.{' '}
-            {approved ? 'Approved.' : 'Not yet approved.'}
+            Deploy a reviewed template (<code>SliceFactory.deployNative</code>) and you qualify at once; a custom contract waits for the disclosed reviewer to check that every fee goes through <code>SliceEarner</code>. History keeps accruing meanwhile.{' '}
+            {approved ? (fromTemplate ? 'Reviewed template.' : 'Approved.') : 'Not yet approved.'}
           </p>
         </Step>
       )}
