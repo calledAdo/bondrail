@@ -22,6 +22,7 @@ contracts:
   - name: SliceBond
     events:
       - event: "Deposited(address indexed payer, uint256 amount, uint256 funded)"
+        field_selection: { transaction_fields: [hash] }
       - event: "Withdrawn(address indexed holder, address indexed receiver, uint256 amount, uint256 funded)"
         field_selection: { transaction_fields: [hash] }
       - event: "Activated(address indexed issuer, uint256 released, uint256 undrawn, uint256 effectiveCap)"
@@ -59,12 +60,12 @@ contracts:
         field_selection: { transaction_fields: [hash] }
 chains:
   - id: 10143
-    start_block: 69828092
+    start_block: 69994909
     contracts:
       - name: SliceFactory
-        address: "0xd5860ae06955cd7531af491ae7d3363b0a3f893d"
+        address: "0xef7916dc8c95338cd060d498528484e97aa3c597"
       - name: SliceCovenant
-        address: "0x5502d6e2b169f69364a4adac594e790e0f2fc7d7"
+        address: "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3"
       - name: USDC
         address: "0x534b2f3A21130d7a60830c2Df862319e593943A3"
       - name: SliceAccount

@@ -14,9 +14,9 @@ const dep = JSON.parse(
 const rpc =
   chainId === '31337'
     ? '\n    rpc: http://127.0.0.1:8545'
-    : process.env.ENVIO_API_TOKEN
+    : !process.env.MONAD_RPC // default: HyperSync (Envio Cloud); MONAD_RPC=<url> syncs from an RPC instead
       ? ''
-      : `\n    rpc:\n      - url: ${process.env.MONAD_RPC ?? 'https://testnet-rpc.monad.xyz'}\n        for: sync\n        # Monad's public RPC caps eth_getLogs at 100 blocks.\n        initial_block_interval: 100\n        interval_ceiling: 100`;
+      : `\n    rpc:\n      - url: ${process.env.MONAD_RPC}\n        for: sync\n        # Monad's public RPC caps eth_getLogs at 100 blocks.\n        initial_block_interval: 100\n        interval_ceiling: 100`;
 const tx = '\n        field_selection: { transaction_fields: [hash] }';
 
 fs.writeFileSync(
