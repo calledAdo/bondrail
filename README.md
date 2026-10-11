@@ -99,6 +99,7 @@ Deployed 10 Oct 2026 from this code (two tiers, any-token accounts, x402 manifes
 | Repayment, Native: a PumpLab trade's fee split in the same transaction (25% of the fee to the bond) | `0xea9e18647dd0b3f834684d13174acfa0567214d416afc70fe114d9286e82c7a8` |
 | Repayment, Watched: paid x402 call after activation (one of five), then `sweep` books them (0.0125 USDC to the bond) | `0x835c59304f4d74a073033d985c304907aec6f6b8fd148f794074bb53ee9fc7f3` / `0xe21fa613d94ee438cc756f02ef53a1f0dc7e0cf08f5e26d038f74cf10448cff4` |
 | Investor redeems 0.5 `ORCL-RC` claims for 0.003125 USDC (0.5 × 0.00625 backing per claim) | `0x0ef0869998ed188d6ccb80051cb3571f7e791e576468c10eb804548b503e10cb` |
+| Kuru fills (test wallet): buy 0.1 USDC → 0.0898 `PLAB-RC`, then sell 0.05 `PLAB-RC` → 0.0571 USDC, each quoted by simulation with a 1% floor | `0x07ad92588fdae9cf0b3bc93bbe2c3b0e922b3f8ef184f71457a534ea9a286d33` / `0x36cecfdc2dab565e9292d23f11d7d8f036cf81152abb8ec4eadff56a8b19c665` |
 
 All addresses are in [`docs/deployments/10143.json`](docs/deployments/10143.json). Every payment above is labelled
 test activity from team-controlled wallets (see Notices).
@@ -152,7 +153,14 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 
 ### Kuru: a new asset class
 - Revenue-bond claims trade on a Kuru order book against USDC, with an AMM vault.
-- [`demo/scripts/kuru-market.ts`](demo/scripts/kuru-market.ts): `deployProxy` on the Kuru router, then a vault deposit.
+- Listing: the issuer console (or [`demo/scripts/kuru-market.ts`](demo/scripts/kuru-market.ts)) calls `deployProxy` on the
+  Kuru router, seeds the vault, and registers the market by its `MarketRegistered` receipt.
+- Trading: every bond page with a market has a buy/sell panel
+  ([`apps/web/src/components/app/trade.tsx`](apps/web/src/components/app/trade.tsx)). The quote is the market order
+  itself, simulated against the live book (so it includes vault price impact and the taker fee); the order carries a
+  minimum output 1% under the quote, and a quote older than 30 s is refreshed before sending. Market bid/ask is shown
+  next to the claim's cash backing, so a market price is never confused with what a claim redeems for today.
+- Script equivalent: [`demo/scripts/kuru-trade.ts`](demo/scripts/kuru-trade.ts).
 
 ### Nansen: payer screening
 - On the issuer page, **Screen top payers with Nansen** checks payers against Nansen labels on Monad

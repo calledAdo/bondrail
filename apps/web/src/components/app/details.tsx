@@ -9,6 +9,7 @@ import { chain } from '@/lib/wallet';
 import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
 import { BondActions } from './bond-actions';
+import { Trade } from './trade';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
 
 const explorer = (kind: 'address' | 'tx', v: string) => `${chain.blockExplorers?.default.url}/${kind}/${v}`;
@@ -272,7 +273,12 @@ export function BondPage({ address }: { address: string }) {
           <Terms b={b} />
           {a && <Payers a={a} />}
         </div>
-        <aside className="lg:sticky lg:top-24 lg:self-start">
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
+          {b.kuru && (b.phase === 'Active' || b.phase === 'Closing') && (
+            <Panel title="Trade on Kuru">
+              <Trade b={b} />
+            </Panel>
+          )}
           <Panel title="Act">
             <BondActions b={b} onDone={() => undefined} />
           </Panel>

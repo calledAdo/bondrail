@@ -36,6 +36,7 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ text: string; error?: boolean; hash?: Hash }>();
   const [signed, setSigned] = useState('');
+  const [ack, setAck] = useState(false);
 
   const reads = useReadContracts({
     contracts: [
@@ -44,15 +45,20 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
       { address: b.asset.address, abi: erc20Abi, functionName: 'balanceOf', args: [address ?? '0x0000000000000000000000000000000000000000'], chainId: chain.id },
       { address: b.asset.address, abi: erc20Abi, functionName: 'allowance', args: [address ?? '0x0000000000000000000000000000000000000000', b.address], chainId: chain.id },
       { address: b.address, abi: bondAbi, functionName: 'settleAfter', chainId: chain.id },
+      { address: b.address, abi: bondAbi, functionName: 'pool', chainId: chain.id },
+      { address: b.address, abi: bondAbi, functionName: 'totalSupply', chainId: chain.id },
     ],
     query: { enabled: !!address, refetchInterval: 5000 },
   });
-  const [issuer, claims, cash, allowance, settleAfter] = (reads.data ?? []).map((r) => r.result) as [Address?, bigint?, bigint?, bigint?, bigint?];
+  const [issuer, claims, cash, allowance, settleAfter, pool, supply] = (reads.data ?? []).map((r) => r.result) as [Address?, bigint?, bigint?, bigint?, bigint?, bigint?, bigint?];
   const isIssuer = !!address && !!issuer && issuer.toLowerCase() === address.toLowerCase();
   const d = b.asset.decimals;
   const now = Date.now() / 1000;
   const ready = !!address && chainId === chain.id && safeNetwork && !busy;
   const value = /^\d+(\.\d+)?$/.test(amount) ? parseUnits(amount, d) : 0n;
+  // What redeem pays, exactly as SliceBond.redeem computes it: tokens × pool / supply.
+  const proceeds = pool === undefined || !supply ? 0n : value >= supply ? pool : (value * pool) / supply;
+  const early = b.phase !== 'Closed';
 
   async function send(label: string, call: Call) {
     setBusy(true);
@@ -148,8 +154,37 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
           )}
           {(b.phase === 'Active' || b.phase === 'Closing' || b.phase === 'Closed') && (
             <>
-              <Button primary disabled={!ready || value === 0n} onClick={() => send('Redeem', { address: b.address, abi: bondAbi as Abi, functionName: 'redeem', args: [value, address] })}>
-                Redeem for {b.backingPerToken.toFixed(4)} {b.asset.symbol} each
+              {value > 0n && (
+                <dl className="space-y-1 rounded-lg border border-foreground/10 p-3 text-xs">
+                  {(
+                    [
+                      ['Claims burned', fmtUnits(value)],
+                      ['You receive now', `${fmtUnits(proceeds)} ${b.asset.symbol}`],
+                      ['Claims left', fmtUnits(claims !== undefined && claims > value ? claims - value : 0n)],
+                    ] as const
+                  ).map(([k, v]) => (
+                    <div key={k} className="flex justify-between gap-4">
+                      <dt className="text-foreground/60">{k}</dt>
+                      <dd className="font-mono tabular">{v}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              {early && value > 0n && (
+                <label className="flex gap-2 text-xs text-foreground/70">
+                  <input type="checkbox" checked={ack} onChange={(e) => setAck(e.target.checked)} className="mt-0.5" />
+                  <span>
+                    Redeeming before the bond closes burns these claims for today&apos;s cash backing only: I give up their share of all
+                    future revenue, of undrawn capital returned and of any stake recovered.{b.kuru && ' Selling on Kuru keeps those rights priced in.'}
+                  </span>
+                </label>
+              )}
+              <Button
+                primary
+                disabled={!ready || value === 0n || proceeds === 0n || (early && !ack)}
+                onClick={() => send('Redeem', { address: b.address, abi: bondAbi as Abi, functionName: 'redeem', args: [value, address] })}
+              >
+                {proceeds === 0n && value > 0n ? 'Nothing to redeem yet' : early ? 'Redeem early' : 'Redeem'}
               </Button>
               {b.phase !== 'Closed' && <p className="text-xs text-foreground/60">The last outstanding claim waits for the bond to close.</p>}
             </>

@@ -267,7 +267,8 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
           pool: u(b.pool),
           supply: u(b.totalSupply),
           stake: u(terms.stake),
-          backingPerToken: Number(backing) / 10 ** asset.decimals,
+          // backingPerToken() is pool × 1e6 / supply: a ratio at fixed 1e6 precision whatever the asset's decimals.
+          backingPerToken: Number(backing) / 1e6,
           revenueShare: share * 100,
           firstReleasePct: Number(terms.firstReleaseBps) === 2500 ? 25 : 50,
           minFeeBps: Number(terms.minFeeBps ?? 0),
