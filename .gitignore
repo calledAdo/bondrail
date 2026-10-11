@@ -32,3 +32,6 @@ docs/archive/
 docs/verification-register.md
 AGENTS.md
 docs/*.pdf
+llmtimeline/
+docs/audit-evidence/
+docs/hackathon-assessment-*.md

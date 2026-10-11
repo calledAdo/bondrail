@@ -6,12 +6,17 @@
 // `https://<its host>/.well-known/slice.json` (optionally confirmed on-chain as a real SliceAccount).
 // A mismatch throws instead of paying.
 //
+// The manifest is the business's own claim, so it is only a discovery aid. A buyer paying a financed
+// business should also `pin` what it expects from a source the business doesn't control (the bond's
+// `account()` on-chain, see `pinFromBond`): then a changed manifest pointing at another account, even
+// another real SliceAccount, is refused too.
+//
 //   import { wrapFetchWithPayment } from '@x402/fetch';
 //   const pay = wrapFetchWithPayment(sliceGuard(fetch, { verifyAccount: isSliceAccount(publicClient, factory) }), x402);
 //   await pay('https://agent.example/api/oracle?question=hi');
 import type { Address, PublicClient } from 'viem';
 import { address, decodeBase64Json, isRecord, type SliceManifest } from '@slice/observer/protocol';
-import { sliceFactoryAbi } from './abis';
+import { sliceBondAbi, sliceFactoryAbi } from './abis';
 
 export class SliceGuardError extends Error {
   constructor(
@@ -31,6 +36,24 @@ export interface GuardOptions {
   allowUnlisted?: boolean;
   /** Manifest cache lifetime per origin (default 60 s). */
   cacheSeconds?: number;
+  /** Per origin (`https://host`), what the buyer expects independently of the business's responses. */
+  pin?: Record<string, Pin>;
+}
+
+export interface Pin {
+  /** The SliceAccount every option must pay (e.g. the bond's `account()`). */
+  account: Address;
+  /** Chain id the offers must be on. */
+  chainId?: number;
+  /** Token the offers must charge in (the account's asset). */
+  asset?: Address;
+}
+
+/** A `Pin` read on-chain from the bond being financed: its account, that account's asset and the chain. */
+export async function pinFromBond(publicClient: PublicClient, bond: Address): Promise<Pin> {
+  const account = (await publicClient.readContract({ address: bond, abi: sliceBondAbi, functionName: 'account' })) as Address;
+  const asset = (await publicClient.readContract({ address: bond, abi: sliceBondAbi, functionName: 'asset' })) as Address;
+  return { account, asset, chainId: await publicClient.getChainId() };
 }
 
 /** `verifyAccount` that asks the SliceFactory whether the address is one of its accounts. */
@@ -64,7 +87,17 @@ export function sliceGuard(base: typeof fetch, o: GuardOptions = {}): typeof fet
     const header = response.status === 402 ? response.headers.get('PAYMENT-REQUIRED') : null;
     if (!header) return response;
     const url = new URL(input instanceof Request ? input.url : String(input));
+    // An offer from a redirect target is not the host the buyer chose (or pinned).
+    if (response.redirected && new URL(response.url).origin !== url.origin)
+      throw new SliceGuardError(`${url.origin} redirected the payment offer to ${new URL(response.url).origin}; refusing to pay`);
+    const pin = o.pin?.[url.origin];
     const manifest = await manifestFor(url.origin);
+    if (pin && manifest && manifest.account.toLowerCase() !== pin.account.toLowerCase())
+      throw new SliceGuardError(
+        `${url.origin} now publishes ${manifest.account}, not the pinned account ${pin.account}; refusing to pay`,
+        undefined,
+        pin.account,
+      );
     if (!manifest) {
       if (o.allowUnlisted) return response;
       throw new SliceGuardError(`${url.origin} publishes no valid Slice manifest; refusing to pay`);
@@ -85,6 +118,10 @@ export function sliceGuard(base: typeof fetch, o: GuardOptions = {}): typeof fet
         );
       if (isRecord(a) && a.network !== `eip155:${manifest.chainId}`)
         throw new SliceGuardError(`Offer is on ${String(a.network)}, not the manifest's chain`, payTo, manifest.account);
+      if (pin?.chainId !== undefined && isRecord(a) && a.network !== `eip155:${pin.chainId}`)
+        throw new SliceGuardError(`Offer is on ${String(a.network)}, not the pinned chain ${pin.chainId}`, payTo, pin.account);
+      if (pin?.asset && (!isRecord(a) || typeof a.asset !== 'string' || a.asset.toLowerCase() !== pin.asset.toLowerCase()))
+        throw new SliceGuardError(`Offer charges ${String(isRecord(a) ? a.asset : undefined)}, not the pinned asset ${pin.asset}`, payTo, pin.account);
     }
     return response;
   }) as typeof fetch;

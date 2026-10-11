@@ -27,4 +27,4 @@ fixed slice of every payment until they are repaid.
 | Tier | For | Why fees can't be diverted |
 |---|---|---|
 | **Native** | Contracts built on Slice (inherit `SliceEarner`) | Every fee moves through the account, which is fixed into the contract. A disclosed reviewer checks the code before it can raise. |
-| **Watched** | Paid HTTP APIs (x402) | The business publishes its account in `/.well-known/slice.json`. Chainlink CRE checks every paid endpoint every 30 seconds; diverting payments defaults the bond and slashes the issuer's stake. |
+| **Watched** | Paid HTTP APIs (x402) | The business publishes its account in `/.well-known/slice.json`. Chainlink CRE checks every paid endpoint every 30 minutes (each report covers one 30-second epoch); a confirmed diversion defaults the bond and slashes the issuer's stake. |

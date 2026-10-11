@@ -11,7 +11,7 @@ import { parseAbi, parseUnits } from 'viem';
 import os from 'node:os';
 import path from 'node:path';
 import { account, publicClient, readDeployment, write } from '../../scripts/lib.ts';
-import { isSliceAccount, sliceGuard } from '../../packages/sdk/src/x402-guard.ts';
+import { isSliceAccount, pinFromBond, sliceGuard } from '../../packages/sdk/src/x402-guard.ts';
 
 const [callsArg = '20', payersArg = '5'] = process.argv.slice(2);
 const AGENT_URL = process.env.AGENT_URL ?? readDeployment().issuers.agent?.endpoint?.split('?')[0];
@@ -34,6 +34,9 @@ const erc20 = parseAbi([
 
 async function main() {
   const d = readDeployment();
+  // Pin the agent's financed account from its bond on-chain, so a changed manifest can't redirect payers.
+  const bond = d.issuers.agent?.bond;
+  const pins = bond ? { [new URL(AGENT_URL!).origin]: await pinFromBond(publicClient as never, bond) } : undefined;
   const deployer = account('deployer', {
     fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
   });
@@ -50,7 +53,10 @@ async function main() {
   const fetchers = payers.map((p) => {
     const client = new x402Client();
     registerExactEvmScheme(client, { signer: p });
-    return wrapFetchWithPayment(sliceGuard(fetch, { verifyAccount: isSliceAccount(publicClient, d.factory) }), client);
+    return wrapFetchWithPayment(
+      sliceGuard(fetch, { verifyAccount: isSliceAccount(publicClient, d.factory), pin: pins }),
+      client,
+    );
   });
 
   for (let i = 0; i < Number(callsArg); i++) {

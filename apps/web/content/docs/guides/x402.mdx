@@ -23,19 +23,25 @@ Serve `/.well-known/slice.json` listing your account and every paid endpoint (ea
 
 ## 3. What the monitor checks
 
-Every 30 seconds the observer and Chainlink CRE independently fetch the manifest and every endpoint:
+On every check (every 30 minutes on testnet; each report covers one 30-second epoch) the observer and
+Chainlink CRE independently fetch the manifest and every endpoint:
 
 - every payment option must pay your account, in the committed asset and network, at or above the price floor
   (raising prices is fine);
 - the manifest must keep naming your account and listing every covered endpoint; endpoints you add later are
   checked too.
 
-Two adjacent violations default your bond and slash your stake. A day unreachable while the bond is active
-does too; an hour pauses deposits.
+A violation is re-checked straight away in the next epoch, and two adjacent violations default your bond and
+slash your stake. So a diversion is caught within one check interval plus about a minute. A day of Unknown
+reports (your offer unreachable) while the bond is active also defaults it, and an hour pauses deposits. A
+monitor outage (no reports at all) never counts against you.
 
 ## 4. Buyers can verify you
 
 `sliceGuard` wraps any x402 client's fetch and refuses to sign an offer whose `payTo` is not your published
-account (optionally confirmed on-chain):
+account (optionally confirmed on-chain). The manifest is your own claim, so a buyer paying a business it has
+financed also **pins** what it expects from the chain: `pinFromBond` reads the bond's account, asset and chain,
+and any offer or manifest that names another account (even another real Slice account), another asset or
+chain, or arrives through a redirect to another host, is refused:
 
 <Source file="demo/scripts/traffic-agent.ts" from="const fetchers = payers.map(" />

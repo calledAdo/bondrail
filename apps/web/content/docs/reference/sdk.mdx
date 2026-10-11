@@ -8,7 +8,7 @@ description: "@slice/sdk: typed client, permit, x402 seller and buyer helpers."
 | `@slice/sdk/client` | `sliceClient({ publicClient, walletClient, factory })`: `createAccount`, `bindProject`, `createBond`, `activate`, `releaseSecond`, `sweep`, `withdraw`, `deposit`, `redeem`, `depositAllowed`, `creditHistory` |
 | `@slice/sdk/permit` | `signAccountPermit`: an EIP-2612 permit for the account, for one-transaction Native payments |
 | `@slice/sdk/x402` | `handlePaidRequest`, `exactUsdcRequirements`, `httpFacilitator`, `sliceManifest`, `manifestResponse` |
-| `@slice/sdk/x402-guard` | `sliceGuard`, `isSliceAccount`: buyer-side payTo verification |
+| `@slice/sdk/x402-guard` | `sliceGuard`, `isSliceAccount`, `pinFromBond`: buyer-side payTo verification, pinned to a bond's account |
 | `@slice/sdk/abis` | Generated ABIs for every protocol contract |
 
 Every write simulates first, sends with a padded gas limit (Monad bills the limit) and waits for a successful

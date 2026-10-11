@@ -11,13 +11,13 @@ that the project is still approved, bound and pointing at the account.
 
 ## Watched: caught and punished
 For revenue paid over HTTP (x402). The business sets its `payTo` to the account and publishes
-`/.well-known/slice.json`. Every 30 seconds the observer and Chainlink CRE read the manifest and every paid
-endpoint independently:
+`/.well-known/slice.json`. On every check (every 30 minutes on testnet, each report covering one 30-second
+epoch) the observer and Chainlink CRE read the manifest and every paid endpoint independently:
 
 - **Violation:** any payment option pays someone else, uses another network, asset or scheme, or is priced
   below the floor; or the manifest names another account or drops a covered endpoint.
 - **Unknown:** nothing readable (outage or error).
 - **Compliant:** everything pays the account.
 
-Two adjacent violations default the bond. A day of continuous Unknowns while active also defaults it; an hour
+A violation is re-checked in the next epoch; two adjacent violations default the bond. A day of continuous Unknowns while active also defaults it; an hour
 pauses deposits. A Watched bond requires a stake, slashed to investors on default.

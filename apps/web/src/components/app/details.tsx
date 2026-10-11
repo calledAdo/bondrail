@@ -106,6 +106,9 @@ function History({ a }: { a: AccountView }) {
   );
 }
 
+const REPORT_INTERVAL = 30 * 60; // the reporter's schedule (ops/covenant-server)
+const ago = (s: number) => (s < 90 ? `${s} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
+
 function Health({ b, a }: { b: BondView; a?: AccountView }) {
   const covenant = useReadContract({ address: b.address, abi: bondAbi, functionName: 'covenant', chainId: chain.id, query: { enabled: b.tier === 'Watched' } });
   const dark = useReadContract({
@@ -131,16 +134,33 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
   const last = b.checks[0];
   const darkFor = Number(dark.data ?? 0);
   const drop = a?.revenueDrop;
-  const dropped = !!drop && last?.result === 1 && drop.last24h < drop.dailyAverage / 4;
+  const age = last ? Math.max(0, Math.round(Date.now() / 1000 - last.at)) : 0;
+  // A report is current evidence only until the next scheduled check is overdue.
+  const stale = !!last && age > REPORT_INTERVAL + 5 * 60;
+  const status = b.defaulted
+    ? { dot: 'bg-red-500', text: 'Defaulted: the stake went to bondholders' }
+    : b.phase === 'Closed' || b.phase === 'Cancelled'
+      ? { dot: 'bg-foreground/30', text: `${b.phase}: monitoring has ended` }
+      : !last
+        ? { dot: 'bg-foreground/30', text: 'No CRE report yet' }
+        : stale
+          ? { dot: 'bg-orange-500', text: `Monitor stale: the last report is ${ago(age)} old and is not current evidence` }
+          : last.result === 2
+            ? { dot: 'bg-red-500', text: `Violation at the last check (${ago(age)} ago): confirming in the next epoch` }
+            : last.result === 1
+              ? { dot: 'bg-foreground', text: `Compliant at the last check, ${ago(age)} ago · next check within ${ago(Math.max(60, REPORT_INTERVAL - age))}` }
+              : { dot: 'bg-orange-500', text: `Unknown at the last check (${ago(age)} ago): the offer was unreachable or unreadable` };
+  const dropped = !!drop && last?.result === 1 && !stale && drop.last24h < drop.dailyAverage / 4;
   return (
     <Panel title="Monitoring" aside={<TierBadge tier="Watched" />}>
       <p className="text-sm text-foreground/70">
-        Chainlink CRE checks the manifest and every paid endpoint every 30 seconds. Two adjacent violations, or a day unreachable, default the bond and slash the stake.
+        Chainlink CRE checks the manifest and every paid endpoint every 30 minutes. A violation is re-checked in the next 30-second
+        epoch; two adjacent violations default the bond and slash the stake. A day of Unknown reports (the offer unreachable) also
+        defaults it; a monitor outage does not.
       </p>
-      <div className="mt-4 flex items-center gap-2 text-sm">
-        <span className={cn('size-2 rounded-full', last?.result === 1 ? 'bg-foreground' : last?.result === 2 ? 'bg-red-500' : 'bg-foreground/30')} />
-        {!last ? 'No CRE report yet' : last.result === 1 ? 'Compliant' : last.result === 2 ? 'Violation' : 'Unknown'}
-        {last && <span className="text-foreground/60">· {Math.max(0, Math.round(Date.now() / 1000 - last.at))} s ago</span>}
+      <div className="mt-4 flex items-start gap-2 text-sm">
+        <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', status.dot)} />
+        <span>{status.text}</span>
       </div>
       {darkFor > 0 && (
         <p className="mt-3 flex gap-2 text-sm text-orange-500">

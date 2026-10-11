@@ -145,6 +145,8 @@ export async function onCron(runtime: Runtime<WorkflowConfig>): Promise<string> 
   }
   const tx = bytesToHex(result.txHash);
   runtime.log(`SLICE_REPORT_TX=${tx}`);
+  // The reporter reads this: a violation is confirmed by a second report in the next epoch.
+  runtime.log(`SLICE_RESULT=${o.result} SLICE_EPOCH=${o.epoch}`);
   return tx;
 }
 export function initWorkflow(config: WorkflowConfig) {
