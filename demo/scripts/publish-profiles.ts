@@ -22,6 +22,14 @@ const profiles = {
     x: '',
     useOfFunds: 'Model inference credits and hosting for the next six months.',
   },
+  curvelab: {
+    key: 'curvelab-issuer',
+    name: 'CurveLab',
+    description: 'A token launchpad deployed from the reviewed PumpLab template. Its raise is open to anyone until 28 October.',
+    website: '',
+    x: '',
+    useOfFunds: 'Launch incentives and market-making for the first month.',
+  },
 };
 
 async function post(body: unknown) {
