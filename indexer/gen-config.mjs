@@ -42,6 +42,7 @@ contracts:
   - name: SliceBond
     events:
       - event: "Deposited(address indexed payer, uint256 amount, uint256 funded)"${tx}
+      - event: "Withdrawn(address indexed holder, address indexed receiver, uint256 amount, uint256 funded)"${tx}
       - event: "Activated(address indexed issuer, uint256 released, uint256 undrawn, uint256 effectiveCap)"${tx}
       - event: "PrincipalReleased(uint256 amount, uint256 releasedTotal, uint256 effectiveCap, bytes32 evidenceHash)"${tx}
       - event: "UndrawnRecovered(uint256 amount, uint256 recoveryTotal)"${tx}

@@ -52,6 +52,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     uint64 public constant REPORT_GRACE = 120;
 
     event Deposited(address indexed payer, uint256 amount, uint256 funded);
+    event Withdrawn(address indexed holder, address indexed receiver, uint256 amount, uint256 funded);
     event Activated(address indexed issuer, uint256 released, uint256 undrawn, uint256 effectiveCap);
     event PrincipalReleased(uint256 amount, uint256 releasedTotal, uint256 effectiveCap, bytes32 evidenceHash);
     event UndrawnRecovered(uint256 amount, uint256 recoveryTotal);
@@ -168,6 +169,17 @@ contract SliceBond is ERC20, ReentrancyGuard {
         fundingEscrow += amount;
         _mint(msg.sender, amount);
         emit Deposited(msg.sender, amount, fundingEscrow);
+    }
+
+    /// @notice While the raise is open, an investor can take a deposit back: claims are burned 1:1 for the
+    /// escrowed asset. Activation needs the full raise, so a withdrawal only reopens the gap to fill.
+    function withdraw(uint256 amount, address to) external nonReentrant {
+        if (phase != SliceTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
+        _validPayment(amount, to);
+        _burn(msg.sender, amount);
+        fundingEscrow -= amount;
+        asset.safeTransfer(to, amount);
+        emit Withdrawn(msg.sender, to, amount, fundingEscrow);
     }
 
     /// @notice The account's cumulative revenue at activation; the on-chain milestone counts from here.

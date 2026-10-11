@@ -150,6 +150,16 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
                   Deposit
                 </Button>
               )}
+              {(claims ?? 0n) > 0n && (
+                <>
+                  <Button disabled={!ready || value === 0n || value > (claims ?? 0n)} onClick={() => send('Withdraw', { address: b.address, abi: bondAbi as Abi, functionName: 'withdraw', args: [value, address] })}>
+                    Withdraw
+                  </Button>
+                  <p className="text-xs text-foreground/60">
+                    Until the raise closes you can take your deposit back (claims burn 1:1). Activation needs the full raise.
+                  </p>
+                </>
+              )}
             </>
           )}
           {(b.phase === 'Active' || b.phase === 'Closing' || b.phase === 'Closed') && (

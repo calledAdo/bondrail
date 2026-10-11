@@ -306,6 +306,12 @@ indexer.onEvent({ contract: 'SliceBond', event: 'Deposited' }, async ({ event, c
   log(context, event, low(event.srcAddress), 'Deposited', event.params.payer, event.params.amount);
 });
 
+indexer.onEvent({ contract: 'SliceBond', event: 'Withdrawn' }, async ({ event, context }) => {
+  const b = await bondOf(context, event);
+  if (b) context.Bond.set({ ...b, raised: event.params.funded });
+  log(context, event, low(event.srcAddress), 'Withdrawn', event.params.holder, event.params.amount);
+});
+
 indexer.onEvent({ contract: 'SliceBond', event: 'Activated' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b)

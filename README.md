@@ -34,6 +34,9 @@ Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
    distinct payers, first revenue date and revenue per day. This happens bond or no bond, so the record
    that underwrites a raise predates the raise.
 3. **Raising.** Investors deposit USDC into a `SliceBond` and get 1:1 claim tokens.
+   - **While the raise is open** an investor can withdraw (claims burn 1:1 for the escrowed deposit).
+     The issuer can activate only a fully funded bond, before its funding deadline; if that doesn't happen,
+     anyone cancels the raise after the deadline and every investor is refunded in full.
    - **First release:** 50% (or 25%) of the capital is released at activation.
    - **Second release:** the rest needs proof of revenue since activation. The issuer chose one at
      creation:
@@ -204,7 +207,7 @@ Slice is a protocol plus an SDK. The demo businesses are ordinary users of both.
 | Milestone faked with self-paid revenue (on-chain mode) | It costs real money, a share of which goes to investors; strict issuers choose the signed, wash-adjusted mode | By design; disclosed in the terms |
 | Micro-payments rounding investors to zero | A rounding carry in the account's split | — |
 
-- Foundry: 63 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
+- Foundry: 66 tests, including fuzz and an accounting invariant suite (`forge test` in `contracts/`).
 - TypeScript: tests for scoring, observer, worker, agent and web (`pnpm -r test`).
 
 ## Limits, stated plainly

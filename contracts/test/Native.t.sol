@@ -247,6 +247,68 @@ contract NativeTest is TestBase {
         vm.stopPrank();
     }
 
+    // ---- withdrawing during the raise
+
+    function _openBond() internal {
+        vm.prank(issuer);
+        bond = SliceBond(
+            factory.createBond(
+                address(account),
+                t,
+                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), keccak256("native")),
+                "Lab Revenue Claim",
+                "LAB-RC"
+            )
+        );
+        vm.prank(investor);
+        asset.approve(address(bond), type(uint256).max);
+    }
+
+    function testInvestorWithdrawsDuringFundingAndActivationNeedsTheGapFilled() public {
+        _openBond();
+        uint256 before = asset.balanceOf(investor);
+        vm.startPrank(investor);
+        bond.deposit(t.raiseAmount);
+        bond.withdraw(30e6, investor);
+        vm.stopPrank();
+        eq(asset.balanceOf(investor), before - t.raiseAmount + 30e6);
+        eq(bond.balanceOf(investor), t.raiseAmount - 30e6);
+        eq(bond.fundingEscrow(), t.raiseAmount - 30e6);
+        vm.prank(issuer);
+        vm.expectRevert();
+        factory.activate(address(bond)); // no longer fully funded
+        vm.prank(investor);
+        bond.deposit(30e6);
+        vm.prank(issuer);
+        factory.activate(address(bond));
+        vm.prank(investor);
+        vm.expectRevert(SliceBond.InvalidState.selector);
+        bond.withdraw(1e6, investor); // the raise has closed
+    }
+
+    function testNoWithdrawAfterTheDeadlineOnlyRefund() public {
+        _openBond();
+        vm.prank(investor);
+        bond.deposit(10e6);
+        vm.warp(t.fundingDeadline);
+        vm.prank(investor);
+        vm.expectRevert(SliceBond.InvalidState.selector);
+        bond.withdraw(10e6, investor);
+        account.cancelFunding(address(bond));
+        vm.prank(investor);
+        bond.refund(10e6, investor);
+        eq(bond.balanceOf(investor), 0);
+    }
+
+    function testCannotWithdrawMoreThanHeld() public {
+        _openBond();
+        vm.prank(investor);
+        bond.deposit(10e6);
+        vm.prank(address(0xBEEF));
+        vm.expectRevert();
+        bond.withdraw(10e6, address(0xBEEF));
+    }
+
     // ---- reviewed templates: one review, any issuer, no per-project approval
 
     function _template() internal returns (SliceAccount fresh, bytes memory code, bytes memory args) {
