@@ -9,7 +9,7 @@ business either cannot route around (Native) or gets punished for routing around
 
 - App: https://slice-flame.vercel.app (Monad testnet)
 - Demo issuer, a paid x402 AI API: https://slice-agent.vercel.app/api/oracle
-- Indexer (Envio HyperIndex): https://indexer.dev.hyperindex.xyz/5899421/v1/graphql
+- Indexer (Envio HyperIndex): https://indexer.dev.hyperindex.xyz/383cdcc/v1/graphql
 - Specification: [`docs/SPEC.md`](docs/SPEC.md)
 
 Built for Monad Metropolis, Track 1 (Onchain Finance & Trading).
