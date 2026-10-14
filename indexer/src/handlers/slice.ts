@@ -101,6 +101,7 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ eve
     totalSupply: 0n,
     effectiveCap: 0n,
     defaulted: false,
+    triggered: false,
     createdAt: BigInt(event.block.timestamp),
   });
   log(context, event, bond, 'Created', event.params.issuer, 0n);
@@ -396,6 +397,12 @@ indexer.onEvent({ contract: 'SliceBond', event: 'RevenueReceived' }, async ({ ev
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, revenueCollected: event.params.totalRevenue, pool: event.params.pool });
   log(context, event, low(event.srcAddress), 'RevenueReceived', '', event.params.amount);
+});
+
+indexer.onEvent({ contract: 'SliceBond', event: 'TriggerChanged' }, async ({ event, context }) => {
+  const b = await bondOf(context, event);
+  if (b) context.Bond.set({ ...b, triggered: event.params.triggered });
+  log(context, event, low(event.srcAddress), event.params.triggered ? 'Triggered' : 'TriggerRecovered', '', 0n);
 });
 
 indexer.onEvent({ contract: 'SliceBond', event: 'DefaultRecorded' }, async ({ event, context }) => {

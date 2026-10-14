@@ -8,6 +8,7 @@ import { erc20Abi, type Address } from 'viem';
 import { accountAbi, bondAbi, factoryAbi } from './abi';
 import { deployment } from './wallet';
 import type { KuruRecord, ProfileRecord } from './profile';
+import { readBondTerms } from '@bondrail/sdk/client';
 
 export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || '';
 export const KNOWN_ASSETS = new Set([deployment.token?.toLowerCase()].filter(Boolean) as string[]);
@@ -69,6 +70,11 @@ export type BondView = {
   stake: number;
   backingPerToken: number;
   revenueShare: number;
+  baseRevenueShare: number;
+  triggerRevenue: number;
+  triggerWindowDays: number;
+  stepUpShare: number;
+  triggered: boolean;
   firstReleasePct: 25 | 50;
   minFeeBps: number;
   milestoneMode: 'Onchain' | 'Signed';
@@ -105,7 +111,7 @@ async function gql(query: string) {
 
 const query = `{
   Issuer { id issuer tier project projectApproved activeBond grossRevenue toInvestors payments firstRevenueAt asset volume }
-  Bond(order_by: { createdAt: desc }) { id account adapter phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool totalSupply effectiveCap defaulted createdAt }
+  Bond(order_by: { createdAt: desc }) { id account adapter phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool totalSupply effectiveCap defaulted triggered createdAt }
   DailyRevenue(order_by: { day: asc }) { account day gross verified x402 }
   PayerTotal(order_by: { amount: desc }) { account payer amount payments related reasons source }
   CovenantCheck(order_by: { observedAt: desc }, limit: 200) { bond result observedAt txHash }
@@ -200,7 +206,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       (d.Bond as any[]).map(async (b): Promise<BondView> => {
         const address = b.id as Address;
         const [terms, name, symbol, backing, allowed] = await Promise.all([
-          client.readContract({ address, abi: bondAbi, functionName: 'terms' }) as Promise<any>,
+          readBondTerms(client, address),
           client.readContract({ address, abi: bondAbi, functionName: 'name' }),
           client.readContract({ address, abi: bondAbi, functionName: 'symbol' }),
           client.readContract({ address, abi: bondAbi, functionName: 'backingPerToken' }),
@@ -218,7 +224,8 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
         const cap = u(terms.repayCap);
         const effectiveCap = u(b.effectiveCap) || cap;
         const collected = u(b.revenueCollected);
-        const share = Number(terms.revenueBps) / 10_000;
+        const baseShare = Number(terms.revenueBps) / 10_000;
+        const share = b.triggered ? Number(terms.stepUpBps) / 10_000 : baseShare;
         const maturity = Number(terms.maturity);
         // Coverage horizon: from the funding deadline (still raising) or from now, to maturity.
         const start = phase === 'Funding' ? Number(terms.fundingDeadline) : now;
@@ -257,6 +264,11 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
           // backingPerToken() is pool × 1e6 / supply: a ratio at fixed 1e6 precision whatever the asset's decimals.
           backingPerToken: Number(backing) / 1e6,
           revenueShare: share * 100,
+          baseRevenueShare: baseShare * 100,
+          triggerRevenue: u(terms.triggerRevenue),
+          triggerWindowDays: Number(terms.triggerWindowDays),
+          stepUpShare: Number(terms.stepUpBps) / 100,
+          triggered: !!b.triggered,
           firstReleasePct: Number(terms.firstReleaseBps) === 2500 ? 25 : 50,
           minFeeBps: Number(terms.minFeeBps ?? 0),
           milestoneMode: Number(terms.milestoneMode) === 0 ? 'Onchain' : 'Signed',

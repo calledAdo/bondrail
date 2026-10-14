@@ -27,6 +27,7 @@ import { days, fmt, short, useProtocol, type AccountView, type BondView } from '
 import { cn } from '@/lib/cn';
 import { Badge, Empty } from './ui';
 import { confirmedIn, receiptTimed } from '@/lib/tx';
+import { parseTriggerTerms } from '@bondrail/sdk/trigger';
 
 const KURU_ROUTER: Address = '0x7EFbE105Ca7415dE98F96622173458ac1c054630';
 const kuruAbi = [
@@ -449,6 +450,9 @@ function TermsBuilder({
     minRevenue: '10',
     stake: tier === 'Watched' ? '10' : '0',
     minFeeBps: '0',
+    triggerRevenue: '0',
+    triggerWindowDays: '0',
+    stepUpBps: '0',
     priceFloor: '10000',
   });
   const set = (k: keyof typeof t) => (e: { target: { value: string } }) => setT({ ...t, [k]: e.target.value });
@@ -465,6 +469,13 @@ function TermsBuilder({
   const deadline = notBefore + Number(t.windowHours) * H;
   const maturity = funding + Number(t.termHours) * H;
   const minOp = Number(t.opHours) * H;
+  let triggerTerms: ReturnType<typeof parseTriggerTerms> | undefined;
+  let triggerError: string | undefined;
+  try {
+    triggerTerms = parseTriggerTerms(t, account.asset.decimals, Math.round(Number(t.share) * 100));
+  } catch (e) {
+    triggerError = (e as Error).message;
+  }
   const errors = [
     raise <= 0 && 'Raise must be positive.',
     cap < raise && 'The cap must be at least the raise.',
@@ -477,12 +488,13 @@ function TermsBuilder({
     tier === 'Watched' && !manifest?.ok && 'Check your manifest in step 2 first.',
     !/^[A-Z0-9-]{2,16}$/.test(t.symbol) && 'Symbol: 2–16 characters, A–Z, 0–9 and -.',
     !(Number(t.minFeeBps) >= 0 && Number(t.minFeeBps) <= 10_000) && 'Fee floor is 0–10000 bps.',
+    triggerError,
   ].filter(Boolean) as string[];
   const u = (x: string | number) => parseUnits(String(x), account.asset.decimals);
   const claimName = t.name.trim() || `${account.profile?.profile.name || 'Revenue'} Revenue Claim`;
 
   async function create() {
-    if (!client) return;
+    if (!client || errors.length > 0 || !triggerTerms) return;
     let policy: `0x${string}`;
     if (tier === 'Watched') {
       // The policy commits to the bond address, which the factory creates next (CREATE nonce).
@@ -541,6 +553,7 @@ function TermsBuilder({
           firstReleaseBps: Number(t.firstRelease) * 100,
           milestoneMode: t.mode === 'Onchain' ? 0 : 1,
           minFeeBps: tier === 'Native' ? Number(t.minFeeBps) : 0,
+          ...triggerTerms,
         },
         { adapter: tier === 'Native' ? 0 : 1, source: tier === 'Native' ? project : '0x0000000000000000000000000000000000000000', policyHash: policy },
         claimName,
@@ -589,6 +602,27 @@ function TermsBuilder({
         {n('stake', `Stake (${account.asset.symbol})`, tier === 'Watched' ? 'Required: slashed to investors on default' : 'Optional')}
         {tier === 'Native' ? n('minFeeBps', 'Fee floor while live (bps)', 'Payments below it revert while the bond is live') : n('priceFloor', 'Price floor per call (atomic units)', 'Applied to every endpoint in your manifest')}
       </div>
+      <fieldset className="space-y-3 rounded-lg border border-foreground/10 p-4" aria-describedby="trigger-help">
+        <legend className="px-1 text-sm font-medium">Revenue trigger (optional)</legend>
+        <p id="trigger-help" className="text-xs text-foreground/60">
+          Set all three fields, or leave all zero to disable. Anyone can check once per UTC day;
+          low revenue raises the investor share until a later check confirms recovery.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-3">
+          {([
+            ['triggerRevenue', `Revenue floor (${account.asset.symbol})`, 'Minimum across the whole window'],
+            ['triggerWindowDays', 'Window (days)', '1–30 complete UTC days'],
+            ['stepUpBps', 'Stepped-up share (bps)', 'Above the base share, up to 5000 (50%)'],
+          ] as const).map(([key, label, hint]) => (
+            <Field key={key} label={label} hint={hint}>
+              <input inputMode={key === 'triggerRevenue' ? 'decimal' : 'numeric'} value={t[key]} onChange={set(key)}
+                aria-invalid={!!triggerError} aria-describedby={triggerError ? 'trigger-error' : 'trigger-help'}
+                className={cn(input, 'font-mono')} />
+            </Field>
+          ))}
+        </div>
+        {triggerError && <p id="trigger-error" role="status" className="text-xs text-orange-500">{triggerError}</p>}
+      </fieldset>
       <div className={cn('rounded-lg border p-4', coverage >= 1.2 ? 'border-foreground/10' : 'border-orange-500/30')}>
         <p className="font-mono text-sm tabular">
           [{coverage.toFixed(2)}×] coverage · {(cap / Math.max(raise, 1e-9)).toFixed(2)}× multiple

@@ -55,6 +55,7 @@ type Bond {
   totalSupply: BigInt!
   effectiveCap: BigInt!
   defaulted: Boolean!
+  triggered: Boolean!
   createdAt: BigInt!
 }
 

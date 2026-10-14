@@ -50,6 +50,7 @@ contracts:
       - event: "PrincipalReleased(uint256 amount, uint256 releasedTotal, uint256 effectiveCap, bytes32 evidenceHash)"${tx}
       - event: "UndrawnRecovered(uint256 amount, uint256 recoveryTotal)"${tx}
       - event: "RevenueReceived(uint256 amount, uint256 totalRevenue, uint256 pool)"${tx}
+      - event: "TriggerChanged(bool triggered)"${tx}
       - event: "DefaultRecorded(bytes32 indexed evidenceHash, uint256 stakeRecovered)"${tx}
       - event: "CollectionClosed(uint8 reason, uint64 closedAt, uint64 settleAfter, uint256 pool)"${tx}
       - event: "SettlementFinalized(uint256 pool, uint256 supply, uint256 issuerStakeCredit)"${tx}

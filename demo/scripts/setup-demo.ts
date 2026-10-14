@@ -14,6 +14,7 @@
 // Amounts are small on purpose (testnet USDC comes from a rate-limited faucet). Override with
 // RAISE_USDC / CAP_USDC / STAKE_USDC / MATURITY_DAYS. Every wallet here is team-controlled demo activity.
 import os from 'node:os';
+import { parseTriggerTerms } from '../../packages/sdk/src/trigger.ts';
 import path from 'node:path';
 import {
   decodeEventLog,
@@ -44,6 +45,11 @@ const usdc = (x: string) => parseUnits(x, 6);
 const RAISE = usdc(process.env.RAISE_USDC ?? '2');
 const CAP = usdc(process.env.CAP_USDC ?? '2.4');
 const STAKE = usdc(process.env.STAKE_USDC ?? '0.5');
+const triggerTerms = parseTriggerTerms({
+  triggerRevenue: process.env.TRIGGER_REVENUE_USDC ?? '0',
+  triggerWindowDays: process.env.TRIGGER_DAYS ?? '0',
+  stepUpBps: process.env.STEP_UP_BPS ?? '0',
+}, 6, 2500);
 const HOUR = 3600n;
 const ZERO: Address = '0x0000000000000000000000000000000000000000';
 
@@ -98,6 +104,7 @@ function terms(now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
     firstReleaseBps: 5000,
     milestoneMode,
     minFeeBps,
+    ...triggerTerms,
   };
 }
 

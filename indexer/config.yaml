@@ -37,6 +37,8 @@ contracts:
         field_selection: { transaction_fields: [hash] }
       - event: "RevenueReceived(uint256 amount, uint256 totalRevenue, uint256 pool)"
         field_selection: { transaction_fields: [hash] }
+      - event: "TriggerChanged(bool triggered)"
+        field_selection: { transaction_fields: [hash] }
       - event: "DefaultRecorded(bytes32 indexed evidenceHash, uint256 stakeRecovered)"
         field_selection: { transaction_fields: [hash] }
       - event: "CollectionClosed(uint8 reason, uint64 closedAt, uint64 settleAfter, uint256 pool)"

@@ -2,6 +2,10 @@
 // first, sends with a padded gas limit (Monad bills the limit) and waits for a successful receipt.
 import {
   decodeEventLog,
+  decodeFunctionResult,
+  encodeFunctionData,
+  parseAbi,
+  size,
   type Abi,
   type Account,
   type Address,
@@ -12,6 +16,27 @@ import {
   type WalletClient,
 } from 'viem';
 import { sliceAccountAbi, sliceBondAbi, sliceFactoryAbi } from './abis';
+
+const legacyTermsAbi = parseAbi([
+  'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps,uint8 milestoneMode,uint16 minFeeBps))',
+]);
+
+/** Read new or original immutable bonds without hiding RPC failures or inventing trigger support. */
+export async function readBondTerms(publicClient: Pick<PublicClient, 'call'>, address: Address) {
+  const { data } = await publicClient.call({
+    to: address,
+    data: encodeFunctionData({ abi: sliceBondAbi, functionName: 'terms' }),
+  });
+  if (!data) throw new Error('Bond returned no terms');
+  // Both versions return static tuples. Only the original exact 13-word encoding gets zero defaults.
+  if (size(data) === 13 * 32) return {
+    ...decodeFunctionResult({ abi: legacyTermsAbi, functionName: 'terms', data }),
+    triggerWindowDays: 0,
+    stepUpBps: 0,
+    triggerRevenue: 0n,
+  };
+  return decodeFunctionResult({ abi: sliceBondAbi, functionName: 'terms', data });
+}
 
 export const Tier = { Native: 0, Watched: 1 } as const;
 export const MilestoneMode = { Onchain: 0, Signed: 1 } as const;
@@ -31,6 +56,10 @@ export interface BondTerms {
   milestoneMode: (typeof MilestoneMode)[keyof typeof MilestoneMode];
   /** Native only: minimum fee rate (bps of gross) every payment must carry while the bond is Active. 0 = none. */
   minFeeBps: number;
+  /** All three trigger fields must be zero (disabled), or set together. */
+  triggerWindowDays: number;
+  stepUpBps: number;
+  triggerRevenue: bigint;
 }
 
 export interface CreditHistory {
@@ -113,6 +142,8 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
     },
 
     activate: (bond: Address) => write(factory, sliceFactoryAbi as Abi, 'activate', [bond]),
+    /** Evaluate the last complete UTC revenue days, once per day on an Active, non-defaulted bond. */
+    checkTrigger: (bond: Address) => write(bond, sliceBondAbi as Abi, 'checkTrigger'),
     /** Second release, on-chain milestone mode. */
     releaseSecond: (bond: Address) => write(factory, sliceFactoryAbi as Abi, 'releaseSecond', [bond]),
     /** Book plain transfers (x402 settlements, other inflows) into history and split them. */

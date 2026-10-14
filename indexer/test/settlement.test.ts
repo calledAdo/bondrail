@@ -102,3 +102,20 @@ test('issuer-funded payer is counted once but excluded from attributed revenue',
   const daily = (await db.DailyRevenue.getAll())[0];
   assert.deepEqual([daily.gross, daily.verified, daily.x402, daily.payments], [10n, 0n, 0n, 1]);
 });
+
+test('bond trigger flag starts false, steps up, and clears on recovery without changing its pool', async () => {
+  const bond = '0x7777777777777777777777777777777777777777' as const;
+  const bondCreated: Event = { contract: 'SliceFactory', event: 'BondCreated', srcAddress: FACTORY,
+    params: { issuer, account, bond, adapter: 0n, policyHash: nonce(1), termsHash: nonce(2) }, transaction };
+  const changed = (triggered: boolean): Event => ({ contract: 'SliceBond', event: 'TriggerChanged', srcAddress: bond,
+    params: { triggered }, transaction });
+  for (const states of [[], [true], [true, false], [true, false, true]]) {
+    const db = await run([created(), bondCreated, ...states.map(changed)]);
+    const b = await db.Bond.getOrThrow(bond);
+    assert.equal(b.triggered, states.at(-1) ?? false);
+    assert.equal(b.pool, 0n);
+    assert.equal(b.defaulted, false);
+    const events = await db.ChainEvent.getAll();
+    assert.deepEqual(events.map(e => e.kind), ['Created', ...states.map(s => s ? 'Triggered' : 'TriggerRecovered')]);
+  }
+});

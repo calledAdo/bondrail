@@ -196,7 +196,11 @@ function Terms({ b }: { b: BondView }) {
   const rows: [string, string][] = [
     ['Raise', fmt(b.raise, b.asset)],
     ['Repayment cap', `${fmt(b.cap, b.asset)} (${b.multiple.toFixed(2)}×)`],
-    ['Revenue share', `${b.revenueShare}% of each payment`],
+    ['Base revenue share', `${b.baseRevenueShare}% of each payment`],
+    ...(b.triggerWindowDays > 0 ? [
+      ['Revenue trigger', `Below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC days`],
+      ['Stepped-up share', `${b.stepUpShare}%`],
+    ] satisfies [string, string][] : []),
     ['Released at activation', `${b.firstReleasePct}%`],
     ['Second release', `${b.milestoneMode === 'Onchain' ? 'On-chain' : 'Signed'} milestone: ${fmt(b.minRevenue, b.asset)} revenue`],
     ['Second release window', `${date(b.secondReleaseNotBefore)} → ${date(b.secondReleaseDeadline)}`],
@@ -242,9 +246,19 @@ export function BondPage({ address }: { address: string }) {
           <div className="flex flex-wrap gap-1.5">
             <TierBadge tier={b.tier} />
             <PhaseBadge phase={b.phase} defaulted={b.defaulted} />
+            {b.triggered && b.phase === 'Active' && <Badge tone="warn">Triggered</Badge>}
             <Badge>repays in {b.asset.symbol}</Badge>
           </div>
           <h1 className="text-4xl font-semibold">{b.name}</h1>
+          <p className="text-sm text-foreground/70">
+            Share {b.baseRevenueShare}%
+            {b.triggerWindowDays > 0 && <> · steps up to {b.stepUpShare}% if revenue &lt; {fmt(b.triggerRevenue, b.asset)} over {b.triggerWindowDays} days</>}
+          </p>
+          {b.triggerWindowDays > 0 && (
+            <p className="text-xs text-foreground/60">
+              Current share: {b.revenueShare}%. Checks use complete UTC days and include issuer self-payments.
+            </p>
+          )}
           <p className="font-mono text-xs text-foreground/60">
             {b.symbol} ·{' '}
             <a href={explorer('address', b.address)} target="_blank" rel="noreferrer" className="hover:underline">

@@ -126,6 +126,7 @@ async function localFixture(payers: LocalAccount[], admin: LocalAccount): Promis
         fundingDeadline: now + 3600n, maturity: now + 86400n,
         secondReleaseNotBefore: now + 3600n, secondReleaseDeadline: now + 7200n,
         minOperatingPeriod: 30, revenueBps: 2000, firstReleaseBps: 5000, milestoneMode: 0, minFeeBps: 0,
+        triggerWindowDays: 0, stepUpBps: 0, triggerRevenue: 0n,
       };
       await write(factory, 'SliceFactory', 'createBond', [account, terms,
         { adapter: 0, source: project, policyHash: keccak256(toHex('local parallel benchmark')) }, 'Bench Claim', 'BENCH']);

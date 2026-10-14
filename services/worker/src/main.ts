@@ -14,13 +14,22 @@ import { privateKeyToAccount } from 'viem/accounts';
 import { address } from '@bondrail/observer/protocol';
 import { storeFromEnv } from '@bondrail/observer/store';
 import { nextOperation } from './plan.js';
+const checkTriggers = process.env.WORKER_CHECK_TRIGGERS === '1';
+// Decode the original tuple when disabled, so existing deployments can still be maintained.
+const legacyTermsABI = parseAbi([
+  'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps,uint8 milestoneMode,uint16 minFeeBps))',
+]);
 const bondABI = parseAbi([
   'function phase() view returns (uint8)',
   'function account() view returns (address)',
   'function undrawnPrincipal() view returns (uint256)',
   'function settleAfter() view returns (uint64)',
   'function asset() view returns (address)',
-  'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps,uint8 milestoneMode,uint16 minFeeBps))',
+  'function terms() view returns ((uint256 raiseAmount,uint256 repayCap,uint256 stake,uint256 minRevenue,uint64 fundingDeadline,uint64 maturity,uint64 secondReleaseNotBefore,uint64 secondReleaseDeadline,uint32 minOperatingPeriod,uint16 revenueBps,uint16 firstReleaseBps,uint8 milestoneMode,uint16 minFeeBps,uint16 triggerWindowDays,uint16 stepUpBps,uint256 triggerRevenue))',
+  'function activationTime() view returns (uint64)',
+  'function defaultedAt() view returns (uint64)',
+  'function lastTriggerCheckDay() view returns (uint64)',
+  'function checkTrigger()',
   'function expireUndrawn()',
   'function finalizeSettlement()',
 ]);
@@ -76,6 +85,7 @@ if (!enabled || process.argv.includes('--check')) {
       network: chainId,
       targets: targets.length,
       writesEnabled: enabled,
+      checkTriggers,
       keyConfigured: !!WORKER_PRIVATE_KEY,
       mode: 'diagnostic; no writes sent',
     }),
@@ -180,7 +190,13 @@ try {
         if (writes >= 4) break;
         const block = await client.getBlock();
         // One read at a time: public RPCs rate-limit bursts (Monad testnet: 15 requests/s per IP).
-        const terms = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'terms' });
+        const terms = await client.readContract({ address: target.bond, abi: checkTriggers ? bondABI : legacyTermsABI, functionName: 'terms' });
+        const trigger = checkTriggers && 'triggerWindowDays' in terms && terms.triggerWindowDays > 0 ? {
+          triggerWindowDays: terms.triggerWindowDays,
+          activationTime: await client.readContract({ address: target.bond, abi: bondABI, functionName: 'activationTime' }),
+          defaultedAt: await client.readContract({ address: target.bond, abi: bondABI, functionName: 'defaultedAt' }),
+          lastTriggerCheckDay: await client.readContract({ address: target.bond, abi: bondABI, functionName: 'lastTriggerCheckDay' }),
+        } : undefined;
         const undrawnPrincipal = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'undrawnPrincipal' });
         const settleAfter = await client.readContract({ address: target.bond, abi: bondABI, functionName: 'settleAfter' });
         const balance = await client.readContract({ address: asset, abi: tokenABI, functionName: 'balanceOf', args: [revenueAccount] });
@@ -190,6 +206,7 @@ try {
           phase: freshPhase,
           now: block.timestamp,
           ...terms,
+          trigger,
           undrawnPrincipal,
           settleAfter,
           freeReceipts: balance > credit ? balance - credit : 0n,
@@ -197,7 +214,7 @@ try {
         if (!operation) continue;
         if ((await client.getGasPrice()) > maxGasPrice) throw new Error('Gas price exceeds configured bound');
         let tx: Hex;
-        if (operation === 'expireUndrawn' || operation === 'finalizeSettlement') {
+        if (operation === 'expireUndrawn' || operation === 'finalizeSettlement' || operation === 'checkTrigger') {
           const { request } = await client.simulateContract({
             account: signer,
             address: target.bond,

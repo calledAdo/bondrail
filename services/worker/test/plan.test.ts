@@ -21,3 +21,28 @@ test('worker respects strict lifecycle boundaries and prioritizes close over dra
   assert.equal(nextOperation({ ...state, phase: 2, now: 320n }), 'finalizeSettlement');
   assert.equal(nextOperation({ ...state, phase: 3, freeReceipts: 100n }), undefined);
 });
+
+test('configured trigger runs once per UTC day, including after a worker restart', () => {
+  const active: BondState = { ...state, now: 102n * 86_400n, maturity: 200n * 86_400n,
+    secondReleaseDeadline: 150n * 86_400n,
+    trigger: { triggerWindowDays: 2, activationTime: 100n * 86_400n + 43_200n,
+      defaultedAt: 0n, lastTriggerCheckDay: 0n } };
+  assert.equal(nextOperation({ ...active, now: active.now - 1n }), undefined);
+  assert.equal(nextOperation(active), 'checkTrigger');
+  // State re-read from the chain after a confirmation or process restart.
+  const checked = { ...active, trigger: { ...active.trigger!, lastTriggerCheckDay: 102n } };
+  assert.equal(nextOperation(checked), undefined);
+  assert.equal(nextOperation({ ...checked, now: active.now + 86_399n }), undefined);
+  assert.equal(nextOperation({ ...checked, now: active.now + 86_400n }), 'checkTrigger');
+  assert.equal(nextOperation({ ...active, trigger: undefined }), undefined);
+  assert.equal(nextOperation({ ...active, trigger: { ...active.trigger!, triggerWindowDays: 0 } }), undefined);
+  assert.equal(nextOperation({ ...active, trigger: { ...active.trigger!, defaultedAt: 1n } }), undefined);
+  for (const phase of [0, 2, 3, 4])
+    assert.notEqual(nextOperation({ ...active, phase }), 'checkTrigger');
+  assert.equal(nextOperation({ ...active, now: active.maturity }), 'closeBondAtMaturity');
+  assert.equal(nextOperation({ ...active, now: active.secondReleaseDeadline }), 'expireUndrawn');
+  // Pending receipts are booked today; they cannot change yesterday's complete buckets.
+  // Give the daily check priority so constant new receipts cannot starve it.
+  assert.equal(nextOperation({ ...active, freeReceipts: 1n }), 'checkTrigger');
+  assert.equal(nextOperation({ ...checked, freeReceipts: 1n }), 'sweep');
+});
