@@ -51,3 +51,4 @@ packages/sdk/*.tgz
 
 # Named local rehearsals and generated isolated configuration
 docs/deployments/31337-*.json
+docs/deployments/*.pending
