@@ -46,7 +46,9 @@ revenue collection to financing without building a separate repayment system.
    either the account's onchain revenue counter or a signed, wash-adjusted attestation. Unreleased
    capital can be recovered for claim holders after the deadline or a qualifying covenant default.
 5. **Collect repayments.** While collection is active, the agreed share of connected revenue goes to
-   the bond. The effective repayment cap scales with capital actually released. Collection closes when
+   the bond. x402 payments can use `account.settle` to prove the payer and split revenue in the same
+   transaction (**implemented, not yet deployed**); `sweep()` remains for other transfers.
+   The effective repayment cap scales with capital actually released. Collection closes when
    the cap is reached or a maturity-close transaction executes; Watched bonds then have an evidence window.
 6. **Hold, trade, or redeem.** Listed claims can trade on Kuru, subject to available liquidity. Redemption
    burns claims for their share of the current pool. **Early redemption gives up those claims' rights to
@@ -62,7 +64,7 @@ not the same outcome.
 | Integration | How it works | Trust boundary |
 |---|---|---|
 | **Native** | A business inherits `SliceEarner` and binds its revenue account. Payments in (`collect`) and payouts out (`settleOut`) book fees and split the investor share in the same transaction. An optional fee floor applies while the bond is active. | A disclosed reviewer approves individual contracts or reusable templates. Routing is enforced for that reviewed contract's payment path; a business can still stop operating or move customers elsewhere. |
-| **Watched** | An x402 API publishes its revenue account and covered endpoints in `/.well-known/slice.json`. Receipts arrive at the account and `sweep()` books and splits them. Chainlink CRE checks payment offers against the committed policy. | Monitoring covers declared endpoints and observed offers. It cannot prove that every customer sees the same offer or discover all undeclared endpoints. The testnet deployment uses a trusted observer signer. |
+| **Watched** | An x402 API publishes its revenue account and covered endpoints in `/.well-known/slice.json`. Account-mediated x402 settlement proves the payer and books/splits immediately (**not yet deployed**); direct transfers still use `sweep()`. Chainlink CRE checks payment offers against the committed policy. | Monitoring covers declared endpoints and observed offers. It cannot prove that every customer sees the same offer or discover all undeclared endpoints. The testnet deployment uses a trusted observer signer. |
 
 Watched bonds require a stake. Two qualifying violation reports in adjacent 30-second epochs record a
 default, recover unreleased principal, and slash held stake into the investor pool. Sustained Unknown
