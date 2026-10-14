@@ -22,7 +22,7 @@ import {
   typedObservation,
   type SignedObservation,
   type WatchPolicy,
-} from '@slice/observer/protocol';
+} from '@bondrail/observer/protocol';
 
 export interface WorkflowConfig {
   /** Local `cre workflow simulate` only: allow an observer on http://127.0.0.1. */

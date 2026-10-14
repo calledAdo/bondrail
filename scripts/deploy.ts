@@ -1,4 +1,4 @@
-// Deploys the Slice core: bond + account implementations, SliceCovenant (CRE receiver), SliceFactory.
+// Deploys the Bondrail core: bond + account implementations, SliceCovenant (CRE receiver), SliceFactory.
 //   SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts     local anvil (deploys MockUSDC too)
 //   pnpm tsx scripts/deploy.ts                          Monad testnet (Circle test USDC, CRE mock forwarder)
 //   SLICE_MIN_HISTORY=<seconds>                         history an account needs before issuing (default:
@@ -27,7 +27,7 @@ const reviewer = account('reviewer', { create: true });
 const minHistory = BigInt(process.env.SLICE_MIN_HISTORY ?? (chainId === 31337 ? 60 : 600));
 
 async function main() {
-  console.log(`Deploying Slice to ${chain.name} (${chainId}) from ${deployer.address}`);
+  console.log(`Deploying Bondrail to ${chain.name} (${chainId}) from ${deployer.address}`);
   const startBlock = await publicClient.getBlockNumber();
 
   let asset: Address;

@@ -1,3 +1,4 @@
+import { brandMetadata } from '@/lib/brand';
 // Root layout for /docs: Fumadocs (its own theme provider and search), no wallet code.
 import type { Metadata } from 'next';
 import { RootProvider } from 'fumadocs-ui/provider/next';
@@ -5,8 +6,9 @@ import { geistMono, geistSans } from '@/lib/fonts';
 import '@/styles/docs.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Slice docs', template: '%s | Slice docs' },
-  description: 'Integrate Slice: route revenue through a SliceAccount, raise against it, and invest in revenue bonds.',
+  ...brandMetadata,
+  title: { default: 'Bondrail docs', template: '%s | Bondrail docs' },
+  description: 'Integrate Bondrail: route revenue through a SliceAccount, raise against it, and invest in revenue bonds.',
 };
 
 export default function DocsRoot({ children }: { children: React.ReactNode }) {

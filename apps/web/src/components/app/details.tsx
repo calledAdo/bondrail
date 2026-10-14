@@ -8,7 +8,7 @@ import { bondAbi, covenantAbi } from '@/lib/abi';
 import { chain } from '@/lib/wallet';
 import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
-import { creditLine, defaultCreditTerms } from '@slice/sdk/credit';
+import { creditLine, defaultCreditTerms } from '@bondrail/sdk/credit';
 import { BondActions } from './bond-actions';
 import { Trade } from './trade';
 import { ImpliedYieldPanel } from './implied-yield';
@@ -126,7 +126,7 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
     return (
       <Panel title="Source" aside={<TierBadge tier="Native" />}>
         <p className="text-sm text-foreground/70">
-          Built on Slice: every fee moves through the account, which is fixed into the project&apos;s code. There is no other fee path.
+          Built on Bondrail: every fee moves through the account, which is fixed into the project&apos;s code. There is no other fee path.
         </p>
         <p className={cn('mt-3 text-sm', a?.reviewed ? 'text-foreground' : 'text-orange-500')}>
           {a?.reviewed ? 'Reviewed: the disclosed reviewer checked that every fee goes through SliceEarner.' : 'Awaiting review: history accrues, but the project cannot raise until its code is reviewed.'}

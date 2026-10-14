@@ -1,0 +1,4 @@
+import fs from 'node:fs';import {chromium} from '@playwright/test';
+const out='demo/video/output/envio';const scenario=JSON.parse(fs.readFileSync('demo/video/output/technical/scenario.json'));const browser=await chromium.launch({executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});const page=await browser.newPage();const requests=[];
+page.on('response',async r=>{if(r.url().includes('graphql')){try{const data=await r.json();requests.push({url:r.url(),query:r.request().postData(),status:r.status(),data});}catch{}}});
+await page.goto('https://bondrail.vercel.app/accounts/'+scenario.account,{waitUntil:'networkidle',timeout:60000});await page.waitForTimeout(7000);fs.writeFileSync(out+'/app-queries.json',JSON.stringify(requests,null,2));fs.writeFileSync(out+'/app-text.txt',await page.locator('body').innerText());console.log(requests.map(r=>({url:r.url,status:r.status,keys:Object.keys(r.data)})));await browser.close();

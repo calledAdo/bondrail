@@ -1,4 +1,4 @@
-# Slice supervised worker
+# Bondrail supervised worker
 
 Run this as a dedicated supervised Node process, never a Vercel request loop. `node --env-file=.env --import tsx src/main.ts --check` verifies configuration and RPC chain without sending writes. Writes require `SLICE_ENABLE_TESTNET_WRITES=1` plus a funded local/testnet key. Mainnet143 is always rejected. Targets are a fixed bounded file; there is no remote arbitrary-contract or shell endpoint.
 

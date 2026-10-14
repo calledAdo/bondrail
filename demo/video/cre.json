@@ -1,0 +1,7 @@
+[
+ {"id":"product","minimum":14,"lines":["Bondrail lets onchain businesses issue revenue bonds. For a business using paid APIs, investors need a way to check that covered payments still point to the agreed revenue account."]},
+ {"id":"offer","minimum":17,"lines":["This is the live payment offer from our test API. The payment destination matches the account committed in the bond's watch policy. Chainlink C R E checks this external condition and carries the result onchain."]},
+ {"id":"cli","minimum":28,"lines":["Here we run the actual C R E command line simulation with broadcast enabled.","The workflow retrieves a signed observation and independently fetches the manifest and payment offers. It checks agreement, signature and freshness before creating a report.","The simulation then submits that report to the covenant contract on Monad testnet."]},
+ {"id":"receipt","minimum":22,"lines":["The transaction succeeded. This receipt comes directly from Monad R P C. The covenant emitted Observation Accepted, with result one: compliant.","A fresh compliant report is required to activate a Watched bond. Two confirmed violations in adjacent observation epochs can trigger its default path."]},
+ {"id":"limits","minimum":13,"lines":["This demonstrates a successful C R E simulation and a real testnet report. It is not a production C R E deployment. The testnet configuration retains a trusted observer signer."]}
+]

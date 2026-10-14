@@ -1,0 +1,15 @@
+import fs from 'node:fs';
+import {createPublicClient,http,formatEther} from 'viem';
+import {privateKeyToAccount} from 'viem/accounts';
+import {monadTestnet} from 'viem/chains';
+const c=JSON.parse(fs.readFileSync('demo/video/output/cre/config.json'));
+const env=Object.fromEntries(fs.readFileSync('cre/.env','utf8').split('\n').filter(l=>l.includes('=')).map(l=>{let i=l.indexOf('=');return[l.slice(0,i),l.slice(i+1).trim().replace(/^['"]|['"]$/g,'')]}));
+const a=privateKeyToAccount(env.CRE_ETH_PRIVATE_KEY.startsWith('0x')?env.CRE_ETH_PRIVATE_KEY:'0x'+env.CRE_ETH_PRIVATE_KEY);
+const client=createPublicClient({chain:monadTestnet,transport:http('https://rpc-testnet.monadinfra.com')});
+const health=await fetch('http://127.0.0.1:8788/health').then(r=>r.json());
+const offer=await fetch(c.policy.endpoints[0].url);const body=await offer.json();
+const obs=await fetch(c.observerURL,{method:'POST',headers:{'content-type':'application/json',Authorization:'Bearer '+env.OBSERVER_API_TOKEN},body:JSON.stringify({watchId:c.policy.id,epoch:Math.floor(Date.now()/30000)})}).then(r=>r.json());
+const out={time:new Date().toISOString(),chainId:await client.getChainId(),broadcaster:a.address,balanceMON:formatEther(await client.getBalance({address:a.address})),health,offer:{url:c.policy.endpoints[0].url,status:offer.status,body},observation:obs};
+fs.writeFileSync('demo/video/output/cre/preflight.json',JSON.stringify(out,null,2));
+console.log(JSON.stringify({chainId:out.chainId,broadcaster:out.broadcaster,balanceMON:out.balanceMON,offerStatus:offer.status,result:obs.observation?.result,health:health.ok??health.status},null,2));
+if(out.chainId!==10143||offer.status!==402||obs.observation?.result!==1)throw Error('Not a compliant preflight; do not broadcast');

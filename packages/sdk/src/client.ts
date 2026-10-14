@@ -1,4 +1,4 @@
-// Typed helpers over the Slice protocol contracts. Bring your own viem clients; every write simulates
+// Typed helpers over the Bondrail protocol contracts. Bring your own viem clients; every write simulates
 // first, sends with a padded gas limit (Monad bills the limit) and waits for a successful receipt.
 import {
   decodeEventLog,

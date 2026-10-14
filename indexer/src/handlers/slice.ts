@@ -1,4 +1,4 @@
-// Slice event handlers: accounts and their revenue history, payer attribution, bond lifecycle, covenant.
+// Bondrail event handlers: accounts and their revenue history, payer attribution, bond lifecycle, covenant.
 import { indexer } from 'envio';
 import { FACTORY, INDEXED_ASSET } from '../deployment';
 
@@ -248,7 +248,7 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
   if (value === 0n) return;
 
   // Treasury funding: the issuer's wallet sending USDC to someone else (wash-trading detector input).
-  // Transfers made inside Slice calls (stake through the factory, deposits into bonds) don't count.
+  // Transfers made inside Bondrail calls (stake through the factory, deposits into bonds) don't count.
   const viaSlice = low(event.transaction.to ?? '') === FACTORY || !!(await context.Bond.get(to));
   const treasury = await context.Treasury.get(from);
   if (treasury && !viaSlice && !(await context.Issuer.get(to))) {

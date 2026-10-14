@@ -1,0 +1,97 @@
+[
+  {
+    "id": "01-markets",
+    "title": "Revenue bonds for onchain businesses",
+    "eyebrow": "BONDRAIL / REVENUE BONDS",
+    "duration": 15,
+    "sentences": [
+      "Bondrail lets onchain businesses issue revenue bonds to raise capital.",
+      "Investors fund the bonds, and a capped share of business revenue goes toward repayment."
+    ]
+  },
+  {
+    "id": "02-credit",
+    "title": "A history investors can inspect",
+    "eyebrow": "01 / REVENUE HISTORY",
+    "duration": 22,
+    "sentences": [
+      "PumpLab's account records revenue before it raises.",
+      "Here, Slice excludes payments linked to issuer funding.",
+      "Envio turns those events into a payer history.",
+      "The credit estimate discounts short history and concentration.",
+      "These are controlled test wallets, not customer traction."
+    ]
+  },
+  {
+    "id": "03-staging",
+    "title": "Capital released in stages",
+    "eyebrow": "02 / FUNDING",
+    "duration": 18,
+    "sentences": [
+      "PumpLab uses a reviewed Native template that routes fees through its account.",
+      "Investors funded twenty USDC.",
+      "Ten was released; the rest stays in escrow until revenue and timing conditions are met.",
+      "The repayment cap scales with released capital."
+    ]
+  },
+  {
+    "id": "04-payment",
+    "title": "One payment. Automatic repayment.",
+    "eyebrow": "03 / MONAD TRANSACTION",
+    "duration": 33,
+    "sentences": [
+      "Now a test wallet makes a real PumpLab trade.",
+      "Twenty-five percent of its fee goes to the bond inside that transaction.",
+      "Repaid and backing per claim increase.",
+      "This Monad receipt shows the transfer to the bond.",
+      "Native repayment needs no separate collection transaction."
+    ]
+  },
+  {
+    "id": "05-kuru",
+    "title": "Trade the revenue claim",
+    "eyebrow": "04 / KURU MARKET",
+    "duration": 26,
+    "sentences": [
+      "An investor can also buy claims on Kuru.",
+      "This quote comes from simulating the order against the live market.",
+      "The automated demo wallet signs, and its claim balance updates.",
+      "Market price reflects future revenue expectations; cash backing is only the amount collected so far."
+    ]
+  },
+  {
+    "id": "06-deposit",
+    "title": "Join an open raise",
+    "eyebrow": "05 / CURVELAB",
+    "duration": 19,
+    "sentences": [
+      "CurveLab is an open raise on the same template.",
+      "The demo wallet deposits one test USDC and receives claims.",
+      "Deposits are withdrawable while funding remains open.",
+      "If funding expires, cancellation enables investors to claim refunds."
+    ]
+  },
+  {
+    "id": "07-cre",
+    "title": "HTTP revenue, watched onchain",
+    "eyebrow": "06 / CHAINLINK CRE",
+    "duration": 26,
+    "sentences": [
+      "HTTP payments use the Watched tier.",
+      "CRE simulation checks payment offers and broadcasts real reports to Monad.",
+      "Here is the latest compliant report and its transaction.",
+      "Checks run every thirty minutes; two adjacent violation reports trigger default and stake slashing.",
+      "X four oh two receipts are split when swept."
+    ]
+  },
+  {
+    "id": "08-close",
+    "title": "Revenue-based credit. Built on Monad.",
+    "eyebrow": "SLICE / METROPOLIS \u00b7 TRACK 1",
+    "duration": 11,
+    "sentences": [
+      "Slice turns revenue history into staged funding and tradable claims.",
+      "Explore the working testnet app and its deployment documentation."
+    ]
+  }
+]

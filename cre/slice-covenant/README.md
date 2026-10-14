@@ -1,4 +1,4 @@
-# Slice CRE covenant workflow
+# Bondrail CRE covenant workflow
 
 This is an actual CRE1.23 workflow: CronCapability → HTTPClient with identical aggregation → observer signature verification and independently fetched offer comparison → runtime.report → EVMClient.writeReport. The report payload is precisely `abi.encode(Observation,bytes signature)`, matching SliceCovenant. A confirmed receiver execution prints `SLICE_REPORT_TX=<hash>` for the worker; no direct `submitObservation` fallback exists here.
 

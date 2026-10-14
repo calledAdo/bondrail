@@ -1,4 +1,4 @@
-// Shared helpers for Slice operational scripts: chains, keys, clients, forge artifacts, deployments.
+// Shared helpers for Bondrail operational scripts: chains, keys, clients, forge artifacts, deployments.
 // Keys live outside the repo in ~/.slice (chmod 600) and are never printed.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -20,7 +20,7 @@ export const KEY_DIR = process.env.SLICE_KEY_DIR ?? path.join(os.homedir(), '.sl
 
 export const chainId = Number(process.env.SLICE_CHAIN_ID ?? 10143) as 10143 | 31337;
 if (chainId !== 10143 && chainId !== 31337)
-  throw new Error('Slice scripts write to local 31337 or Monad testnet 10143 only');
+  throw new Error('Bondrail scripts write to local 31337 or Monad testnet 10143 only');
 export const chain = chainId === 31337 ? sliceLocal : monadTestnet;
 export const rpcUrl = process.env.SLICE_RPC_URL ?? chain.rpcUrls.default.http[0];
 

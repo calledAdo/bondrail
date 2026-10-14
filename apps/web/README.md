@@ -1,6 +1,6 @@
-# Slice web
+# Bondrail web
 
-Next.js App Router frontend. Run installation from the workspace root, then `pnpm --filter @slice/web dev`, `typecheck`, or `build`.
+Next.js App Router frontend. Run installation from the workspace root, then `pnpm --filter @bondrail/web dev`, `typecheck`, or `build`.
 
 The directory and charts use clearly labeled synthetic fixtures. They are never used as live balances, underwriting evidence or milestone signatures. Bond pages contain a separate configured-contract workspace; portfolio reads only actual connected-wallet balances. Network writes are restricted to 10143 and 31337. No fallback bond address maps one business to another.
 

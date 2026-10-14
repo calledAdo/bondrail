@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { LocalStore } from '@slice/observer/store';
-import { decodeBase64Json } from '@slice/observer/protocol';
+import { LocalStore } from '@bondrail/observer/store';
+import { decodeBase64Json } from '@bondrail/observer/protocol';
 import { handlePaidRequest, requirements, resourceURL, type PaymentBackend } from '../src/lib/payment';
 import { updateConfig, getConfig, type AgentEnvironment, type AgentConfig } from '../src/lib/config';
 const env: AgentEnvironment = {

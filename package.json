@@ -1,11 +1,11 @@
 {
-  "name": "slice",
+  "name": "bondrail",
   "version": "0.1.0",
   "private": true,
   "packageManager": "pnpm@10.32.0",
   "scripts": {
-    "dev": "pnpm --filter @slice/web dev",
-    "dev:agent": "pnpm --filter @slice/agent dev",
+    "dev": "pnpm --filter @bondrail/web dev",
+    "dev:agent": "pnpm --filter @bondrail/demo-agent dev",
     "build": "pnpm -r --if-present build",
     "typecheck": "pnpm -r --if-present typecheck",
     "test": "pnpm -r --if-present test",

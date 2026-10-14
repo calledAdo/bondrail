@@ -93,7 +93,7 @@ export function WalletButton() {
 const NAV = [
   ['/markets', 'Markets'],
   ['/portfolio', 'Portfolio'],
-  ['/console', 'Raise'],
+  ['/console', 'Issue a bond'],
   ['/docs', 'Docs'],
 ] as const;
 
@@ -106,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
       <header className="sticky top-0 z-40 border-b border-foreground/10 bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-6">
-          <Link href="/" aria-label="Slice home">
+          <Link href="/" aria-label="Bondrail home">
             <Logo />
           </Link>
           <nav aria-label="Main" className="hidden items-center gap-6 text-sm md:flex">
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </main>
       <footer className="border-t border-foreground/10">
         <p className="mx-auto max-w-7xl px-6 py-8 font-mono text-[11px] text-foreground/60">
-          {chain.name} · demo businesses and their traffic are run by the Slice team · not investment advice
+          {chain.name} · demo businesses and their traffic are run by the Bondrail team · not investment advice
         </p>
       </footer>
     </>

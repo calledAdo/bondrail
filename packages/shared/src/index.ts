@@ -10,7 +10,7 @@ export const monadTestnet = defineChain({
 });
 export const sliceLocal = defineChain({
   id: 31337,
-  name: 'Slice Local',
+  name: 'Bondrail Local',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
   rpcUrls: { default: { http: ['http://127.0.0.1:8545'] } },
   testnet: true,
@@ -50,5 +50,5 @@ export interface DataCheckpoint {
 }
 export function assertWriteNetwork(chainId: number): asserts chainId is 31337 | 10143 {
   if (chainId !== 31337 && chainId !== 10143)
-    throw new Error('Slice write tools support local development and Monad testnet only.');
+    throw new Error('Bondrail write tools support local development and Monad testnet only.');
 }

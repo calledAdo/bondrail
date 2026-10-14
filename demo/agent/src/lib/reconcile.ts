@@ -1,6 +1,6 @@
 import { createPublicClient, http, type Hex } from 'viem';
-import type { DurableStore } from '@slice/observer/store';
-import { receiptProvesPayment, type PaymentRecord } from '@slice/sdk/x402';
+import type { DurableStore } from '@bondrail/observer/store';
+import { receiptProvesPayment, type PaymentRecord } from '@bondrail/sdk/x402';
 export { receiptProvesPayment };
 export async function reconcile(
   store: DurableStore,

@@ -1,7 +1,7 @@
 // Off-chain records the protocol has no field for, each verifiable by anyone:
 //   profile  an EIP-712 profile signed by account.issuer() (checked on-chain), plus a domain check:
 //            the website's /.well-known/slice.json must name the account
-//   kuru     a Kuru market for a bond, proven by its MarketRegistered receipt (base asset = a Slice bond)
+//   kuru     a Kuru market for a bond, proven by its MarketRegistered receipt (base asset = a Bondrail bond)
 // Storage: Upstash Redis REST (KV_REST_API_URL / KV_REST_API_TOKEN), else in-memory for local dev.
 import { NextResponse } from 'next/server';
 import { createPublicClient, decodeEventLog, http, isAddress, parseAbi, recoverTypedDataAddress, type Address } from 'viem';
@@ -107,12 +107,12 @@ export async function POST(req: Request) {
           const e = decodeEventLog({ abi: marketRegistered, data: log.data, topics: log.topics });
           const bond = e.args.baseAsset;
           if (!factory || !(await client.readContract({ address: factory, abi: factoryAbi, functionName: 'isBond', args: [bond] })))
-            throw new Error('The market base asset is not a Slice bond');
+            throw new Error('The market base asset is not a Bondrail bond');
           const record: KuruRecord = { bond, market: e.args.market, vault: e.args.vaultAddress, tx: body.tx };
           await put(`kuru:${bond.toLowerCase()}`, record);
           return NextResponse.json(record);
         } catch (err) {
-          if (err instanceof Error && err.message.includes('Slice bond')) throw err;
+          if (err instanceof Error && err.message.includes('Bondrail bond')) throw err;
         }
       }
       throw new Error('No Kuru MarketRegistered event in this transaction');

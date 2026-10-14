@@ -1,3 +1,4 @@
+import { brandMetadata, brandMessaging } from '@/lib/brand';
 // Root layout for the public site and docs: static pages, no wallet code.
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme';
@@ -5,9 +6,10 @@ import { geistMono, geistSans } from '@/lib/fonts';
 import '@/styles/site.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Slice | Your revenue is your credit', template: '%s | Slice' },
+  ...brandMetadata,
+  title: { default: 'Bondrail | Revenue bonds for onchain businesses', template: '%s | Bondrail' },
   description:
-    'Revenue bonds for onchain businesses on Monad. Every payment builds a credit history; a fixed slice repays investors automatically.',
+    brandMessaging.description,
 };
 
 export default function SiteLayout({ children }: { children: React.ReactNode }) {

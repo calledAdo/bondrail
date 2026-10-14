@@ -2,7 +2,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "name": "@slice/observer",
+  "name": "@bondrail/observer",
   "exports": {
     ".": "./src/index.ts",
     "./protocol": "./src/protocol.ts",

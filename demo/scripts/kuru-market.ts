@@ -1,4 +1,4 @@
-// Lists a Slice revenue-claim token on Kuru (Monad testnet): a claim / USDC order book with an AMM vault
+// Lists a Bondrail revenue-claim token on Kuru (Monad testnet): a claim / USDC order book with an AMM vault
 // seeded at ~1 USDC per claim. The claim's price is then a live market forecast of the business's
 // remaining revenue to investors.
 //

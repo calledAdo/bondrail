@@ -1,4 +1,4 @@
-import { storeFromEnv } from '@slice/observer/store';
+import { storeFromEnv } from '@bondrail/observer/store';
 import { environment, getConfig } from '../../../lib/config';
 import { handlePaidRequest, realBackend } from '../../../lib/payment';
 export const runtime = 'nodejs';

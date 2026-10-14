@@ -1,0 +1,3 @@
+{
+  "query": "{ CovenantCheck(order_by: {observedAt: desc}, limit: 12) { bond result observedAt txHash } }"
+}

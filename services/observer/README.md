@@ -1,8 +1,8 @@
-# Slice observer
+# Bondrail observer
 
 The observer accepts only `POST /observe` with `{ "watchId": "registered-id", "epoch": 123 }` and `Authorization: Bearer <OBSERVER_API_TOKEN>`. It independently fetches the frozen URL. There is no endpoint for supplied verdicts, URLs, signatures or arbitrary calls. A process reads its registry once at startup. Freeze that registry before investors activate the corresponding bond; its canonical hash must equal the bond's registered policy hash.
 
-The policy hash is `keccak256(UTF8(canonical(policy)))` using `@slice/observer/protocol`. Canonical JSON recursively sorts object keys, retains array order and string casing. Because this includes the bond address, predict the Factory's next created bond address before freezing/creating a watched issuance, then verify that actual address. Observation signatures separately bind chain, covenant, bond, policy and epoch.
+The policy hash is `keccak256(UTF8(canonical(policy)))` using `@bondrail/observer/protocol`. Canonical JSON recursively sorts object keys, retains array order and string casing. Because this includes the bond address, predict the Factory's next created bond address before freezing/creating a watched issuance, then verify that actual address. Observation signatures separately bind chain, covenant, bond, policy and epoch.
 
 The private key is a disclosed trusted observer authority. It must match the Covenant's immutable `observationSigner`. One durable record is written per chain/covenant/bond/policy/epoch. Concurrent callers wait for the same result; interrupted epochs are never signed twice. Do not delete old records or rotate signer identity under an active bond.
 

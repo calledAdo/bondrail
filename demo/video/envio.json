@@ -1,0 +1,8 @@
+[
+ {"id":"payment","minimum":14,"lines":["Bondrail uses Envio to turn onchain payments into revenue history investors can inspect. This previously recorded testnet trade generated a fee and automatically repaid part of a revenue bond."]},
+ {"id":"receipt","minimum":12,"lines":["The transaction receipt shows the actual Revenue event: a one cent fee, with a quarter of that fee directed to the bond. We will follow this exact transaction into Envio."]},
+ {"id":"query","minimum":16,"lines":["Here we query the deployed HyperIndex endpoint used by Bondrail. The filter is the same transaction hash. This is a fresh, read only request, returning the indexed payment and its revenue split."]},
+ {"id":"indexed","minimum":14,"lines":["The returned payment is classified as native. The split matches the receipt: ten thousand base units in revenue, with twenty five hundred sent to the bond. These are six decimal test U S D C amounts."]},
+ {"id":"profile","minimum":12,"lines":["Back in the live product, Envio's aggregates power this business's revenue history, payment totals and payer breakdown. The account now shows two payments and two cents in revenue."]},
+ {"id":"payers","minimum":13,"lines":["Investors can inspect who paid and whether a funding link was detected. No link found is not proof of an independent customer. This is controlled testnet activity, demonstrating how indexed data drives the product."]}
+]

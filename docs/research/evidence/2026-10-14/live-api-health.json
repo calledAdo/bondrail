@@ -1,0 +1,27 @@
+{
+  "status": "ready",
+  "checks": [
+    {
+      "name": "payment_environment",
+      "ready": true
+    },
+    {
+      "name": "model_credentials",
+      "ready": true
+    },
+    {
+      "name": "admin_token",
+      "ready": true
+    },
+    {
+      "name": "durable_store",
+      "ready": true
+    },
+    {
+      "name": "payment_recipient",
+      "ready": true
+    }
+  ],
+  "network": 10143,
+  "providerConnectivity": "not tested by this diagnostic"
+}

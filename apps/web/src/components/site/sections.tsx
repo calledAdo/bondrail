@@ -85,7 +85,7 @@ export function LiveStrip() {
           ? 'Indexer not configured: numbers appear on the deployed site.'
           : error
             ? 'Indexer unreachable right now.'
-            : 'Live from Monad testnet via Envio. Demo businesses and their traffic are run by the Slice team.'}
+            : 'Live from Monad testnet via Envio. Demo businesses and their traffic are run by the Bondrail team.'}
       </p>
     </section>
   );
@@ -118,16 +118,16 @@ export function PaymentMarquee() {
 }
 
 const STEPS = [
-  ['Open an account', 'Create a SliceAccount in the token you earn. It is your revenue address from day one.'],
+  ['Open an account', 'Create a revenue account in the token you earn. It is your revenue address from day one.'],
   ['Build history', 'Every payment is booked on-chain with its payer: revenue, volume, fee rate, payers, age.'],
-  ['Raise', 'Issue a bond against that history. Investors fund it; 25% or 50% is released, the rest at a milestone.'],
-  ['Repay automatically', 'A fixed share of every payment goes to the bond until the cap. Then back to 100% yours.'],
+  ['Issue a bond', 'Set the bond terms against your revenue history. Investors fund it; 25% or 50% is released, the rest at a milestone.'],
+  ['Route revenue to repayment', 'A fixed revenue share goes toward bond repayment, up to the cap. Native payments split in the transaction; paid API receipts need collection.'],
 ];
 
 export function HowItWorks() {
   return (
     <section id="how" className="mx-auto max-w-6xl px-6 py-32">
-      <SectionHead index="01" eyebrow="How it works" title="Credit that builds itself." lead="No pitch deck. The record investors underwrite is the one your payments already wrote." />
+      <SectionHead index="01" eyebrow="How it works" title="From revenue to a funded bond." lead="Record revenue, set the terms, and let investors assess the business behind the bond." />
       <ol className="grid gap-px overflow-hidden rounded-xl border border-foreground/10 bg-foreground/10 sm:grid-cols-4">
         {STEPS.map(([title, body], i) => (
           <Reveal key={title} delay={i * 0.15} className="bg-background">
@@ -180,7 +180,7 @@ export function Tiers() {
             icon: <ShieldCheck className="size-3.5" />,
             tone: 'border-foreground/15 text-foreground/80',
             tier: 'Native',
-            title: 'Built on Slice',
+            title: 'Built on Bondrail',
             body: 'Your contract inherits SliceEarner. Every fee moves through your account, which is fixed into the code. There is no other path.',
             facts: ['collect() for money in, settleOut() for money out', 'payer proven by the transfer itself', 'optional fee floor while a bond is live'],
             href: '/docs/guides/native',

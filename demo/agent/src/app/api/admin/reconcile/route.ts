@@ -1,5 +1,5 @@
-import { storeFromEnv } from '@slice/observer/store';
-import { authorized } from '@slice/observer/auth';
+import { storeFromEnv } from '@bondrail/observer/store';
+import { authorized } from '@bondrail/observer/auth';
 import { environment } from '../../../../lib/config';
 import { reconcile } from '../../../../lib/reconcile';
 import type { Hex } from 'viem';

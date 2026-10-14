@@ -9,7 +9,7 @@ const profiles = {
   pumplab: {
     key: 'pumplab-issuer',
     name: 'PumpLab',
-    description: 'A token launchpad on Monad. Every trading fee is paid into its Slice account in code.',
+    description: 'A token launchpad on Monad. Every trading fee is paid into its Bondrail account in code.',
     website: '',
     x: '',
     useOfFunds: 'Liquidity incentives for new launches and an audit of the launchpad contracts.',
@@ -17,7 +17,7 @@ const profiles = {
   agent: {
     key: 'agent-issuer',
     name: 'Oracle Agent',
-    description: 'A paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Slice account.',
+    description: 'A paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.',
     website: 'https://slice-agent.vercel.app',
     x: '',
     useOfFunds: 'Model inference credits and hosting for the next six months.',

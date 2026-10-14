@@ -1,5 +1,5 @@
 {
-  "name": "@slice/indexer",
+  "name": "@bondrail/indexer",
   "version": "0.1.0",
   "private": true,
   "type": "module",

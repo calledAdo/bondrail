@@ -19,7 +19,7 @@ import {
   type Hex,
 } from 'viem';
 import { Check, Circle, ExternalLink, Lock } from 'lucide-react';
-import { PARSER_VERSION, policyHash, type WatchPolicy } from '@slice/observer/protocol';
+import { PARSER_VERSION, policyHash, type WatchPolicy } from '@bondrail/observer/protocol';
 import { accountAbi, bondAbi, factoryAbi } from '@/lib/abi';
 import { chain, deployment } from '@/lib/wallet';
 import { LIMITS, profileDomain, profileTypes } from '@/lib/profile';
@@ -160,7 +160,7 @@ export function Console() {
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="space-y-3">
           <p className="font-mono text-xs text-foreground/60">(console)</p>
-          <h1 className="text-4xl font-semibold">Raise against revenue</h1>
+          <h1 className="text-4xl font-semibold">Issue a revenue bond</h1>
           <p className="max-w-xl text-foreground/60">Each step reads its state from the chain, so you can leave and come back at any point.</p>
         </div>
         {mine.length > 0 && (
@@ -277,7 +277,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
 
   return (
     <ol className="space-y-3">
-      <Step index={1} title="Create your SliceAccount" status={s(!!account, true)} summary={account && <span className="font-mono">{short(account.address)} · {account.asset.symbol}</span>}>
+      <Step index={1} title="Create your revenue account" status={s(!!account, true)} summary={account && <span className="font-mono">{short(account.address)} · {account.asset.symbol}</span>}>
         <p className="text-foreground/70">Your revenue address from day one. Pick the token you charge fees in; your bonds raise and repay in it too.</p>
         <Field label="Fee token" hint="Any ERC-20. Defaults to USDC; the market promotes well-known assets.">
           <input value={asset} onChange={(e) => setAsset(e.target.value)} placeholder="0x…" className={cn(input, 'font-mono')} spellCheck={false} />
@@ -291,7 +291,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
         <div className="flex gap-2">
           {(['Native', 'Watched'] as const).map((t) => (
             <button key={t} type="button" onClick={() => setTier(t)} className={cn('rounded-lg border px-3 py-1.5', tier === t ? 'border-foreground/40' : 'border-foreground/10 text-foreground/60')}>
-              {t === 'Native' ? 'Contract built on Slice' : 'Paid API (x402)'}
+              {t === 'Native' ? 'Contract built on Bondrail' : 'Paid API (x402)'}
             </button>
           ))}
         </div>
@@ -512,7 +512,7 @@ function TermsBuilder({
       const blob = new Blob([JSON.stringify(watch, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `slice-watch-policy-${bond}.json`;
+      a.download = `bondrail-watch-policy-${bond}.json`;
       a.click();
     } else {
       policy = keccak256(stringToHex(JSON.stringify({ kind: 'native', account: account.address, project })));
@@ -609,7 +609,7 @@ function TermsBuilder({
       <Action disabled={tx.busy || errors.length > 0} onClick={create}>
         {Number(t.stake) > 0 ? 'Approve stake and create bond' : 'Create bond'}
       </Action>
-      {tier === 'Watched' && <p className="text-xs text-foreground/60">Creating downloads your watch policy: send it to the Slice observer operator so monitoring starts.</p>}
+      {tier === 'Watched' && <p className="text-xs text-foreground/60">Creating downloads your watch policy: send it to the Bondrail observer operator so monitoring starts.</p>}
     </div>
   );
 }

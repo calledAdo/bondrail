@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
-import * as abis from '@slice/sdk/abis';
+import * as abis from '@bondrail/sdk/abis';
 
 // Repository root (the app runs from apps/web). Read at build time only; not traced into the server bundle.
 const ROOT = path.resolve(/*turbopackIgnore: true*/ process.cwd(), '../..');

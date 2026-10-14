@@ -1,6 +1,6 @@
 import type { Address } from 'viem';
-import { address } from '@slice/observer/protocol';
-import type { DurableStore } from '@slice/observer/store';
+import { address } from '@bondrail/observer/protocol';
+import type { DurableStore } from '@bondrail/observer/store';
 export interface AgentConfig {
   revision: number;
   payTo: Address;

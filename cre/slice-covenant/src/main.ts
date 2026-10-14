@@ -1,6 +1,6 @@
 import { Runner } from '@chainlink/cre-sdk';
 import { z } from 'zod';
-import { PARSER_VERSION } from '@slice/observer/protocol';
+import { PARSER_VERSION } from '@bondrail/observer/protocol';
 import { initWorkflow, type WorkflowConfig } from './workflow.js';
 // The CRE WASM runtime has no URL global, so URLs are checked with a pattern instead of z.url().
 const url = z.string().regex(/^https?:\/\/[^\s/@]+\/\S*$/);

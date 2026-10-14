@@ -1,4 +1,4 @@
-// DEMO: the Oracle Agent's paid Q&A, built on @slice/sdk/x402. The SDK does the x402 work (offer,
+// DEMO: the Oracle Agent's paid Q&A, built on @bondrail/sdk/x402. The SDK does the x402 work (offer,
 // verification, journal, settlement into the SliceAccount); this file only says what is sold and how.
 import {
   exactUsdcRequirements,
@@ -6,8 +6,8 @@ import {
   httpFacilitator,
   type Facilitator,
   type PaymentRecord,
-} from '@slice/sdk/x402';
-import type { DurableStore } from '@slice/observer/store';
+} from '@bondrail/sdk/x402';
+import type { DurableStore } from '@bondrail/observer/store';
 import type { AgentConfig, AgentEnvironment } from './config';
 
 export type { PaymentRecord };

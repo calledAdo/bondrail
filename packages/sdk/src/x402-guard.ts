@@ -1,4 +1,4 @@
-// Buyer-side protection for x402 payments to Slice businesses.
+// Buyer-side protection for x402 payments to Bondrail businesses.
 //
 // A Watched business decides its x402 `payTo` in an HTTP response, so it could show the monitor its
 // SliceAccount and show paying customers another wallet. A guarded client checks every offer itself,
@@ -15,7 +15,7 @@
 //   const pay = wrapFetchWithPayment(sliceGuard(fetch, { verifyAccount: isSliceAccount(publicClient, factory) }), x402);
 //   await pay('https://agent.example/api/oracle?question=hi');
 import type { Address, PublicClient } from 'viem';
-import { address, decodeBase64Json, isRecord, type SliceManifest } from '@slice/observer/protocol';
+import { address, decodeBase64Json, isRecord, type SliceManifest } from '@bondrail/observer/protocol';
 import { sliceBondAbi, sliceFactoryAbi } from './abis';
 
 export class SliceGuardError extends Error {
@@ -62,7 +62,7 @@ export function isSliceAccount(publicClient: PublicClient, factory: Address) {
     publicClient.readContract({ address: factory, abi: sliceFactoryAbi, functionName: 'isAccount', args: [account] });
 }
 
-/** Wraps `fetch` so that every 402 offer is checked against the host's Slice manifest before payment. */
+/** Wraps `fetch` so that every 402 offer is checked against the host's Bondrail manifest before payment. */
 export function sliceGuard(base: typeof fetch, o: GuardOptions = {}): typeof fetch {
   const cache = new Map<string, { at: number; manifest: SliceManifest | null }>();
   const ttl = (o.cacheSeconds ?? 60) * 1000;
@@ -100,7 +100,7 @@ export function sliceGuard(base: typeof fetch, o: GuardOptions = {}): typeof fet
       );
     if (!manifest) {
       if (o.allowUnlisted) return response;
-      throw new SliceGuardError(`${url.origin} publishes no valid Slice manifest; refusing to pay`);
+      throw new SliceGuardError(`${url.origin} publishes no valid Bondrail manifest; refusing to pay`);
     }
     let accepts: unknown[] = [];
     try {
