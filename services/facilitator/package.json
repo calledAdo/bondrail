@@ -1,0 +1,17 @@
+{
+  "name": "@bondrail/facilitator",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx src/server.ts",
+    "start": "tsx src/server.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "@bondrail/sdk": "workspace:*",
+    "@x402/core": "2.28.0",
+    "viem": "2.54.2"
+  }
+}
