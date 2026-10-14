@@ -6,17 +6,18 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceTypes, ISliceBond, ISliceEarner} from "./SliceTypes.sol";
+import {SliceTypes, ISliceBond, ISliceEarner, IERC3009} from "./SliceTypes.sol";
 
 /// @notice A business's revenue address and payment entrypoint, from day one.
 ///
 /// Each account holds one asset, chosen at creation: the token the business charges fees in (any ERC-20,
-/// e.g. USDC or WETH). Its bonds raise and repay in that asset. Money arrives three ways:
+/// e.g. USDC or WETH). Its bonds raise and repay in that asset. Money arrives four ways:
 ///   - collect: money in. The bound Native project asks the account to pull a payment from the payer;
 ///     the account keeps the fee and forwards the rest to the project (payer proven by the pull).
 ///   - settleOut: money out. The project hands a payout to the account, which pays the payer the payout
 ///     minus the fee and keeps the fee (for fees charged on what the payer receives).
-///   - receive: a plain transfer (an x402 settlement, or anything sent to the account), booked by sweep().
+///   - settle: a payer-signed EIP-3009 payment, booked and split in the same transaction.
+///   - receive: a plain transfer into the account, booked by sweep().
 ///
 /// Every booked payment adds to an on-chain credit history. With no active bond (passthrough) all
 /// revenue is credited to the issuer; while a bond is Active the bond's share is split off first.
@@ -43,7 +44,7 @@ contract SliceAccount is ReentrancyGuard {
 
     // ---- credit history, from the first payment ----
     uint256 public cumulativeRevenue;
-    /// @notice Gross payment volume behind collected fees (in and out); with the fees it shows the fee rate.
+    /// @notice Gross volume of collected payments (in and out) and EIP-3009 settlements.
     uint256 public cumulativeVolume;
     uint64 public paymentCount;
     uint64 public collectedCount;
@@ -56,6 +57,7 @@ contract SliceAccount is ReentrancyGuard {
     event ProjectBound(address indexed project);
     /// @notice A Native payment: `outgoing` is false when the payer paid in, true when the payer was paid out.
     event Collected(address indexed payer, uint256 gross, uint256 fee, bool outgoing);
+    event Settled(address indexed payer, uint256 value, bytes32 indexed nonce);
     event Revenue(
         address indexed bond, address indexed payer, uint256 amount, uint256 toBond, uint256 toIssuer, bool collected
     );
@@ -128,7 +130,30 @@ contract SliceAccount is ReentrancyGuard {
         _bookCollected(payer, gross, fee);
     }
 
-    /// @notice Books asset that arrived by plain transfer (x402 settlements, other transfers).
+    /// @notice Submit a payer's EIP-3009 authorization, then book and split exactly its value.
+    /// Anyone may relay it; the token verifies the payer, recipient, amount, window and unused nonce.
+    /// Native accounts also accept settlements: the entire payment is revenue, with no fee floor.
+    function settle(
+        address from,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external nonReentrant {
+        if (from == address(0) || from == address(this) || value == 0) revert InvalidAmount();
+        uint256 beforeBalance = asset.balanceOf(address(this));
+        IERC3009(address(asset))
+            .transferWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, v, r, s);
+        if (asset.balanceOf(address(this)) - beforeBalance != value) revert InvalidAmount();
+        cumulativeVolume += value;
+        emit Settled(from, value, nonce);
+        _book(from, value, true);
+    }
+
+    /// @notice Books asset that arrived by plain transfer (including direct-to-token x402 settlements).
     function sweep() external nonReentrant {
         uint256 amount = _unbooked();
         if (amount != 0) _book(address(0), amount, false);

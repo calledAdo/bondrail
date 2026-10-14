@@ -7,10 +7,10 @@ import {SliceAccount} from "../src/SliceAccount.sol";
 import {PumpLab} from "@slice-demo/PumpLab.sol";
 import {SliceFactory} from "../src/SliceFactory.sol";
 import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {MockUSDC} from "./mocks/MockUSDC.sol";
+import {MockERC3009} from "./mocks/MockERC3009.sol";
 
 contract AccountingHandler is TestBase {
-    MockUSDC public asset;
+    MockERC3009 public asset;
     SliceFactory public factory;
     SliceAccount public router;
     SliceBond public bond;
@@ -19,9 +19,10 @@ contract AccountingHandler is TestBase {
     uint256 public holderPaid;
     uint256 private constant PK = 67890;
     SliceTypes.Terms private t;
+    uint256 private settlementNonce;
 
     constructor() {
-        asset = new MockUSDC();
+        asset = new MockERC3009();
         SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
         factory = new SliceFactory(
             address(c), vm.addr(PK), address(new SliceBond()), address(new SliceAccount()), address(0x777), 0
@@ -70,6 +71,19 @@ contract AccountingHandler is TestBase {
         asset.mint(address(router), value);
         receipts += value;
         if (collect) router.sweep();
+    }
+
+    function settle(uint64 raw, uint8 payerSeed) external {
+        uint256 value = uint256(raw) % 40e6 + 1;
+        uint256 payerPk = uint256(payerSeed) + 1;
+        address payer = vm.addr(payerPk);
+        uint256 validBefore = vm.getBlockTimestamp() + 300;
+        bytes32 nonce = bytes32(++settlementNonce);
+        asset.mint(payer, value);
+        (uint8 v, bytes32 r, bytes32 s) =
+            vm.sign(payerPk, asset.hashAuthorization(payer, address(router), value, 0, validBefore, nonce));
+        router.settle(payer, value, 0, validBefore, nonce, v, r, s);
+        receipts += value;
     }
 
     function sweep() external {
@@ -154,7 +168,7 @@ contract AccountingInvariantTest is TestBase {
     function invariantAssetsCoverEveryLiability() public view {
         SliceBond b = handler.bond();
         SliceAccount r = handler.router();
-        MockUSDC a = handler.asset();
+        MockERC3009 a = handler.asset();
         yes(a.balanceOf(address(b)) >= b.accountedBalance());
         yes(a.balanceOf(address(r)) >= r.issuerCredit());
         eq(b.releasedPrincipal() + b.undrawnPrincipal() + b.principalRecovery(), 100e6);

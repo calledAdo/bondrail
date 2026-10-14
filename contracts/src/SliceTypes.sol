@@ -97,6 +97,16 @@ interface ISliceAccount {
         bytes32 r,
         bytes32 s
     ) external returns (uint256 net);
+    function settle(
+        address from,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
     function sweep() external;
     function attach(address bond) external;
     function settleBeforeActivation(address expectedBond) external;
@@ -129,4 +139,19 @@ interface ISliceCovenant {
 
 interface ISliceFactory {
     function depositAllowed(address bond) external view returns (bool);
+}
+
+/// @notice Minimal EIP-3009 entrypoint used by account-mediated x402 settlements.
+interface IERC3009 {
+    function transferWithAuthorization(
+        address from,
+        address to,
+        uint256 value,
+        uint256 validAfter,
+        uint256 validBefore,
+        bytes32 nonce,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) external;
 }
