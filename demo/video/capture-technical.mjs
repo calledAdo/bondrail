@@ -1,3 +1,5 @@
+import { deploymentName } from '../../scripts/deployment-path.mjs';
+const deploymentSuffix = deploymentName() === 'main' ? '' : `-${deploymentName()}`;
 // Real browser capture and a narrowly scoped, Node-held testnet wallet.
 // No key enters the browser. No simulated balances, responses or transaction receipts.
 import fs from 'node:fs';
@@ -17,7 +19,7 @@ const mode=process.argv.find(x=>x.startsWith('--scene='))?.slice(8) ?? 'inspect'
 const issuerMode=['issue','activate','inspect'].includes(mode);
 const factoryAbi=JSON.parse(fs.readFileSync(path.join(HERE,'../../contracts/out/BondrailFactory.sol/BondrailFactory.json'))).abi;
 fs.mkdirSync(path.join(OUT, 'raw'), { recursive: true });
-const d = JSON.parse(fs.readFileSync(path.join(HERE, '../../docs/deployments/10143.json')));
+const d = JSON.parse(fs.readFileSync(path.join(HERE, `../../docs/deployments/${process.env.BONDRAIL_CHAIN_ID ?? '10143'}${deploymentSuffix}.json`)));
 const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://bondrail.vercel.app';
 const RPC = process.env.BONDRAIL_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
 const keyText = fs.readFileSync(path.join(os.homedir(), `.slice/${issuerMode?scenario.issuerKey:scenario.payerKey}.key`), 'utf8').trim();

@@ -40,6 +40,7 @@ async function main() {
   const deployer = account('deployer', {
     fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
   });
+  if (!Number.isSafeInteger(Number(callsArg)) || Number(callsArg) < 1 || !Number.isSafeInteger(Number(payersArg)) || Number(payersArg) < 1) throw new Error('Positive integer calls/payers required');
   const payers = Array.from({ length: Number(payersArg) }, (_, i) => account(`payer-${i}`, { create: true }));
   for (const p of payers) {
     const bal = (await publicClient.readContract({
@@ -60,7 +61,7 @@ async function main() {
   });
 
   for (let i = 0; i < Number(callsArg); i++) {
-    const n = Math.floor(Math.random() * payers.length);
+    const n = i % payers.length;
     const q = QUESTIONS[Math.floor(Math.random() * QUESTIONS.length)];
     const url = `${AGENT_URL}?question=${encodeURIComponent(q)}`;
     const t0 = Date.now();
@@ -70,14 +71,16 @@ async function main() {
         answer?: string;
         payment?: { transaction?: string };
       };
+      if (r.status !== 200 || !body.payment?.transaction) throw new Error(`Payment failed: HTTP ${r.status}`);
       console.log(
         `  call ${i + 1}: payer-${n} HTTP ${r.status} in ${Date.now() - t0} ms` +
           (body.payment?.transaction ? ` tx ${body.payment.transaction}` : ''),
       );
     } catch (e) {
+      if (process.env.TRAFFIC_STRICT === '1') throw e;
       console.log(`  call ${i + 1}: payer-${n} failed: ${e instanceof Error ? e.message.slice(0, 120) : e}`);
     }
-    await new Promise((res) => setTimeout(res, 1500 + Math.random() * 3000));
+    await new Promise((res) => setTimeout(res, Number(process.env.TRAFFIC_DELAY_MS ?? (1500 + Math.random() * 3000))));
   }
 }
 

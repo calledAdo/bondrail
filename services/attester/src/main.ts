@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -52,9 +53,9 @@ async function main() {
   if (!Number.isSafeInteger(ttl) || ttl <= 0) throw new Error('Invalid attestation TTL');
   const nonce = !process.env.ATTESTATION_NONCE ? BigInt(`0x${randomBytes(32).toString('hex')}`) : BigInt(process.env.ATTESTATION_NONCE);
   const result = buildAttestation(inputs, { issuedAt, expiresAt: issuedAt + ttl, nonce });
-  const directory = fileURLToPath(new URL('../../../docs/credit/evidence/', import.meta.url));
+  const directory = process.env.ATTESTATION_EVIDENCE_DIR ?? fileURLToPath(new URL('../../../docs/credit/evidence/', import.meta.url));
   await mkdir(directory, { recursive: true });
-  const evidencePath = `${directory}${result.attestation.evidenceHash}.json`;
+  const evidencePath = path.join(directory, `${result.attestation.evidenceHash}.json`);
   await writeFile(evidencePath, result.evidence); // exact bytes hashed; no newline
   const key = process.env.ATTESTER_PRIVATE_KEY;
   if (key && !/^0x[0-9a-fA-F]{64}$/.test(key)) throw new Error('Invalid ATTESTER_PRIVATE_KEY');

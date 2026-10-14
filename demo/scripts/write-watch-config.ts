@@ -6,18 +6,22 @@
 // Without OBSERVER_URL the CRE config points at a loopback observer (local `cre workflow simulate` only).
 import fs from 'node:fs';
 import path from 'node:path';
-import { ROOT, readDeployment } from '../../scripts/lib.ts';
+import { ROOT, DEPLOYMENT, chainId, readDeployment } from '../../scripts/lib.ts';
+
+import { assertWritable, writeJson } from '../../scripts/deployment-path.mjs';
 
 const d = readDeployment();
+const output = path.resolve(process.env.BONDRAIL_CONFIG_DIR ?? path.join(ROOT, '.data/deployments', `${chainId}-${DEPLOYMENT}`));
+for (const name of ['registry.json', 'cre-config.json', 'targets.json']) assertWritable(path.join(output, name));
 if (!d.watchPolicy) throw new Error('No watchPolicy in the deployment: run setup-demo.ts agent first');
 const observerURL = process.env.OBSERVER_URL ?? 'http://127.0.0.1:8787/observe';
 const loopback = observerURL.startsWith('http://127.0.0.1:');
 const write = (file: string, value: unknown) => {
-  fs.writeFileSync(path.join(ROOT, file), JSON.stringify(value, null, 2) + '\n');
+  writeJson(path.join(output, file), value);
   console.log(`  wrote ${file}`);
 };
-write('services/observer/registry.json', [d.watchPolicy]);
-write('cre/bondrail-covenant/config.json', {
+write('registry.json', [d.watchPolicy]);
+write('cre-config.json', {
   schedule: '*/30 * * * * *',
   observerURL,
   ...(loopback ? { simulationLoopbackObserver: true } : {}),
@@ -25,3 +29,6 @@ write('cre/bondrail-covenant/config.json', {
   gasLimit: '700000',
   policy: d.watchPolicy,
 });
+
+write('targets.json', Object.values(d.issuers).filter(r => r.bond).map(r => ({ bond: r.bond, account: r.account })));
+console.log(`Configuration directory: ${output}`);

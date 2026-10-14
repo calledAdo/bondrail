@@ -1,3 +1,5 @@
+import { deploymentName } from '../../scripts/deployment-path.mjs';
+const deploymentSuffix = deploymentName() === 'main' ? '' : `-${deploymentName()}`;
 // Bounded preparation for the authorized Monad-testnet demo. No keys enter output.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -5,7 +7,7 @@ import {createPublicClient,createWalletClient,http,erc20Abi,decodeEventLog,encod
 import {privateKeyToAccount} from 'viem/accounts';
 import {monadTestnet} from 'viem/chains';
 const out=new URL('./output/technical/',import.meta.url);
-const d=JSON.parse(fs.readFileSync(new URL('../../docs/deployments/10143.json',import.meta.url)));
+const d=JSON.parse(fs.readFileSync(new URL(`../../docs/deployments/${process.env.BONDRAIL_CHAIN_ID ?? '10143'}${deploymentSuffix}.json`,import.meta.url)));
 const artifact=n=>JSON.parse(fs.readFileSync(new URL(`../../contracts/out/${n}.sol/${n}.json`,import.meta.url)));
 const factory=artifact('BondrailFactory'),launch=artifact('PumpLab');
 const key=n=>{const s=fs.readFileSync(`${os.homedir()}/.slice/${n}.key`,'utf8').trim();return privateKeyToAccount(s.startsWith('0x')?s:`0x${s}`)};

@@ -1,3 +1,5 @@
+import { deploymentName } from '../../scripts/deployment-path.mjs';
+const deploymentSuffix = deploymentName() === 'main' ? '' : `-${deploymentName()}`;
 // Real browser capture and a narrowly scoped, Node-held testnet wallet.
 // No key enters the browser. No simulated balances, responses or transaction receipts.
 import fs from 'node:fs';
@@ -12,7 +14,7 @@ import { monadTestnet } from 'viem/chains';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, 'output');
 fs.mkdirSync(path.join(OUT, 'raw'), { recursive: true });
-const d = JSON.parse(fs.readFileSync(path.join(HERE, '../../docs/deployments/10143.json')));
+const d = JSON.parse(fs.readFileSync(path.join(HERE, `../../docs/deployments/${process.env.BONDRAIL_CHAIN_ID ?? '10143'}${deploymentSuffix}.json`)));
 const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://slice-flame.vercel.app';
 const RPC = process.env.BONDRAIL_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
 const keyText = fs.readFileSync(path.join(os.homedir(), '.slice/pumplab-organic-0.key'), 'utf8').trim();

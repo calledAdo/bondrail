@@ -31,6 +31,8 @@ import {
 import { PARSER_VERSION, policyHash, type WatchPolicy } from '../../services/observer/src/protocol.ts';
 import {
   account,
+  assertDeploymentWritable,
+  assertChain,
   artifact,
   chainId,
   publicClient,
@@ -63,6 +65,7 @@ const factoryAbi = artifact('BondrailFactory').abi;
 const bondAbi = artifact('BondrailBond').abi;
 const accountAbi = artifact('BondrailAccount').abi;
 
+assertDeploymentWritable();
 const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
 const investor = account('investor', { create: true });
 
@@ -84,7 +87,7 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
   }
 }
 
-function terms(now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
+function terms(id: string, now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
   // Funding FUNDING_DAYS (default 1); second release opens 1 h after funding closes and ends 2 days
   // before maturity; matures after MATURITY_DAYS (default 7; use 30+ to stay live through judging).
   const fundingDays = BigInt(process.env.FUNDING_DAYS ?? '1');
@@ -104,7 +107,7 @@ function terms(now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
     firstReleaseBps: 5000,
     milestoneMode,
     minFeeBps,
-    ...triggerTerms,
+    ...(id === (process.env.TRIGGER_BOND ?? 'pumplab') ? triggerTerms : { triggerRevenue: 0n, triggerWindowDays: 0, stepUpBps: 0 }),
   };
 }
 
@@ -129,6 +132,7 @@ async function ensureAccount(id: string, name: string, tier: IssuerRecord['tier'
   await fund(issuer.address, '1', STAKE, d.asset);
   const r = await write(issuer, d.factory, factoryAbi, 'createAccount', [d.asset]); // the demo earns in USDC
   const { account: acct } = await eventArgs(r, 'AccountCreated');
+  d.roles = { ...d.roles, [`${id}-issuer`]: issuer.address, investor: investor.address };
   d.issuers[id] = { name, tier, issuer: issuer.address, account: acct };
   saveDeployment(d);
   console.log(`  ${name}: account ${acct}`);
@@ -139,6 +143,7 @@ async function fundAndActivate(id: string) {
   const d = readDeployment();
   const rec = d.issuers[id]!;
   if ((await phase(rec.bond!)) !== 0) return;
+  await allocateVault(id);
   const raised = (await publicClient.readContract({
     address: rec.bond!,
     abi: bondAbi,
@@ -193,22 +198,56 @@ async function createBond(
 ) {
   const d = readDeployment();
   const rec = d.issuers[id]!;
-  if (rec.bond) return true;
+  if (rec.bond) { await recordBond(rec.bond); return true; }
   if (!(await historyReady(id))) return false;
   const issuer = account(`${id}-issuer`);
   const now = (await publicClient.getBlock()).timestamp;
   await write(issuer, d.asset, erc20, 'approve', [d.factory, STAKE]);
   const r = await write(issuer, d.factory, factoryAbi, 'createBond', [
     rec.account,
-    terms(now, milestoneMode, minFeeBps),
+    terms(id, now, milestoneMode, minFeeBps),
     config,
     name,
     symbol,
   ]);
   rec.bond = (await eventArgs(r, 'BondCreated')).bond;
   saveDeployment(d);
+  await recordBond(rec.bond!);
   console.log(`  ${rec.name}: bond ${rec.bond} (${symbol})`);
   return true;
+}
+
+async function recordBond(bond: Address) {
+  const d = readDeployment();
+  if (!d.creditRegistry) throw new Error('Deploy the full protocol including creditRegistry first');
+  const abi = artifact('BondrailCreditRegistry').abi;
+  if (!await publicClient.readContract({ address: d.creditRegistry, abi, functionName: 'recorded', args: [bond] }))
+    await write(deployer, d.creditRegistry, abi, 'recordBond', [bond]);
+}
+
+/** Allocate before investor top-up/activation, while the bond is Funding. Reruns target a total cost. */
+async function allocateVault(id: string) {
+  const amount = usdc(process.env.VAULT_ALLOCATE_USDC ?? '0');
+  if (!amount || id !== (process.env.VAULT_BOND ?? 'pumplab')) return;
+  const d = readDeployment();
+  if (!d.vault) throw new Error('Missing vault');
+  const bond = d.issuers[id]!.bond!;
+  const abi = artifact('BondrailVault').abi;
+  const deposited = usdc(process.env.VAULT_DEPOSIT_USDC ?? '2');
+  if (deposited < amount * 4n) throw new Error('Vault deposit must cover the 25% concentration limit');
+  const holder = account('vault-depositor', { create: true });
+  const supply = await publicClient.readContract({ address: d.vault, abi, functionName: 'totalSupply' }) as bigint;
+  if (!supply) {
+    await fund(holder.address, '0.2', deposited, d.asset);
+    await write(holder, d.asset, erc20, 'approve', [d.vault, deposited]);
+    await write(holder, d.vault, abi, 'deposit', [deposited, holder.address]);
+  }
+  const cost = await publicClient.readContract({ address: d.vault, abi, functionName: 'costBasis', args: [bond] }) as bigint;
+  if (cost < amount) await write(account('curator'), d.vault, abi, 'allocate', [bond, amount - cost]);
+  d.roles = { ...d.roles, 'vault-depositor': holder.address };
+  d.vaultAllocation = { bond, amount: String(amount), deposit: String(deposited) };
+  saveDeployment(d);
+  console.log(`  Vault: allocated ${amount} atomic USDC to ${id} while Funding`);
 }
 
 /** A Native launchpad from the reviewed PumpLab template. `open`: create the bond and leave the raise
@@ -285,7 +324,7 @@ async function setupAgent() {
     const origin = new URL(agentUrl).origin;
     const policy: WatchPolicy = {
       id: 'bondrail-agent',
-      chainId: chainId as 10143,
+      chainId,
       chainSelector: '2183018362218727504',
       covenant: d.covenant,
       bond,
@@ -318,12 +357,13 @@ async function setupAgent() {
 }
 
 async function main() {
-  const which = process.argv.slice(2);
+  await assertChain();
+  const which = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
   const all = which.length === 0;
   console.log(`Setting up demo businesses on ${readDeployment().network}`);
   if (all || which.includes('pumplab')) await setupLaunchpad('pumplab', 'PumpLab', 'PumpLab Meme', 'PLMEME', 'PLAB-RC', false);
   // A second issuer on the same reviewed template, raising in the open (e.g. FUNDING_DAYS=17 MATURITY_DAYS=45).
-  if (which.includes('curvelab')) await setupLaunchpad('curvelab', 'CurveLab', 'CurveLab Meme', 'CLMEME', 'CLAB-RC', true);
+  if (all || which.includes('curvelab')) await setupLaunchpad('curvelab', 'CurveLab', 'CurveLab Meme', 'CLMEME', 'CLAB-RC', true);
   if (all || which.includes('agent')) await setupAgent();
 }
 

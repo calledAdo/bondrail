@@ -9,7 +9,9 @@ import { bondrailAccountAbi, bondrailBondAbi } from '../../packages/sdk/src/abis
 import os from 'node:os';
 import path from 'node:path';
 import { decodeEventLog, keccak256, parseAbi, stringToHex } from 'viem';
-import { account, publicClient, readDeployment, saveDeployment, write } from '../../scripts/lib.ts';
+import { assertDeploymentWritable, account, publicClient, readDeployment, saveDeployment, write } from '../../scripts/lib.ts';
+
+assertDeploymentWritable();
 
 const IDENTITY = '0x8004A818BFB912233c491871b3d84c89A494BD9e';
 const REPUTATION = '0x8004B663056A597Dffe9eCcC1965A193B7388713';

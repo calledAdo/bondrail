@@ -1,3 +1,5 @@
+import { deploymentName } from '../../scripts/deployment-path.mjs';
+const deploymentSuffix = deploymentName() === 'main' ? '' : `-${deploymentName()}`;
 // Read-only preparation. Keys stay in Node memory; output contains public addresses/balances only.
 import fs from 'node:fs';
 import os from 'node:os';
@@ -6,7 +8,7 @@ import { createPublicClient, http, erc20Abi, formatUnits, parseAbi } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts';
 import { monadTestnet } from 'viem/chains';
 
-const deployment = JSON.parse(fs.readFileSync(new URL('../../docs/deployments/10143.json', import.meta.url)));
+const deployment = JSON.parse(fs.readFileSync(new URL(`../../docs/deployments/${process.env.BONDRAIL_CHAIN_ID ?? '10143'}${deploymentSuffix}.json`, import.meta.url)));
 const client = createPublicClient({ chain: monadTestnet, transport: http('https://testnet-rpc.monad.xyz', { retryCount: 3 }) });
 if (await client.getChainId() !== 10143) throw new Error('Monad testnet required');
 for (const name of ['pumplab-issuer', 'curvelab-issuer', 'classic-issuer']) {
