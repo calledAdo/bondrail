@@ -15,7 +15,8 @@
     "readiness": "tsx scripts/readiness.ts",
     "local:deploy": "tsx scripts/deploy-local.ts",
     "test:e2e": "playwright test",
-    "check": "pnpm typecheck && pnpm test"
+    "check": "pnpm typecheck && pnpm test",
+    "sdk:pack": "pnpm --filter @bondrail/sdk pack --pack-destination packages/sdk"
   },
   "devDependencies": {
     "@kuru-labs/kuru-sdk": "^0.0.95",
