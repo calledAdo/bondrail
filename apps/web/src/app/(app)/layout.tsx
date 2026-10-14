@@ -1,3 +1,4 @@
+import { brandMetadata } from '@/lib/brand';
 // Root layout for the app (markets, bonds, accounts, portfolio, raise): wallet providers load here only.
 import type { Metadata } from 'next';
 import { Providers } from '@/components/providers';
@@ -7,7 +8,8 @@ import { geistMono, geistSans } from '@/lib/fonts';
 import '@/styles/site.css';
 
 export const metadata: Metadata = {
-  title: { default: 'Slice | Revenue markets', template: '%s | Slice' },
+  ...brandMetadata,
+  title: { default: 'Bondrail | Revenue markets', template: '%s | Bondrail' },
   description: 'Revenue bonds on Monad testnet: attributed revenue, coverage and live repayment for every bond.',
 };
 

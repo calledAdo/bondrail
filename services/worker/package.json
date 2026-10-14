@@ -2,14 +2,14 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "name": "@slice/worker",
+  "name": "@bondrail/worker",
   "scripts": {
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "@slice/observer": "workspace:*",
+    "@bondrail/observer": "workspace:*",
     "viem": "2.54.2"
   }
 }

@@ -9,7 +9,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       nav={{ title: <Logo />, url: '/' }}
       links={[
         { text: 'Markets', url: '/markets' },
-        { text: 'GitHub', url: 'https://github.com/calledAdo/slice', external: true },
+        { text: 'GitHub', url: 'https://github.com/calledAdo/bondrail', external: true },
       ]}
     >
       {children}

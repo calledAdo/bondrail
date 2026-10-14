@@ -15,7 +15,7 @@ import { wordlist } from '@scure/bip39/wordlists/english';
 import type { LocalAccount } from 'viem';
 
 export const ACCOUNT_PATH = "m/44'/60'/0'/0/0";
-const rp = () => ({ id: window.location.hostname, name: 'Slice' });
+const rp = () => ({ id: window.location.hostname, name: 'Bondrail' });
 
 export type MeraSession = { account: LocalAccount; credential: PasskeyCredentialMetadata; end: () => void };
 
@@ -34,7 +34,7 @@ function open(prfOutput: Uint8Array, credential: PasskeyCredentialMetadata): Mer
 export async function createAccount(): Promise<MeraSession> {
   const r = await createPasskeyWithPrfOutput({
     rp: rp(),
-    user: { name: 'Slice account', displayName: 'Slice' },
+    user: { name: 'Bondrail account', displayName: 'Bondrail' },
   });
   return open(r.prfOutput, { credentialId: r.credentialId, transports: r.transports });
 }

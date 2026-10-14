@@ -11,8 +11,8 @@ import {
   type Hex,
 } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { address } from '@slice/observer/protocol';
-import { storeFromEnv } from '@slice/observer/store';
+import { address } from '@bondrail/observer/protocol';
+import { storeFromEnv } from '@bondrail/observer/store';
 import { nextOperation } from './plan.js';
 const bondABI = parseAbi([
   'function phase() view returns (uint8)',
@@ -53,7 +53,7 @@ if (targets.some((t) => [t.bond, t.account].some((v) => /^0x0{40}$/i.test(v))))
   throw new Error('Replace zero-address worker placeholders');
 const chain = defineChain({
   id: chainId,
-  name: chainId === 10143 ? 'Monad Testnet' : 'Slice Local',
+  name: chainId === 10143 ? 'Monad Testnet' : 'Bondrail Local',
   nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
   rpcUrls: { default: { http: [SLICE_RPC_URL] } },
 });

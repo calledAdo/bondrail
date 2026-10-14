@@ -1,12 +1,17 @@
 ---
-title: What is Slice
-description: Revenue bonds for onchain businesses on Monad. Your revenue is your credit.
+title: What is Bondrail
+description: Issue revenue bonds, raise capital, and repay investors from business revenue on Monad.
 ---
 
-Onchain businesses earn fees every day but cannot borrow against them. Slice gives every business a
-**SliceAccount** from day one. The account records each payment, with its payer, long before the business
-asks for money. When it raises, investors buy a **SliceBond**, and the same account automatically pays them a
-fixed slice of every payment until they are repaid.
+Bondrail was previously called Slice. Deployed contracts retain their `Slice*` names; the SDK workspace packages use `@bondrail/*`.
+
+Bondrail lets onchain businesses **issue revenue bonds** to raise capital. Investors fund a bond and
+receive claim tokens. A fixed share of business revenue is routed toward repayment, up to the bond's cap.
+
+Each issuer builds a revenue record through a **SliceAccount** before issuing a **SliceBond**. Investors
+can inspect that record, the terms, and the repayment balance. Native payments split revenue within the
+transaction; paid API receipts require a separate collection transaction. Repayment depends on revenue,
+not a promise of fixed interest.
 
 - **Credit history from the first payment.** Revenue, payers, volume and fee rate are on-chain counters, not
   claims in a pitch deck.
@@ -17,7 +22,7 @@ fixed slice of every payment until they are repaid.
 
 <Cards>
   <Card title="Integrate a project" href="/docs/guides/quickstart" description="Route revenue through a SliceAccount in five minutes." />
-  <Card title="Raise against revenue" href="/docs/guides/raising" description="Issue a bond, get listed, release capital in two stages." />
+  <Card title="Issue a revenue bond" href="/docs/guides/raising" description="Issue a bond, get listed, release capital in two stages." />
   <Card title="Invest" href="/docs/guides/investing" description="Read a credit profile, fund a bond, redeem or trade." />
   <Card title="Trust model" href="/docs/trust-model" description="Exactly who and what you rely on." />
 </Cards>
@@ -26,5 +31,5 @@ fixed slice of every payment until they are repaid.
 
 | Tier | For | Why fees can't be diverted |
 |---|---|---|
-| **Native** | Contracts built on Slice (inherit `SliceEarner`) | Every fee moves through the account, which is fixed into the contract. A disclosed reviewer checks the code before it can raise. |
+| **Native** | Contracts built on Bondrail (inherit `SliceEarner`) | Every fee moves through the account, which is fixed into the contract. A disclosed reviewer checks the code before it can raise. |
 | **Watched** | Paid HTTP APIs (x402) | The business publishes its account in `/.well-known/slice.json`. Chainlink CRE checks every paid endpoint every 30 minutes (each report covers one 30-second epoch); a confirmed diversion defaults the bond and slashes the issuer's stake. |

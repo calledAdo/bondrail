@@ -8,7 +8,7 @@ description: Inherit SliceEarner and move every fee through your SliceAccount.
 Create it on day one, in the token you charge fees in. History starts at the first payment.
 
 ```ts
-import { sliceClient } from '@slice/sdk/client';
+import { sliceClient } from '@bondrail/sdk/client';
 const slice = sliceClient({ publicClient, walletClient, factory });
 const account = await slice.createAccount(USDC);
 ```

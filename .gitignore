@@ -37,3 +37,10 @@ docs/audit-evidence/
 docs/hackathon-assessment-*.md
 !.env.example
 !**/.env.example
+
+# Rendered demo media (large; kept local)
+demo/video/**/*.mp4
+demo/video/**/*.mkv
+demo/video/**/*.wav
+demo/video/**/*.mov
+demo/video/*.mp4

@@ -1,10 +1,10 @@
-# Slice interface
+# Bondrail interface
 
 Based on Kokonut DS (docs/Robaire Design System.pdf), set dark-first for a DeFi product.
 Monochrome, tight, quiet. Colour only where it means something.
 
 ## Brand
-- Idea: *Your revenue is your credit.* A fixed slice of every payment repays investors automatically.
+- Idea: *Revenue bonds for onchain businesses.* Businesses issue bonds; investors fund them; a share of revenue goes toward repayment.
 - The recurring visual is **the split**: a payment arrives and a slice peels off (animated beam: payer to
   SliceAccount to business and bond). Supporting motifs: the capital ribbon (released / escrowed /
   recovered), the live payment ticker, and the logo mark (a circle with one wedge cut out).
@@ -34,7 +34,7 @@ Monochrome, tight, quiet. Colour only where it means something.
 
 ## Surfaces
 - **Site** (`(site)`): monochrome framed hero (grain, one soft white light from above) with the split beam
-  and a giant "slice" watermark, live stats strip
+  and a giant "Bondrail" watermark, live stats strip
   (number tickers), payment marquee, how it works, two tiers bento (Native / Watched), builders vs investors,
   trust disclosure FAQ with `(01)` indices, sponsor logos.
 - **Docs** (`(docs)`, Fumadocs): same tokens; code blocks on ink panels.
@@ -43,3 +43,7 @@ Monochrome, tight, quiet. Colour only where it means something.
   to the bond page. Network, transaction, indexing and service failures are explicit UI states.
 - Mobile: rows collapse into labelled groups, 44 px controls, visible keyboard focus. Charts have text
   summaries and legends.
+
+## Bondrail identity
+
+Use the approved six-unit Split B and outlined wordmark in `brand/bondrail`. Product backgrounds are charcoal #202A27 and warm white #F6F5EF; mint #9FE8CA is the dark-theme brand accent. Preserve semantic warning and error colours. Use dedicated small-size favicon assets.

@@ -1,7 +1,7 @@
 // Oracle Agent demo traffic: payer wallets call the paid x402 API at random intervals.
 // Payers only sign EIP-3009 USDC authorizations; the x402 facilitator settles on-chain and pays the
 // gas, so these wallets need test USDC but no MON. Every payer here is team-controlled.
-// Payers are guarded buyers (@slice/sdk/x402-guard): they refuse any offer whose payTo is not the
+// Payers are guarded buyers (@bondrail/sdk/x402-guard): they refuse any offer whose payTo is not the
 // SliceAccount the agent publishes in /.well-known/slice.json and the factory confirms on-chain.
 //
 //   AGENT_URL=https://<agent>/api/oracle pnpm tsx scripts/traffic-agent.ts [calls=20] [payers=5]

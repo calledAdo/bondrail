@@ -1,7 +1,7 @@
 export default function Page() {
   return (
     <main>
-      <h1>Slice paid research API</h1>
+      <h1>Bondrail paid research API</h1>
       <p>
         One concise AI answer (an open model on Groq; see /api/config for the exact model) costs 0.01 testnet USDC. Use an x402 client with{' '}
         <code>GET /api/oracle?question=your-question</code>.

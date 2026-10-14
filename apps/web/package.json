@@ -1,5 +1,5 @@
 {
-  "name": "@slice/web",
+  "name": "@bondrail/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -13,7 +13,7 @@
     "@category-labs/mera": "^0.2.0",
     "@scure/bip32": "^1.7.0",
     "@scure/bip39": "^1.6.0",
-    "@slice/sdk": "workspace:*",
+    "@bondrail/sdk": "workspace:*",
     "@tailwindcss/postcss": "^4.3.3",
     "@tanstack/react-query": "^5.90.0",
     "@types/mdx": "^2.0.14",
@@ -34,7 +34,7 @@
     "tailwindcss": "^4.3.3",
     "viem": "2.54.2",
     "wagmi": "^2.19.0",
-    "@slice/observer": "workspace:*"
+    "@bondrail/observer": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.19.0",

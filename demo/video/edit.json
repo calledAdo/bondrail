@@ -1,0 +1,17 @@
+{
+  "04-payment": [
+    {"source":"04-payment","start":4.0,"end":18.3,"duration":21.5,"verified_usable":true,"note":"Successful actual payment and UI increase. Original capture failed later on explorer human verification; that tail is excluded."},
+    {"source":"04-receipt","start":0.5,"end":12.0,"duration":11.5,"note":"Read-only receipt view generated from real Monad RPC logs."}
+  ],
+  "05-kuru": [
+    {"source":"05-kuru","start":8.3,"end":14.5,"duration":10.5},
+    {"source":"05-kuru","start":14.5,"end":27.5,"duration":15.5}
+  ],
+  "06-deposit": [
+    {"source":"06-deposit","start":10.5,"end":27.0,"duration":19.0,"note":"Recovered original deposit footage, including before/after claim balance and final indexed raise."}
+  ],
+  "07-cre": [
+    {"source":"07-cre","start":7.6,"end":18.3,"duration":10.7},
+    {"source":"07-cre","start":27.0,"end":35.5,"duration":15.3}
+  ]
+}

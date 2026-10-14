@@ -1,4 +1,4 @@
-# Slice v1 specification
+# Bondrail v1 specification
 
 Single source of truth for the build.
 Decided 9 October 2026 (user + Claude). 10 October 2026: Locked tier removed; issuance and deposit checks; one asset per account (any token); payments out (`settleOut`); fee floor. Network: Monad testnet (10143); local anvil (31337) for tests.
@@ -17,7 +17,7 @@ The business's revenue address and payment entrypoint. Replaces the earlier "rou
 
 **One asset per account, any token.** `createAccount(asset)` fixes the token the business charges fees in
 (USDC, WETH, WMON, ...). Fees, bonds, deposits, repayments and stake all use it; claims share its
-decimals. No allowlist: Slice does not vet assets. The marketplace's default view promotes well-known
+decimals. No allowlist: Bondrail does not vet assets. The marketplace's default view promotes well-known
 assets only and flags the rest. Fee-on-transfer tokens revert (balance checks); a downward rebase never
 bricks the account (a shortfall books nothing).
 
@@ -117,7 +117,7 @@ withdraw paths could still divert fees, and making it safe needed Native-level r
     A higher price is fine. Several options are fine if all pay the account.
   - **Unknown:** no readable offer or manifest (outage, error, malformed).
   - **Compliant:** everything checks out.
-- **Buyers can verify too.** `@slice/sdk/x402-guard` (`sliceGuard`) wraps the x402 client's fetch and
+- **Buyers can verify too.** `@bondrail/sdk/x402-guard` (`sliceGuard`) wraps the x402 client's fetch and
   refuses to sign an offer whose `payTo` is not the manifest's account (optionally confirmed on-chain via
   `factory.isAccount`). This defeats showing the monitor one `payTo` and customers another.
 - **Unguarded buyers** can still be shown another `payTo` (no code can make a buyer verify). The bond page
@@ -155,5 +155,5 @@ observer's EIP-712 signature. 30 s epochs, 90 s freshness, replay and equivocati
 - Only the bound project can trigger `collect`; only the factory attaches bonds; one active bond per account.
 
 ## 5. Product vs demo
-- Product: `contracts/src`, `packages/sdk` (`@slice/sdk`), `services`, `cre`, `indexer`, `apps/web`, `scripts/deploy.ts`.
-- Demo: `demo/` (PumpLab, Oracle Agent on `@slice/sdk/x402`, setup/traffic/demo scripts). The demo uses only public protocol and SDK interfaces.
+- Product: `contracts/src`, `packages/sdk` (`@bondrail/sdk`), `services`, `cre`, `indexer`, `apps/web`, `scripts/deploy.ts`.
+- Demo: `demo/` (PumpLab, Oracle Agent on `@bondrail/sdk/x402`, setup/traffic/demo scripts). The demo uses only public protocol and SDK interfaces.

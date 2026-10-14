@@ -1,7 +1,8 @@
+import { brandMessaging } from '@/lib/brand';
 import { CTA } from './sections';
 import { Split } from './split';
 
-/** Framed ink hero: monochrome (grain and one soft white light from above), a giant "slice" watermark,
+/** Framed ink hero: monochrome (grain and one soft white light from above), a giant "Bondrail" watermark,
  *  and the split. The only colour is the investors' slice. */
 export function Hero() {
   return (
@@ -20,19 +21,18 @@ export function Hero() {
             Revenue bonds on Monad testnet
           </a>
           <h1 className="text-5xl font-semibold leading-[1.02] sm:text-7xl">
-            Your revenue is your credit.
+            Issue bonds.
             <span className="block bg-gradient-to-r from-foreground/70 to-foreground/30 bg-clip-text text-transparent">
-              Borrow against what you earn.
+              Raise capital.
             </span>
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-foreground/60">
-            Every payment through a SliceAccount builds an on-chain credit history. Raise against it, and a fixed
-            slice of each payment repays investors automatically.
+            {brandMessaging.description}
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-3">
-            <CTA href="/docs/guides/quickstart">Integrate</CTA>
+            <CTA href="/console">Issue a bond</CTA>
             <CTA href="/markets" outline>
-              Invest
+              Explore bonds
             </CTA>
           </div>
           <div className="mt-16 w-full max-w-3xl">
@@ -41,9 +41,9 @@ export function Hero() {
         </div>
         <p
           aria-hidden
-          className="pointer-events-none -mb-[0.18em] select-none text-center text-[22vw] font-semibold leading-none tracking-tighter text-foreground/[0.04]"
+          className="pointer-events-none -mb-[0.18em] select-none text-center text-[16vw] font-semibold leading-none tracking-tighter text-foreground/[0.04]"
         >
-          slice
+          Bondrail
         </p>
       </div>
     </section>

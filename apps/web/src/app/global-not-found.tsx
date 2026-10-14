@@ -11,7 +11,7 @@ export default function GlobalNotFound() {
           <p className="font-mono text-xs text-foreground/60">(404)</p>
           <h1 className="text-3xl font-semibold">Nothing at this address.</h1>
           <Link href="/" className="inline-block text-sm text-foreground/70 underline-offset-4 hover:underline">
-            Back to Slice
+            Back to Bondrail
           </Link>
         </div>
       </body>

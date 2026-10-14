@@ -1,0 +1,3 @@
+{
+  "query": "{ _meta { chainId progressBlock sourceBlock isReady startBlock endBlock } }"
+}

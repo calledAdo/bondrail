@@ -1,0 +1,14 @@
+{
+  "data": {
+    "_meta": [
+      {
+        "chainId": 10143,
+        "progressBlock": 70978252,
+        "sourceBlock": 70978252,
+        "isReady": true,
+        "startBlock": 69994909,
+        "endBlock": null
+      }
+    ]
+  }
+}

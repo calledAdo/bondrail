@@ -2,13 +2,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "name": "@slice/cre",
+  "name": "@bondrail/cre",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "compile": "bun x cre-compile src/main.ts dist/workflow.wasm"
   },
   "dependencies": {
-    "@slice/observer": "workspace:*",
+    "@bondrail/observer": "workspace:*",
     "@chainlink/cre-sdk": "1.23.0",
     "viem": "2.54.2",
     "zod": "3.25.76"

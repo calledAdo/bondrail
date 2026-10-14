@@ -1,9 +1,9 @@
 {
-  "name": "@slice/sdk",
+  "name": "@bondrail/sdk",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Slice SDK: revenue accounts and bonds on Monad; x402 payments into a SliceAccount; revenue data.",
+  "description": "Bondrail SDK: revenue accounts and bonds on Monad; x402 payments into a SliceAccount; revenue data.",
   "exports": {
     ".": "./src/index.ts",
     "./abis": "./src/abis.ts",
@@ -20,8 +20,8 @@
     "test": "tsx --test src/*.test.ts"
   },
   "dependencies": {
-    "@slice/observer": "workspace:*",
-    "@slice/scoring": "workspace:*",
+    "@bondrail/observer": "workspace:*",
+    "@bondrail/scoring": "workspace:*",
     "@x402/core": "2.28.0",
     "@x402/evm": "2.28.0",
     "viem": "2.54.2"

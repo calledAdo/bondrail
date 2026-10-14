@@ -53,7 +53,7 @@ export function Split() {
         </div>
         <Node nodeRef={account} className="flex-col gap-1 rounded-xl px-3 py-3 text-center sm:px-5 sm:py-4">
           <LogoMark className="size-7" />
-          <span className="font-medium"><span className="hidden sm:inline">Slice</span>Account</span>
+          <span className="font-medium">Revenue account</span>
           <span className="hidden font-mono text-[11px] text-foreground/60 sm:block">history · split</span>
         </Node>
         <div className="flex flex-col items-end gap-10">
@@ -71,8 +71,8 @@ export function Split() {
         <Beam container={box} from={account} to={bond} curvature={10} delay={0.6} color={slice} width={3} />
       </div>
       <figcaption className="mx-auto max-w-xl text-center text-sm text-foreground/60">
-        Every payment is booked on-chain from day one. While a bond is live, a fixed slice goes to investors in
-        the same transaction.
+        Revenue is recorded onchain. Native payments route the bond’s share in the same transaction;
+        paid API receipts use a separate collection transaction.
       </figcaption>
     </figure>
   );

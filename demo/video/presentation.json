@@ -1,0 +1,110 @@
+[
+  {
+    "id": "opening",
+    "layout": "hero",
+    "minimum": 8.0,
+    "lines": [
+      "Issue bonds. Raise capital.",
+      "Bondrail brings revenue bonds to onchain businesses."
+    ],
+    "label": "Revenue bonds for onchain businesses."
+  },
+  {
+    "id": "problem",
+    "layout": "problem",
+    "minimum": 10.0,
+    "lines": [
+      "A business can earn money every day and still need capital for its next move.",
+      "Bondrail lets it issue a bond, funded by investors and repaid from revenue."
+    ],
+    "label": "A business is earning. Its next move needs capital."
+  },
+  {
+    "id": "history",
+    "layout": "history",
+    "minimum": 19.0,
+    "lines": [
+      "Take PumpLab, one of our testnet businesses.",
+      "Every trade builds a record investors can inspect. Revenue, payer concentration, even payments linked to the issuer.",
+      "Bondrail excludes those linked payments from the credit estimate."
+    ],
+    "label": "Start with evidence."
+  },
+  {
+    "id": "funding",
+    "layout": "funding",
+    "minimum": 18.0,
+    "lines": [
+      "Investors funded PumpLab’s revenue bond with twenty USDC. Ten went to the business. Ten stays in escrow.",
+      "The next release needs a revenue milestone and a time window.",
+      "Capital moves in stages, with the repayment cap tied to what's actually released."
+    ],
+    "label": "Fund the next move."
+  },
+  {
+    "id": "payment",
+    "layout": "payment",
+    "minimum": 16.0,
+    "lines": [
+      "Now, the moment that matters. A real test wallet makes a PumpLab trade on Monad.",
+      "A quarter of its trading fee goes straight to the bond, inside that same transaction.",
+      "Watch the repayment balance rise."
+    ],
+    "label": "One trade. Automatic repayment."
+  },
+  {
+    "id": "receipt",
+    "layout": "receipt",
+    "minimum": 8.0,
+    "lines": [
+      "Here's the proof: the actual transfer to the bond.",
+      "No separate collection transaction."
+    ],
+    "label": "Follow the money."
+  },
+  {
+    "id": "trading",
+    "layout": "trading",
+    "minimum": 21.0,
+    "lines": [
+      "For investors, the claim is tradable on Kuru.",
+      "Enter an amount. Check the quote. Buy.",
+      "The transaction confirms, and the claims arrive in the wallet.",
+      "Market price values future revenue. Cash backing is what's already been collected."
+    ],
+    "label": "An investor has options."
+  },
+  {
+    "id": "deposit",
+    "layout": "deposit",
+    "minimum": 17.0,
+    "lines": [
+      "Or fund a business while it's still raising.",
+      "Here, one test USDC becomes one CurveLab claim.",
+      "The investor can withdraw while funding stays open. If the raise expires, cancellation makes refunds available."
+    ],
+    "label": "Join the next raise."
+  },
+  {
+    "id": "watched",
+    "layout": "watched",
+    "minimum": 23.0,
+    "lines": [
+      "Bondrail also supports paid APIs.",
+      "Chainlink CRE simulation checks their payment destinations and broadcasts reports to Monad. Here's a real compliant report.",
+      "Checks run every thirty minutes. Two adjacent violation reports trigger default and stake slashing.",
+      "For these APIs, a separate transaction collects and splits the revenue."
+    ],
+    "label": "Built for more than trading apps."
+  },
+  {
+    "id": "closing",
+    "layout": "closing",
+    "minimum": 10.0,
+    "lines": [
+      "Businesses issue bonds. Investors fund them. A share of revenue goes toward repayment.",
+      "Bondrail. Revenue bonds for onchain businesses."
+    ],
+    "label": "Issue bonds. Raise capital."
+  }
+]

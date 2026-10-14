@@ -1,0 +1,66 @@
+{
+  "retrievedOn": "2026-10-14",
+  "chainId": 10143,
+  "scope": "Public read-only point-in-time observations; query timestamps differ. No transactions submitted.",
+  "indexer": "https://indexer.dev.hyperindex.xyz/b2ced22/v1/graphql",
+  "rpc": "https://testnet-rpc.monad.xyz",
+  "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
+  "watchedBond": "0xd30bf6d5ecf1f55d1212f1a66f9521eefba50c21",
+  "covenantDecoded": {
+    "isHealthy": false,
+    "lastDecisiveAt": 1791891055,
+    "lastDecisiveAtUTC": "2026-10-13T11:30:55+00:00",
+    "latestEpoch": 59729701
+  },
+  "pages": {
+    "https://bondrail.vercel.app": 200,
+    "https://bondrail.vercel.app/markets": 200,
+    "https://slice-agent.vercel.app/api/health": 200
+  },
+  "files": [
+    {
+      "file": "meta-query.json",
+      "savedAt": "2026-10-14T13:27:09.584163+00:00"
+    },
+    {
+      "file": "live-meta.json",
+      "savedAt": "2026-10-14T13:27:10.785573+00:00"
+    },
+    {
+      "file": "bond-query.json",
+      "savedAt": "2026-10-14T13:27:09.584238+00:00"
+    },
+    {
+      "file": "live-bonds.json",
+      "savedAt": "2026-10-14T13:27:10.785660+00:00"
+    },
+    {
+      "file": "checks-query.json",
+      "savedAt": "2026-10-14T13:28:05.923754+00:00"
+    },
+    {
+      "file": "live-checks.json",
+      "savedAt": "2026-10-14T13:28:07.004693+00:00"
+    },
+    {
+      "file": "rpc-head-query.json",
+      "savedAt": "2026-10-14T13:27:09.584309+00:00"
+    },
+    {
+      "file": "live-head.json",
+      "savedAt": "2026-10-14T13:27:10.651341+00:00"
+    },
+    {
+      "file": "covenant-rpc-query.json",
+      "savedAt": "2026-10-14T13:28:54.485991+00:00"
+    },
+    {
+      "file": "live-covenant-rpc.json",
+      "savedAt": "2026-10-14T13:29:04.266686+00:00"
+    },
+    {
+      "file": "live-api-health.json",
+      "savedAt": "2026-10-14T13:28:27.976213+00:00"
+    }
+  ]
+}

@@ -1,5 +1,5 @@
-import { storeFromEnv } from '@slice/observer/store';
-import { authorized } from '@slice/observer/auth';
+import { storeFromEnv } from '@bondrail/observer/store';
+import { authorized } from '@bondrail/observer/auth';
 import { updateConfig } from '../../../../lib/config';
 export const dynamic = 'force-dynamic';
 export async function POST(request: Request) {

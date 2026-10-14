@@ -41,7 +41,7 @@ test('hosts without a manifest, or whose account fails the on-chain check, are r
   await assert.rejects(notOnChain('https://agent.example/api/oracle'), SliceGuardError);
 });
 
-test('a pinned buyer refuses a host that swapped both manifest and offer to another real Slice account', async () => {
+test('a pinned buyer refuses a host that swapped both manifest and offer to another real Bondrail account', async () => {
   const swapped = server([OTHER], { version: 1, chainId: 10143, account: OTHER, endpoints: [] });
   const guard = sliceGuard(swapped, { verifyAccount: async () => true, pin: { 'https://agent.example': { account: ACCOUNT } } });
   await assert.rejects(guard('https://agent.example/api/oracle'), /pinned account/);

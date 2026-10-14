@@ -1,4 +1,4 @@
-# Slice paid agent
+# Bondrail paid agent
 
 `GET /api/oracle?question=...` supports a single question up to1200characters. Unpaid requests return an x402v2 `PAYMENT-REQUIRED` header, one exact EIP-3009 offer for10000atomic USDC units. No model/facilitator call runs for unpaid probes. A validated paid request invokes the configured model (currently openai/gpt-oss-20b on Groq) with a400token output bound and25second timeout, then settles through the x402 SDK. The answer is released only after successful settlement or independently checked receipt reconciliation.
 

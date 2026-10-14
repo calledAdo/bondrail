@@ -9,3 +9,13 @@ indexer/generated
 docs/audit-evidence
 docs/designs
 *.pdf
+
+# Local production media and private working files are not app deployment inputs.
+demo/video
+llmtimeline
+.env*
+**/.env*
+**/.vercel
+docs/archive
+docs/verification-register.md
+docs/hackathon-assessment-*.md

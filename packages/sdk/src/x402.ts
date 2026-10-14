@@ -12,8 +12,8 @@
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server';
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/core/types';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
-import { address, canonical, decodeBase64Json, digest, isRecord, type SliceManifest } from '@slice/observer/protocol';
-import type { DurableStore } from '@slice/observer/store';
+import { address, canonical, decodeBase64Json, digest, isRecord, type SliceManifest } from '@bondrail/observer/protocol';
+import type { DurableStore } from '@bondrail/observer/store';
 import { decodeEventLog, parseAbi, type Address, type Hex } from 'viem';
 
 export type { DurableStore, SliceManifest };
@@ -57,7 +57,7 @@ export function exactUsdcRequirements(o: {
 }
 
 /**
- * The manifest a Slice x402 business serves at `/.well-known/slice.json`: its account and every paid
+ * The manifest a Bondrail x402 business serves at `/.well-known/slice.json`: its account and every paid
  * endpoint (each an unpaid GET returning the 402 offer). The covenant check, the marketplace's domain proof
  * and guarded buyers (`sliceGuard`) all read it.
  */

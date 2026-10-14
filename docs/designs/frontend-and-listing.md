@@ -8,7 +8,7 @@
 ## Listing
 - A listing is two objects: the **profile** (account, exists from the first payment) and the **offering** (bond). Closed bonds stay on the profile as track record.
 - Marketplace tabs: Raising (Funding), Trading (Active/Closing, Kuru), Track record (accounts without a live bond, finished series).
-- Trust layers: protocol gates (on-chain), evidence (computed for everyone), opinion (reviewer, Native code only). Slice does not approve businesses.
+- Trust layers: protocol gates (on-chain), evidence (computed for everyone), opinion (reviewer, Native code only). Bondrail does not approve businesses.
 - Default view is evidence-filtered with a visible "show all": healthy source, valid signed profile, account age >= N, more than one payer.
 - Investor metrics: multiple, coverage (verified trailing revenue x revenueBps x days to maturity / repayCap), est. payback, principal at risk now, Kuru price vs backingPerToken.
 - Raw vs verified revenue shown side by side; verified excludes issuer-funded payers.

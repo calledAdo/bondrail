@@ -108,7 +108,7 @@ export function Markets() {
           </p>
         </div>
         <Link href="/console" className="inline-flex h-10 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-          Raise against revenue <ArrowUpRight className="size-4" />
+          Issue a revenue bond <ArrowUpRight className="size-4" />
         </Link>
       </header>
 
