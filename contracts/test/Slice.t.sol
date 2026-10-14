@@ -58,6 +58,9 @@ contract SliceTest is TestBase {
             2000,
             5000,
             SliceTypes.MilestoneMode.Signed,
+            0,
+            0,
+            0,
             0
         );
     }

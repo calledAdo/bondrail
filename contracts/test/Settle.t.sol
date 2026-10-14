@@ -68,7 +68,10 @@ contract SettleTest is TestBase {
             2000,
             5000,
             SliceTypes.MilestoneMode.Onchain,
-            10_000
+            10_000,
+            0,
+            0,
+            0
         );
         bond = SliceBond(
             factory.createBond(

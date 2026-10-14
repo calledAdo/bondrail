@@ -263,8 +263,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     function _nativeOk(address source, address account) private view returns (bool) {
         bytes32 template = templateOf[source];
         bool reviewed = nativeApproved[source] || (template != bytes32(0) && nativeTemplate[template]);
-        return reviewed && SliceAccount(account).project() == source
-            && ISliceEarner(source).sliceAccount() == account;
+        return reviewed && SliceAccount(account).project() == source && ISliceEarner(source).sliceAccount() == account;
     }
 
     function _issuerAccount(address account) private view {
@@ -278,6 +277,12 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     }
 
     function _validateTerms(SliceTypes.Terms calldata t) private view {
+        if (t.triggerRevenue != 0 || t.triggerWindowDays != 0 || t.stepUpBps != 0) {
+            if (
+                t.triggerRevenue == 0 || t.triggerWindowDays == 0 || t.triggerWindowDays > 30
+                    || t.stepUpBps <= t.revenueBps || t.stepUpBps > 5000
+            ) revert InvalidTerms();
+        }
         if (
             t.raiseAmount == 0 || t.repayCap < t.raiseAmount || t.minRevenue == 0 || t.minOperatingPeriod < 30
                 || t.revenueBps == 0 || t.revenueBps > 5000 || (t.firstReleaseBps != 2500 && t.firstReleaseBps != 5000)

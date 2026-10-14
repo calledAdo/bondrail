@@ -41,14 +41,17 @@ contract AccountingHandler is TestBase {
             20e6,
             10e6,
             now_ + 120,
-            now_ + 1200,
+            now_ + 60 days,
             now_ + 150,
-            now_ + 600,
+            now_ + 20 days,
             30,
             2000,
             5000,
             SliceTypes.MilestoneMode.Signed,
-            0
+            0,
+            2,
+            4000,
+            40e6
         );
         asset.mint(address(this), 120e6);
         asset.approve(address(factory), 20e6);
@@ -98,8 +101,18 @@ contract AccountingHandler is TestBase {
         issuerWithdrawn += amount;
     }
 
-    function advance(uint16 raw) external {
-        vm.warp(vm.getBlockTimestamp() + uint256(raw) % 100);
+    function advance(uint32 raw) external {
+        vm.warp(vm.getBlockTimestamp() + uint256(raw) % (2 days));
+    }
+
+    function checkTrigger() external {
+        uint256 today = vm.getBlockTimestamp() / 1 days;
+        if (
+            bond.phase() != SliceTypes.Phase.Active || bond.defaultedAt() != 0
+                || today < uint256(bond.activationTime()) / 1 days + t.triggerWindowDays
+                || bond.lastTriggerCheckDay() == today
+        ) return;
+        bond.checkTrigger();
     }
 
     function expire() external {
@@ -176,6 +189,8 @@ contract AccountingInvariantTest is TestBase {
         eq(handler.receipts(), a.balanceOf(address(r)) + b.totalRevenueCollected() + handler.issuerWithdrawn());
         eq(handler.holderPaid(), b.totalRedeemed());
         yes(b.totalRevenueCollected() <= b.effectiveRevenueCap());
+        eq(b.revenueBps(), b.triggered() ? 4000 : 2000);
+        yes(r.splitRemainder() < 10_000);
         // Early redemption only shrinks supply, and the last claim survives until Closed.
         yes(b.totalSupply() <= 100e6);
         if (b.phase() == SliceTypes.Phase.Active || b.phase() == SliceTypes.Phase.Closing) yes(b.totalSupply() > 0);

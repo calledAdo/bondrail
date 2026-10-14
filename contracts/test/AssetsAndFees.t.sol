@@ -48,7 +48,10 @@ contract AssetsAndFeesTest is TestBase {
             2000,
             5000,
             SliceTypes.MilestoneMode.Onchain,
-            minFeeBps
+            minFeeBps,
+            0,
+            0,
+            0
         );
     }
 

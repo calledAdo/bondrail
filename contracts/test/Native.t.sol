@@ -63,6 +63,9 @@ contract NativeTest is TestBase {
             2000,
             5000,
             SliceTypes.MilestoneMode.Onchain,
+            0,
+            0,
+            0,
             0
         );
     }

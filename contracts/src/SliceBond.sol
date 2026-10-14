@@ -7,7 +7,7 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceTypes, ISliceFactory} from "./SliceTypes.sol";
+import {SliceTypes, ISliceFactory, ISliceAccount} from "./SliceTypes.sol";
 
 /// @notice One fungible class: fund, stage principal, collect revenue, then redeem once collection and evidence close.
 contract SliceBond is ERC20, ReentrancyGuard {
@@ -19,6 +19,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     error TransferLocked();
     error LastHolderWaitsForClose();
     error Unhealthy();
+    error AlreadyCheckedToday();
     bool private initialized;
     IERC20 public asset;
     address public factory;
@@ -31,6 +32,9 @@ contract SliceBond is ERC20, ReentrancyGuard {
     SliceTypes.Adapter public adapter;
     SliceTypes.Phase public phase;
     SliceTypes.CloseReason public closeReason;
+    // Packed with phase, which the account already reads on every active payment.
+    bool public triggered;
+    uint64 public lastTriggerCheckDay;
     SliceTypes.Terms private _terms;
     uint64 public activationTime;
     uint64 public collectionClosedAt;
@@ -64,6 +68,8 @@ contract SliceBond is ERC20, ReentrancyGuard {
     event Refunded(address indexed holder, address indexed receiver, uint256 amount);
     event Redeemed(address indexed holder, address indexed receiver, uint256 tokens, uint256 amount);
     event StakeClaimed(address indexed receiver, uint256 amount);
+    event TriggerChecked(uint256 windowRevenue, bool triggered);
+    event TriggerChanged(bool triggered);
 
     string private _claimName;
     string private _claimSymbol;
@@ -136,7 +142,35 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function revenueBps() external view returns (uint16) {
+        return triggered ? _terms.stepUpBps : _terms.revenueBps;
+    }
+
+    function baseRevenueBps() external view returns (uint16) {
         return _terms.revenueBps;
+    }
+
+    /// @notice Permissionless daily check of the last N complete UTC revenue buckets for either tier.
+    /// The earliest eligible bucket is the activation day (including receipts earlier that same day).
+    /// Payments do not evaluate the trigger; the effective share stays unchanged until someone checks.
+    /// This counts all booked revenue, including issuer self-payments. Padding revenue to avoid a trigger
+    /// costs the issuer real money (the investor share is paid), but is possible; this is not wash-adjusted.
+    function checkTrigger() external {
+        uint256 window = _terms.triggerWindowDays;
+        if (phase != SliceTypes.Phase.Active || defaultedAt != 0 || window == 0) revert InvalidState();
+        uint256 today = block.timestamp / 1 days;
+        if (today < uint256(activationTime) / 1 days + window) revert TooEarly();
+        if (lastTriggerCheckDay == today) revert AlreadyCheckedToday();
+        uint256 windowRevenue;
+        for (uint256 day = today - window; day < today; ++day) {
+            windowRevenue += ISliceAccount(account).revenueByDay(day);
+        }
+        bool next = windowRevenue < _terms.triggerRevenue;
+        lastTriggerCheckDay = uint64(today);
+        if (next != triggered) {
+            triggered = next;
+            emit TriggerChanged(next);
+        }
+        emit TriggerChecked(windowRevenue, next);
     }
 
     function maturity() external view returns (uint64) {

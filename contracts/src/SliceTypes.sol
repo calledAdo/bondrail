@@ -43,6 +43,12 @@ library SliceTypes {
         /// @notice Native only: while the bond is Active, every payment must carry at least this fee rate
         /// (fee * 10000 >= gross * minFeeBps), so the issuer cannot cut its fee after raising. 0 = no floor.
         uint16 minFeeBps;
+        /// @notice Optional revenue trigger: all three fields zero disables it. Window is 1..30 complete UTC days.
+        uint16 triggerWindowDays;
+        /// @notice Investor share when triggered; greater than revenueBps and at most 5000.
+        uint16 stepUpBps;
+        /// @notice Minimum booked revenue in asset units over the window, including issuer self-payments.
+        uint256 triggerRevenue;
     }
 
     struct AdapterConfig {
@@ -86,6 +92,7 @@ interface ISliceAccount {
     function project() external view returns (address);
     function activeBond() external view returns (address);
     function cumulativeRevenue() external view returns (uint256);
+    function revenueByDay(uint256 day) external view returns (uint256);
     function collect(address payer, uint256 gross, uint256 fee) external returns (uint256 net);
     function settleOut(address payer, uint256 gross, uint256 fee) external returns (uint256 net);
     function collectWithPermit(
