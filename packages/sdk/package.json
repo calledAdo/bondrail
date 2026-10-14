@@ -12,7 +12,8 @@
     "./x402": "./src/x402.ts",
     "./x402-guard": "./src/x402-guard.ts",
     "./data": "./src/data.ts",
-    "./credit": "./src/credit.ts"
+    "./credit": "./src/credit.ts",
+    "./yield": "./src/yield.ts"
   },
   "scripts": {
     "generate": "tsx scripts/generate-abis.ts",

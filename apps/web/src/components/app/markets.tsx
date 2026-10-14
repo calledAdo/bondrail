@@ -5,12 +5,27 @@ import { AlertTriangle, ArrowUpRight, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { days, fmt, listed, marketTab, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { Badge, Empty, PhaseBadge, Ribbon, TierBadge } from './ui';
+import { bondImpliedYield, yieldPercent } from '@/lib/bond-yield';
+import { useKuruPrice } from '@/lib/kuru';
 
 const TABS = [
   ['raising', 'Raising', 'Bonds open for deposits'],
   ['trading', 'Trading', 'Live bonds repaying from revenue; claims trade on Kuru'],
   ['record', 'Track record', 'Businesses building history, and finished bonds'],
 ] as const;
+
+function TradingYield({ b, account }: { b: BondView; account?: AccountView }) {
+  const { mid } = useKuruPrice(b.kuru?.market);
+  const y = bondImpliedYield(b, account, mid, Date.now() / 1000);
+  if (mid === null) return null;
+  return (
+    <p className="text-sm">
+      <span className="text-foreground/60">Implied APR </span>
+      <span className="font-mono tabular">{yieldPercent(y.impliedAPR)}</span>
+      <span className="text-xs text-foreground/60"> · simple APR</span>
+    </p>
+  );
+}
 
 function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
   const warn = b.flags.length > 0;
@@ -55,6 +70,7 @@ function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
           <dd className="font-mono tabular">{b.revenueShare}%</dd>
         </div>
       </dl>
+      {marketTab(b) === 'trading' && b.kuru && <TradingYield b={b} account={account} />}
       <p className="text-xs text-foreground/60">
         {account ? (
           <>

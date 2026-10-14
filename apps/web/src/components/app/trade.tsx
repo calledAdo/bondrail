@@ -10,6 +10,7 @@ import { chain, safeNetwork } from '@/lib/wallet';
 import type { BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
 import { confirmedIn, receiptTimed } from '@/lib/tx';
+import { useKuruPrice } from '@/lib/kuru';
 
 const orderbookAbi = [
   {
@@ -31,7 +32,6 @@ const orderbookAbi = [
       { type: 'uint256', name: 'makerFeeBps' },
     ],
   },
-  { type: 'function', name: 'bestBidAsk', stateMutability: 'view', inputs: [], outputs: [{ type: 'uint256' }, { type: 'uint256' }] },
   ...(['placeAndExecuteMarketBuy', 'placeAndExecuteMarketSell'] as const).map((name) => ({
     type: 'function' as const,
     name,
@@ -54,6 +54,7 @@ type Quote = { side: 'buy' | 'sell'; amount: string; out: bigint; at: number };
 
 export function Trade({ b }: { b: BondView }) {
   const market = b.kuru!.market as Address;
+  const prices = useKuruPrice(market);
   const { address, chainId } = useAccount();
   const client = usePublicClient();
   const { data: wallet } = useWalletClient();
@@ -67,7 +68,6 @@ export function Trade({ b }: { b: BondView }) {
   const reads = useReadContracts({
     contracts: [
       { address: market, abi: orderbookAbi, functionName: 'getMarketParams', chainId: chain.id },
-      { address: market, abi: orderbookAbi, functionName: 'bestBidAsk', chainId: chain.id },
       { address: b.asset.address, abi: erc20Abi, functionName: 'balanceOf', args: [me], chainId: chain.id },
       { address: b.address, abi: erc20Abi, functionName: 'balanceOf', args: [me], chainId: chain.id },
       { address: b.asset.address, abi: erc20Abi, functionName: 'allowance', args: [me, market], chainId: chain.id },
@@ -75,9 +75,8 @@ export function Trade({ b }: { b: BondView }) {
     ],
     query: { refetchInterval: 10_000 },
   });
-  const [params, bidAsk, cash, claims, cashAllowance, claimAllowance] = (reads.data ?? []).map((r) => r.result) as [
+  const [params, cash, claims, cashAllowance, claimAllowance] = (reads.data ?? []).map((r) => r.result) as [
     readonly [number, bigint, Address, bigint, Address, bigint, number, bigint, bigint, bigint, bigint] | undefined,
-    readonly [bigint, bigint] | undefined,
     bigint?,
     bigint?,
     bigint?,
@@ -91,9 +90,8 @@ export function Trade({ b }: { b: BondView }) {
   const balance = buy ? cash : claims;
   const allowance = buy ? cashAllowance : claimAllowance;
   const fee = params ? Number(params[9]) / 100 : 0.3;
-  // Market prices are 1e18 fixed point, in asset per claim.
-  const bid = bidAsk ? Number(bidAsk[0]) / 1e18 : 0;
-  const ask = bidAsk ? Number(bidAsk[1]) / 1e18 : 0;
+  const bid = prices.bid ?? 0;
+  const ask = prices.ask ?? 0;
   const ready = !!address && chainId === chain.id && safeNetwork && !busy && !!params;
 
   // Order size in the market's precision: buys are quote spent (price precision), sells are claims (size precision).
@@ -163,7 +161,7 @@ export function Trade({ b }: { b: BondView }) {
       // Clear the order first: otherwise the balance refresh would requote it and replace this receipt.
       if (label !== 'Approve') setAmount('');
       setStatus({ text: `${label}: ${confirmedIn(ms)}.`, hash });
-      await reads.refetch();
+      await Promise.all([reads.refetch(), prices.refetch()]);
     } catch (e) {
       setStatus({ text: reason(e), error: true });
     } finally {

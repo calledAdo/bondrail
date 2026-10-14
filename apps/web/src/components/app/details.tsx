@@ -11,6 +11,7 @@ import { cn } from '@/lib/cn';
 import { creditLine, defaultCreditTerms } from '@slice/sdk/credit';
 import { BondActions } from './bond-actions';
 import { Trade } from './trade';
+import { ImpliedYieldPanel } from './implied-yield';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
 
 const explorer = (kind: 'address' | 'tx', v: string) => `${chain.blockExplorers?.default.url}/${kind}/${v}`;
@@ -269,6 +270,7 @@ export function BondPage({ address }: { address: string }) {
             </dl>
             <Ribbon b={b} />
           </Panel>
+          <ImpliedYieldPanel b={b} account={a} />
           {a && <History a={a} />}
           <Health b={b} a={a} />
           <Terms b={b} />
