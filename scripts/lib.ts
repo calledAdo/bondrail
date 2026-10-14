@@ -1,6 +1,7 @@
 // Shared helpers for Bondrail operational scripts: chains, keys, clients, forge artifacts, deployments.
 // Keys live outside the repo in ~/.slice (chmod 600) and are never printed.
 import fs from 'node:fs';
+import { deploymentName, deploymentPath, assertWritable, writeJson } from './deployment-path.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -16,7 +17,17 @@ import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 
 import { monadTestnet, bondrailLocal } from '../packages/shared/src/index.ts';
 
 export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-export const KEY_DIR = process.env.BONDRAIL_KEY_DIR ?? path.join(os.homedir(), '.slice');
+export const DEPLOYMENT = deploymentName();
+export const KEY_ROOT = process.env.BONDRAIL_KEY_DIR ?? path.join(os.homedir(), '.slice');
+const prefix = process.env.BONDRAIL_KEY_PREFIX ?? (DEPLOYMENT === 'main' ? '' : DEPLOYMENT);
+if (prefix && !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(prefix)) throw new Error('Invalid BONDRAIL_KEY_PREFIX');
+export const KEY_DIR = path.join(KEY_ROOT, prefix);
+export function keyFile(name: string): string {
+  if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) throw new Error('Invalid key name');
+  return name === 'deployer'
+    ? process.env.BONDRAIL_DEPLOYER_KEY_FILE ?? path.join(KEY_ROOT, 'deployer.key')
+    : path.join(KEY_DIR, `${name}.key`);
+}
 
 export const chainId = Number(process.env.BONDRAIL_CHAIN_ID ?? 10143) as 10143 | 31337;
 if (chainId !== 10143 && chainId !== 31337)
@@ -35,7 +46,9 @@ const ANVIL_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f
 /** Load ~/.slice/<name>.key, creating it (0600) when `create` is set. Local chain uses anvil's key for the deployer. */
 export function key(name: string, opts: { create?: boolean; fallbackFile?: string } = {}): Hex {
   if (chainId === 31337 && name === 'deployer') return ANVIL_KEY;
-  const file = path.join(KEY_DIR, `${name}.key`);
+  if (chainId === 31337 && !process.env.BONDRAIL_KEY_DIR)
+    throw new Error('Local role keys require an explicit BONDRAIL_KEY_DIR (use a temporary directory)');
+  const file = keyFile(name);
   if (!fs.existsSync(file) && opts.fallbackFile && fs.existsSync(opts.fallbackFile))
     return normalize(fs.readFileSync(opts.fallbackFile, 'utf8'));
   if (!fs.existsSync(file)) {
@@ -66,6 +79,7 @@ export function artifact(name: string): { abi: Abi; bytecode: Hex } {
 
 export async function deploy(acct: PrivateKeyAccount, name: string, args: unknown[] = []): Promise<Address> {
   const { abi, bytecode } = artifact(name);
+  await assertChain();
   const w = wallet(acct);
   const gas = await publicClient.estimateGas({
     account: acct,
@@ -86,6 +100,7 @@ export async function write(
   functionName: string,
   args: unknown[] = [],
 ) {
+  await assertChain();
   const { request } = await publicClient.simulateContract({
     account: acct,
     address,
@@ -100,7 +115,12 @@ export async function write(
   return r;
 }
 
-export const deploymentFile = path.join(ROOT, 'docs/deployments', `${chainId}.json`);
+export const deploymentFile = deploymentPath(ROOT, chainId, DEPLOYMENT);
+export const assertDeploymentWritable = () => assertWritable(deploymentFile);
+export async function assertChain() {
+  if (await publicClient.getChainId() !== chainId) throw new Error('RPC chain ID does not match BONDRAIL_CHAIN_ID');
+}
+
 export type IssuerRecord = {
   name: string;
   tier: 'native' | 'watched';
@@ -116,6 +136,15 @@ export type IssuerRecord = {
 };
 export type DeploymentFile = {
   schemaVersion: 1;
+  deployment?: string;
+  deployer?: Address;
+  creditRegistry?: Address;
+  vault?: Address;
+  attester?: Address;
+  curator?: Address;
+  templateHash?: Hex;
+  roles?: Record<string, Address>;
+  vaultAllocation?: { bond: Address; amount: string; deposit: string };
   chainId: number;
   network: string;
   deployedAt: string;
@@ -134,9 +163,10 @@ export type DeploymentFile = {
   watchPolicy?: unknown;
 };
 export function readDeployment(): DeploymentFile {
-  return JSON.parse(fs.readFileSync(deploymentFile, 'utf8'));
+  const d = JSON.parse(fs.readFileSync(deploymentFile, 'utf8')) as DeploymentFile;
+  if (d.chainId !== chainId || (d.deployment ?? 'main') !== DEPLOYMENT) throw new Error('Deployment identity mismatch');
+  return d;
 }
 export function saveDeployment(d: DeploymentFile) {
-  fs.mkdirSync(path.dirname(deploymentFile), { recursive: true });
-  fs.writeFileSync(deploymentFile, JSON.stringify(d, null, 2) + '\n');
+  writeJson(deploymentFile, { ...d, deployment: DEPLOYMENT });
 }

@@ -48,3 +48,6 @@ demo/video/*.mp4
 # SDK release artifacts (generated locally, never published by build)
 packages/sdk/dist/
 packages/sdk/*.tgz
+
+# Named local rehearsals and generated isolated configuration
+docs/deployments/31337-*.json
