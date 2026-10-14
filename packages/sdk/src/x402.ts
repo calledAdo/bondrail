@@ -14,9 +14,40 @@ import type { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/
 import { ExactEvmScheme } from '@x402/evm/exact/server';
 import { address, canonical, decodeBase64Json, digest, isRecord, type SliceManifest } from '@bondrail/observer/protocol';
 import type { DurableStore } from '@bondrail/observer/store';
-import { decodeEventLog, parseAbi, type Address, type Hex } from 'viem';
+import { decodeEventLog, parseAbi, parseSignature, type Account, type Address, type Chain, type Hex, type Transport, type WalletClient } from 'viem';
+import { sliceAccountAbi } from './abis';
 
 export type { DurableStore, SliceManifest };
+
+/** EIP-3009 wire authorization; all integer fields are atomic-unit decimal strings. */
+export interface TransferAuthorization {
+  from: Address;
+  to: Address;
+  value: string;
+  validAfter: string;
+  validBefore: string;
+  nonce: Hex;
+}
+
+/** Relay an exact x402 authorization through its account. Returns the submitted transaction hash. */
+export async function settleThroughAccount(
+  walletClient: WalletClient<Transport, Chain, Account>,
+  account: Address,
+  authorization: TransferAuthorization,
+  signature: Hex,
+): Promise<Hex> {
+  if (authorization.to.toLowerCase() !== account.toLowerCase())
+    throw new Error('Authorization recipient must be the SliceAccount');
+  if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) throw new Error('Expected a 65-byte EIP-3009 signature');
+  const { r, s, yParity } = parseSignature(signature);
+  return walletClient.writeContract({
+    address: account,
+    abi: sliceAccountAbi,
+    functionName: 'settle',
+    args: [authorization.from, BigInt(authorization.value), BigInt(authorization.validAfter),
+      BigInt(authorization.validBefore), authorization.nonce, 27 + yParity, r, s],
+  });
+}
 
 export interface PaymentRecord {
   state: 'processing' | 'work_failed' | 'settlement_pending' | 'complete';
