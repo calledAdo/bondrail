@@ -1,7 +1,7 @@
 # Slice contracts: integration reference (v1)
 
-Addresses come from `docs/deployments/<chainId>.json`, never from this file. Amounts are six-decimal
-integers. ABIs are generated into `packages/sdk/src/abis.ts` from `out/`.
+Addresses come from `docs/deployments/<chainId>.json`, never from this file. Amounts use the account
+asset's smallest units (six decimals for USDC). ABIs are generated into `packages/sdk/src/abis.ts` from `out/`.
 
 Enums (`src/SliceTypes.sol`): Phase Funding0, Active1, Closing2, Closed3, Cancelled4; Adapter Native0,
 Watched1; MilestoneMode Onchain0, Signed1; CloseReason None0, RevenueCap1, Maturity2.
@@ -9,7 +9,9 @@ Watched1; MilestoneMode Onchain0, Signed1; CloseReason None0, RevenueCap1, Matur
 Structs, exact field order:
 - Terms: uint256 raiseAmount, repayCap, stake, minRevenue; uint64 fundingDeadline, maturity,
   secondReleaseNotBefore, secondReleaseDeadline; uint32 minOperatingPeriod; uint16 revenueBps,
-  firstReleaseBps; uint8 milestoneMode; uint16 minFeeBps (Native fee floor while Active; 0 = none).
+  firstReleaseBps; uint8 milestoneMode; uint16 minFeeBps (Native fee floor while Active; 0 = none),
+  triggerWindowDays, stepUpBps; uint256 triggerRevenue. Trigger fields are **not yet deployed**:
+  all zero disables; otherwise window 1–30, revenue > 0, base share < stepUpBps ≤ 5000.
 - AdapterConfig: uint8 adapter, address source (the Native project; zero for Watched), bytes32 policyHash.
 - Observation: address bond, bytes32 policyHash, uint64 epoch, uint64 observedAt, uint64 expiresAt,
   uint8 result (0 Unknown, 1 Compliant, 2 Violation), address observedPayTo, bytes32 offerHash, bytes32 evidenceHash.
@@ -41,9 +43,15 @@ Structs, exact field order:
 **SliceBond** (ERC-20 claim)
 - Investors: `deposit(amount)` (approve the bond; requires `factory.depositAllowed`), `refund(amount, to)`,
   `redeem(amount, to)`. Anyone: `expireUndrawn()`, `finalizeSettlement()`.
+- `checkTrigger()` (**not yet deployed**): anyone, once per UTC day while Active and not defaulted;
+  sums the last complete UTC day buckets, all on/after the activation day. Emits `TriggerChecked`
+  and `TriggerChanged` on transitions. Counts issuer self-payments; padding costs the investor share
+  but is possible. See `README.md` for bucket and eligibility semantics.
 - Views: `terms()`, `decimals` (= the asset's), `minFeeBps`, `asset`, `phase`, `adapter`, `source`, `account`, `backingPerToken`, `pool`, `fundingEscrow`,
   `releasedPrincipal`, `undrawnPrincipal`, `principalRecovery`, `totalRevenueCollected`, `effectiveRevenueCap`,
   `remainingRevenueCap`, `stakeHeld`, `stakeRecovery`, `stakeReturnCredit`, `releaseNonce`, `revenueSnapshot`.
+- Trigger views (**not yet deployed**): `triggered`, `lastTriggerCheckDay`, `baseRevenueBps`;
+  `revenueBps` is now the effective share, while `terms().revenueBps` remains the base.
 
 **SliceCovenant** (CRE receiver)
 - `onReport(metadata, report)`: forwarder only; `report = abi.encode(Observation, observerSignature)`.

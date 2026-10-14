@@ -9,13 +9,27 @@ description: The investors' vault and ERC-20 claim.
 |---|---|
 | `raiseAmount` | Capital raised; claims mint 1:1 |
 | `repayCap` | Most the bond can collect (≥ raise). Scales with released capital: `repayCap × released ÷ raise`. |
-| `revenueBps` | Investors' share of each payment while active (≤ 50%) |
+| `revenueBps` | Base investor share of each payment while active (≤ 50%) |
 | `firstReleaseBps` | 25% or 50% released at activation |
 | `minRevenue`, `minOperatingPeriod` | The milestone for the second release |
 | `fundingDeadline`, `secondReleaseNotBefore`, `secondReleaseDeadline`, `maturity` | The schedule |
 | `stake` | Issuer stake, slashed to investors on default (required for Watched) |
 | `milestoneMode` | `Onchain` or `Signed` |
 | `minFeeBps` | Native fee floor while active (0 = none) |
+| `triggerRevenue`, `triggerWindowDays`, `stepUpBps` | Optional performance trigger (not yet deployed): all zero disables, otherwise positive revenue floor over 1–30 days and a share above the base, at most 50% |
+
+## Performance trigger — not yet deployed
+
+Anyone can call `checkTrigger()` once per UTC day while Active and not defaulted. It sums the last
+`triggerWindowDays` complete UTC buckets in the account's `revenueByDay` mapping, excluding today.
+Every bucket must fall on or after the activation day; that day's bucket includes earlier same-day
+receipts. Below `triggerRevenue` selects `stepUpBps`; equality or above restores the base share.
+Payments use the last checked share until another check. Rounding carry and the cap are unchanged.
+`revenueBps()` is the effective share; `baseRevenueBps()` and `terms().revenueBps` retain the base.
+
+Issuer self-payments count. Padding revenue to avoid a trigger costs real money because investors
+receive their share, but is possible. This counter is not wash-adjusted; plain transfers count when
+swept. Existing immutable bonds do not gain the feature. New contracts and an updated indexer are required.
 
 ## Lifecycle
 - **Funding:** deposits until the raise is full; claims cannot be transferred; refunds if the deadline passes unfilled.

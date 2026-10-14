@@ -6,6 +6,12 @@ description: The Envio HyperIndex GraphQL schema.
 Accounts, bonds, payments (classified `native`, `x402` or `transfer`), per-payer totals, daily revenue, treasury
 funding links and covenant checks. Query it with any GraphQL client.
 
+**Performance triggers — not yet deployed:** `Bond.triggered` starts false at issuance and follows
+`SliceBond.TriggerChanged(bool)`, including recovery. The handler also records `Triggered` and
+`TriggerRecovered` timeline events. Regenerate the config/codegen and rebuild the data for the new
+non-null flag before serving the updated web query. Trigger revenue is the on-chain account counter,
+including issuer self-payments; it is separate from the attributed-revenue analysis below.
+
 Limits, stated plainly: funding links are one hop (a wallet the issuer's treasury paid directly) and are tracked
 for the indexed asset (USDC); a Native payment is attributed when the transaction calls the project directly, so
 a payment routed through another contract shows as an unclassified transfer. "Attributed" means a proven payer

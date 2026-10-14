@@ -20,12 +20,15 @@ Watched closing keeps a fixed 120-second historical-report window; each observat
 freshness and 5-second maximum clock skew. The observer and milestone signer are disclosed trusted
 evaluators; forwarder delivery alone cannot forge their signatures.
 
-Tests: 79 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
+Tests: 93 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
 cap scaling, cancellation, early redemption, signed and on-chain milestones, CRE-only observations,
 adjacent violations, the closing boundary, rounding carry, Native binding and review, the minimum-history
 gate, deposit health checks, accounts in any asset (an 18-decimal token without permit), payments out
 through `settleOut` with no payer approval, account-mediated EIP-3009 settlement (13 tests), the fee floor, a downward-rebasing asset, and going dark (a day of Unknowns defaults; monitoring gaps and
 a Compliant report restart it; an hour dark blocks deposits; never during Funding).
+Trigger coverage includes validation, activation-day eligibility, daily limits, partial-day exclusion,
+both tiers, exact rounding through step-up/recovery, default/close guards, capped closure, all four
+payment entrypoints and an accounting invariant with day advances and trigger checks.
 
 Not established by these tests: live Kuru market/custody compatibility, Monad testnet USDC/facilitator support, CRE DON operation, observer honesty, external economic demand or production audit assurance. Those remain integration gates outside this contract package.
 
@@ -53,3 +56,46 @@ once, including batches. Rebuild the indexer's data when adopting its changed au
 and schema. CRE/manifest checks remain required for Watched businesses. Existing accounts are immutable
 clones of their original implementation: new settlement-capable deployments are required. No deployment
 JSON has been updated and live Monad/USDC settlement has not been exercised by this change.
+
+## Performance triggers — not yet deployed
+
+At issuance, optionally set `triggerRevenue` (asset units), `triggerWindowDays` (1–30), and `stepUpBps`
+(strictly above `revenueBps`, at most 5000). All three must be zero to disable the feature, or all must
+be set within these bounds. `terms().revenueBps` and `baseRevenueBps()` always expose the base share;
+`revenueBps()` exposes the effective share used by the account.
+
+Anyone can call `SliceBond.checkTrigger()` while Active and not defaulted. With UTC day number
+`today = block.timestamp / 1 days`, it sums `account.revenueByDay(day)` for
+`today - triggerWindowDays <= day < today`. It requires
+`today >= activationTime / 1 days + triggerWindowDays`, so no bucket before the activation day is
+eligible. The activation-day bucket includes any receipts booked earlier that day; no partial-day
+snapshot is introduced. Below the floor means triggered; equality or above means recovery.
+`TriggerChecked(windowRevenue, triggered)` fires on each successful check, with
+`TriggerChanged(triggered)` only on a transition. `lastTriggerCheckDay` prevents a second check on the
+same UTC day (`AlreadyCheckedToday`). Before eligibility it reverts `TooEarly`; disabled, defaulted or
+non-Active bonds revert `InvalidState`. A default freezes the last trigger state; it does not change
+the existing revenue collection/default rules.
+
+Payments never evaluate the window or write trigger state. They use the latest checked share, preserve
+the existing rounding carry across rate changes, and honor the unchanged cap:
+`effectiveRevenueCap = repayCap × releasedPrincipal / raiseAmount`, minus collected revenue for the
+remaining cap. Reaching it still closes and detaches in the payment transaction. `SliceAccount.sol`
+is unchanged. The daily loop reads at most 30 existing buckets; the new share fields and trigger state
+are packed with existing terms and lifecycle fields. Without a checker, the last effective share persists.
+
+**Issuer self-payments count.** The counter includes all booked revenue, including revenue the issuer
+pays itself. Padding revenue to avoid the trigger costs real money because a share goes to investors,
+but it is possible. This is not a wash-adjusted revenue oracle. Direct transfers count when `sweep()`
+books them, rather than when the token transfer arrived; Native payments and `settle()` book immediately.
+
+Worker checking is opt-in with `WORKER_CHECK_TRIGGERS=1` for targets using the new bond implementation.
+The SDK regenerates the extended ABI; the console validates the optional terms, the bond page shows
+base/effective shares and a Triggered badge, and the indexer tracks `TriggerChanged` on `Bond.triggered`.
+Regenerate/rebuild indexer data for the added non-null flag. The SDK/web term reader also understands
+original immutable bonds, returning zero trigger terms for their original ABI.
+
+Demo setup defaults to zeros. To enable it for newly created demo bonds, set all of
+`TRIGGER_REVENUE_USDC`, `TRIGGER_DAYS`, and `STEP_UP_BPS` (e.g. `10`, `2`, `4000`).
+Existing clones cannot gain the feature; new bond/factory deployments are required, and the extended
+`createBond` tuple changes that function's selector. No deployment files have been changed, and no
+deployment or live worker transactions were performed. See [validation](../docs/bench/task05-validation.md).

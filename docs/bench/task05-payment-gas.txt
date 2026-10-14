@@ -1,0 +1,19 @@
+Before: 0b2e501
+forge test --root contracts --match-test testCreditModeSplitsEachFeeImmediately -vvvv
+    │   ├─ [258747] 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6])
+    │   │   ├─ [256063] SliceAccount::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6]) [delegatecall]
+    │   ├─ [188824] 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6])
+    │   │   ├─ [186140] SliceAccount::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6]) [delegatecall]
+    │   │   │   ├─ [1768] 0x746326d3E4e54BA617F8aB39A21b7420aE8bF97d::revenueBps() [staticcall]
+    │   │   │   │   ├─ [1602] SliceBond::revenueBps() [delegatecall]
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.27ms (429.79µs CPU time)
+
+After: 35ca06f
+forge test --root contracts --match-test testCreditModeSplitsEachFeeImmediately -vvvv
+    │   ├─ [258747] 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6])
+    │   │   ├─ [256063] SliceAccount::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6]) [delegatecall]
+    │   ├─ [189278] 0xa38D17ef017A314cCD72b8F199C0e108EF7Ca04c::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6])
+    │   │   ├─ [186594] SliceAccount::collect(0xe05fcC23807536bEe418f142D19fa0d21BB0cfF7, 100000000 [1e8], 1000000 [1e6]) [delegatecall]
+    │   │   │   ├─ [2008] 0x746326d3E4e54BA617F8aB39A21b7420aE8bF97d::revenueBps() [staticcall]
+    │   │   │   │   ├─ [1842] SliceBond::revenueBps() [delegatecall]
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.31ms (432.96µs CPU time)

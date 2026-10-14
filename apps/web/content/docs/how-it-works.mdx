@@ -24,6 +24,14 @@ proves revenue since activation. If the milestone deadline passes, it goes back 
 While the bond is active, each payment's `revenueBps` share goes straight to the bond (**credit mode**), up to
 the cap. A rounding carry means micro-payments never round investors to zero.
 
+**Optional performance trigger — not yet deployed:** at issuance the business can agree to a larger
+investor share if booked revenue falls below a floor over 1–30 complete UTC days. Anyone can check
+once per UTC day after the full window falls on or after the activation day; today's partial bucket
+is excluded. A later check at or above the floor restores the base share. Both tiers use the same
+on-chain check, outside payments, and the cap stays unchanged. The last checked share persists until
+someone checks again. Issuer self-payments count: padding costs real money through the investor share,
+but can avoid the trigger. See [the bond terms](/docs/concepts/bond).
+
 ## 5. The bond closes
 
 At the cap or at maturity the bond closes and the account returns to passthrough. Holders redeem their share

@@ -6,7 +6,7 @@
 
 Bondrail lets revenue-generating onchain businesses raise capital by issuing revenue bonds on Monad.
 Investors assess the business's payment history and bond terms, fund a raise, and receive transferable
-claim tokens. A fixed share of the business's connected revenue flows toward repayment, up to a cap.
+claim tokens. An agreed share of the business's connected revenue flows toward repayment, up to a cap.
 Capital is released in stages as the business demonstrates revenue after activation.
 
 The working prototype supports native smart-contract businesses and paid x402 APIs. Native integrations
@@ -50,6 +50,12 @@ revenue collection to financing without building a separate repayment system.
    transaction (**implemented, not yet deployed**); `sweep()` remains for other transfers.
    The effective repayment cap scales with capital actually released. Collection closes when
    the cap is reached or a maturity-close transaction executes; Watched bonds then have an evidence window.
+   **Optional performance trigger — implemented, not yet deployed:** terms can step the investor share
+   up (for example, 25% → 40%) when booked revenue falls below a floor over 1–30 complete UTC days.
+   Anyone can call `checkTrigger()` once per UTC day while Active and not defaulted; a later check at
+   or above the floor restores the base share. Checks start only when the entire window falls on or
+   after the activation day, exclude the current partial day, and run outside payments. Without a
+   check, the last share persists. This works on-chain for both tiers and does not change the cap.
 6. **Hold, trade, or redeem.** Listed claims can trade on Kuru, subject to available liquidity. Redemption
    burns claims for their share of the current pool. **Early redemption gives up those claims' rights to
    future revenue and recoveries.** It is not a payout withdrawal that preserves the position. The last
@@ -58,6 +64,12 @@ revenue collection to financing without building a separate repayment system.
 Revenue collected, unreleased capital recovered, and slashed stake are tracked separately. A bond can
 reach maturity below its cap without a revenue-routing breach; low revenue and covenant default are
 not the same outcome.
+
+The trigger counts **all booked account revenue, including money the issuer pays itself**. Padding
+revenue to avoid a trigger costs the issuer real money because investors receive their share, but it
+is possible. This counter is not the indexer's attributed or wash-adjusted revenue. The activation-day
+bucket includes receipts earlier that same UTC day; plain transfers count on the day they are swept.
+All three trigger terms must be zero to disable it. See [contract details](contracts/README.md#performance-triggers--not-yet-deployed).
 
 ## Two revenue integrations
 
