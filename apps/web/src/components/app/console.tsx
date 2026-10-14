@@ -607,6 +607,7 @@ function TermsBuilder({
         <p id="trigger-help" className="text-xs text-foreground/60">
           Set all three fields, or leave all zero to disable. Anyone can check once per UTC day;
           low revenue raises the investor share until a later check confirms recovery.
+          The window uses complete UTC days after the activation day; the activation day is excluded.
         </p>
         <div className="grid gap-3 sm:grid-cols-3">
           {([

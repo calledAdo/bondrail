@@ -128,7 +128,7 @@ contract TriggerTest is TestBase {
         t.triggerWindowDays = 0;
         t.stepUpBps = 0;
         _activate(false);
-        _day(2);
+        _day(3);
         vm.expectRevert(SliceBond.InvalidState.selector);
         bond.checkTrigger();
         eq(bond.revenueBps(), 2500);
@@ -167,8 +167,16 @@ contract TriggerTest is TestBase {
         t.triggerWindowDays = 30;
         t.stepUpBps = 5000;
         _activate(false);
+        _day(1);
         _pay(9, 0);
         _day(30);
+        vm.expectRevert(SliceBond.TooEarly.selector);
+        bond.checkTrigger();
+        _day(31);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChanged(true);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChecked(9, true);
         bond.checkTrigger();
         yes(bond.triggered());
         eq(bond.revenueBps(), 5000);
@@ -178,12 +186,12 @@ contract TriggerTest is TestBase {
         _pay(100, 0); // historical revenue before the activation day
         vm.warp(101 days);
         _activate(false);
-        _day(2);
+        _day(3);
         vm.warp(vm.getBlockTimestamp() - 1);
         vm.expectRevert(SliceBond.TooEarly.selector);
         bond.checkTrigger();
         eq(bond.lastTriggerCheckDay(), 0);
-        _day(2);
+        _day(3);
         vm.expectEmit(false, false, false, true, address(bond));
         emit TriggerChanged(true);
         vm.expectEmit(false, false, false, true, address(bond));
@@ -193,18 +201,61 @@ contract TriggerTest is TestBase {
         yes(bond.triggered());
     }
 
-    function testActivationDayBucketIncludesEarlierReceipts() public {
-        _pay(10, 0);
-        _activate(false);
-        _day(2);
+    function testFuzzFirstEligibleDay(uint8 rawWindow, uint32 activationSecond, bool watched) public {
+        t.triggerWindowDays = uint16(rawWindow % 30) + 1;
+        vm.warp(100 days + uint256(activationSecond) % 1 days);
+        _activate(watched);
+        _day(t.triggerWindowDays);
+        vm.expectRevert(SliceBond.TooEarly.selector);
         bond.checkTrigger();
-        yes(!bond.triggered());
+        _day(1 + t.triggerWindowDays);
+        uint256 firstCheck = vm.getBlockTimestamp();
+        vm.warp(firstCheck - 1);
+        vm.expectRevert(SliceBond.TooEarly.selector);
+        bond.checkTrigger();
+        eq(bond.lastTriggerCheckDay(), 0);
+        vm.warp(firstCheck);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChanged(true);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChecked(0, true);
+        bond.checkTrigger();
+        eq(bond.lastTriggerCheckDay(), firstCheck / 1 days);
+    }
+
+    function testFuzzActivationDayRevenueNeverCounted(uint16 beforeActivation, uint16 afterActivation, bool watched)
+        public
+    {
+        uint256 beforeRevenue = uint256(beforeActivation) % 1000 + 10;
+        uint256 afterRevenue = uint256(afterActivation) % 1000 + 10;
+        _pay(beforeRevenue, 0); // passthrough history on the activation day
+        vm.warp(vm.getBlockTimestamp() + 1);
+        _activate(watched);
+        vm.warp(vm.getBlockTimestamp() + 1);
+        _pay(afterRevenue, 3); // same day's active revenue must also be excluded
+        eq(account.revenueByDay(uint256(bond.activationTime()) / 1 days), beforeRevenue + afterRevenue);
+        _day(1);
+        _pay(3, 1);
+        _day(2);
+        _pay(4, 2);
+        _day(3);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChanged(true);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChecked(7, true);
+        bond.checkTrigger();
+        yes(bond.triggered());
+        _day(4);
+        vm.expectEmit(false, false, false, true, address(bond));
+        emit TriggerChecked(4, true);
+        bond.checkTrigger();
+        yes(bond.triggered());
     }
 
     function testLowRevenueStepsUpWithExactCarryAndRecovery() public {
         _activate(false);
         _pay(3, 1); // 0 paid, 7500 carry at 25%
-        _day(2);
+        _day(3);
         bond.checkTrigger();
         eq(bond.baseRevenueBps(), 2500);
         eq(bond.terms().revenueBps, 2500);
@@ -215,7 +266,7 @@ contract TriggerTest is TestBase {
         eq(account.splitRemainder(), 9500);
         _pay(7, 3); // 3 more paid, 7500 carry; today's revenue is exactly the threshold
         eq(bond.totalRevenueCollected(), 4);
-        _day(3);
+        _day(4);
         vm.expectEmit(false, false, false, true, address(bond));
         emit TriggerChanged(false);
         vm.expectEmit(false, false, false, true, address(bond));
@@ -232,12 +283,12 @@ contract TriggerTest is TestBase {
 
     function testOncePerUtcDayAndOnlyChangesEmitChanged() public {
         _activate(false);
-        _day(2);
+        _day(3);
         bond.checkTrigger();
         vm.warp(vm.getBlockTimestamp() + 1 days - 1);
         vm.expectRevert(SliceBond.AlreadyCheckedToday.selector);
         bond.checkTrigger();
-        _day(3);
+        _day(4);
         vm.recordLogs();
         bond.checkTrigger();
         Vm.Log[] memory logs = vm.getRecordedLogs();
@@ -246,31 +297,31 @@ contract TriggerTest is TestBase {
         (uint256 revenue, bool state) = abi.decode(logs[0].data, (uint256, bool));
         eq(revenue, 0);
         yes(state);
-        eq(bond.lastTriggerCheckDay(), 103);
+        eq(bond.lastTriggerCheckDay(), 104);
     }
 
     function testCurrentPartialDayExcludedAndNoAutomaticPaymentEvaluation() public {
         _activate(false);
-        _day(2);
+        _day(3);
         _pay(10, 3);
         yes(!bond.triggered());
         eq(bond.totalRevenueCollected(), 2); // still base until checked
         bond.checkTrigger(); // current day's ten units do not count
         yes(bond.triggered());
-        _day(3);
+        _day(4);
         bond.checkTrigger();
         yes(!bond.triggered());
     }
 
     function testWatchedTriggerAndDefaultFreeze() public {
         _activate(true);
-        _day(2);
+        _day(3);
         bond.checkTrigger();
         _pay(10, 3);
         eq(bond.totalRevenueCollected(), 4);
         vm.prank(address(covenant));
         bond.markDefault(keccak256("default"));
-        _day(3);
+        _day(4);
         vm.expectRevert(SliceBond.InvalidState.selector);
         bond.checkTrigger();
         yes(bond.triggered());
@@ -302,7 +353,7 @@ contract TriggerTest is TestBase {
     function testSteppedUpCapClosesAtExactAmount() public {
         _activate(false);
         _pay(3, 1); // retain fractional carry across the trigger
-        _day(2);
+        _day(3);
         bond.checkTrigger();
         _pay(150e6 - 2, 3); // 59,999,999 with 9500 carry, just below the cap
         eq(bond.totalRevenueCollected(), 60e6 - 1);
@@ -329,12 +380,12 @@ contract TriggerTest is TestBase {
         uint256 total;
         uint256 yesterday;
         for (uint256 i; i < 12; ++i) {
-            if (i > 0) {
-                _day(i);
+            if (i > 0) _day(i);
+            if (i > 1) {
                 bond.checkTrigger();
                 yes(bond.triggered() == (yesterday < t.triggerRevenue));
             }
-            uint256 rate = i > 0 && yesterday < t.triggerRevenue ? 4000 : 2500;
+            uint256 rate = i > 1 && yesterday < t.triggerRevenue ? 4000 : 2500;
             uint256 amount = uint256(keccak256(abi.encode(seed, i))) % 10e6 + 1;
             _pay(amount, uint8(i));
             weighted += amount * rate;

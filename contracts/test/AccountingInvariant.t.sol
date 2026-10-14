@@ -109,7 +109,7 @@ contract AccountingHandler is TestBase {
         uint256 today = vm.getBlockTimestamp() / 1 days;
         if (
             bond.phase() != SliceTypes.Phase.Active || bond.defaultedAt() != 0
-                || today < uint256(bond.activationTime()) / 1 days + t.triggerWindowDays
+                || today < uint256(bond.activationTime()) / 1 days + 1 + t.triggerWindowDays
                 || bond.lastTriggerCheckDay() == today
         ) return;
         bond.checkTrigger();

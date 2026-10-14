@@ -256,7 +256,8 @@ export function BondPage({ address }: { address: string }) {
           </p>
           {b.triggerWindowDays > 0 && (
             <p className="text-xs text-foreground/60">
-              Current share: {b.revenueShare}%. Checks use complete UTC days and include issuer self-payments.
+              Current share: {b.revenueShare}%. Checks start after {b.triggerWindowDays} complete UTC days
+              following the activation day. The activation day and current day are excluded; issuer self-payments count.
             </p>
           )}
           <p className="font-mono text-xs text-foreground/60">

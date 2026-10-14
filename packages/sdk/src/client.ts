@@ -142,7 +142,7 @@ export function sliceClient(opts: { publicClient: PublicClient; walletClient?: W
     },
 
     activate: (bond: Address) => write(factory, sliceFactoryAbi as Abi, 'activate', [bond]),
-    /** Evaluate the last complete UTC revenue days, once per day on an Active, non-defaulted bond. */
+    /** Evaluate complete UTC revenue days strictly after the activation day, once per day on an Active, non-defaulted bond. */
     checkTrigger: (bond: Address) => write(bond, sliceBondAbi as Abi, 'checkTrigger'),
     /** Second release, on-chain milestone mode. */
     releaseSecond: (bond: Address) => write(factory, sliceFactoryAbi as Abi, 'releaseSecond', [bond]),

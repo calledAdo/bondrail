@@ -150,7 +150,8 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     /// @notice Permissionless daily check of the last N complete UTC revenue buckets for either tier.
-    /// The earliest eligible bucket is the activation day (including receipts earlier that same day).
+    /// The earliest eligible bucket is the first UTC day after the activation day; all activation-day
+    /// receipts are excluded. The first check is at UTC day activationTime / 1 days + 1 + N.
     /// Payments do not evaluate the trigger; the effective share stays unchanged until someone checks.
     /// This counts all booked revenue, including issuer self-payments. Padding revenue to avoid a trigger
     /// costs the issuer real money (the investor share is paid), but is possible; this is not wash-adjusted.
@@ -158,7 +159,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         uint256 window = _terms.triggerWindowDays;
         if (phase != SliceTypes.Phase.Active || defaultedAt != 0 || window == 0) revert InvalidState();
         uint256 today = block.timestamp / 1 days;
-        if (today < uint256(activationTime) / 1 days + window) revert TooEarly();
+        if (today < uint256(activationTime) / 1 days + 1 + window) revert TooEarly();
         if (lastTriggerCheckDay == today) revert AlreadyCheckedToday();
         uint256 windowRevenue;
         for (uint256 day = today - window; day < today; ++day) {

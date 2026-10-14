@@ -20,13 +20,13 @@ Watched closing keeps a fixed 120-second historical-report window; each observat
 freshness and 5-second maximum clock skew. The observer and milestone signer are disclosed trusted
 evaluators; forwarder delivery alone cannot forge their signatures.
 
-Tests: 93 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
+Tests: 94 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
 cap scaling, cancellation, early redemption, signed and on-chain milestones, CRE-only observations,
 adjacent violations, the closing boundary, rounding carry, Native binding and review, the minimum-history
 gate, deposit health checks, accounts in any asset (an 18-decimal token without permit), payments out
 through `settleOut` with no payer approval, account-mediated EIP-3009 settlement (13 tests), the fee floor, a downward-rebasing asset, and going dark (a day of Unknowns defaults; monitoring gaps and
 a Compliant report restart it; an hour dark blocks deposits; never during Funding).
-Trigger coverage includes validation, activation-day eligibility, daily limits, partial-day exclusion,
+Trigger coverage includes validation, exact first-check eligibility, activation-day and partial-day exclusion,
 both tiers, exact rounding through step-up/recovery, default/close guards, capped closure, all four
 payment entrypoints and an accounting invariant with day advances and trigger checks.
 
@@ -67,9 +67,12 @@ be set within these bounds. `terms().revenueBps` and `baseRevenueBps()` always e
 Anyone can call `SliceBond.checkTrigger()` while Active and not defaulted. With UTC day number
 `today = block.timestamp / 1 days`, it sums `account.revenueByDay(day)` for
 `today - triggerWindowDays <= day < today`. It requires
-`today >= activationTime / 1 days + triggerWindowDays`, so no bucket before the activation day is
-eligible. The activation-day bucket includes any receipts booked earlier that day; no partial-day
-snapshot is introduced. Below the floor means triggered; equality or above means recovery.
+`today >= activationDay + 1 + triggerWindowDays`, where `activationDay = activationTime / 1 days`,
+so every counted bucket has `day > activationDay`. The entire activation-day bucket is excluded,
+including receipts booked before and after activation, even when activation occurs at midnight UTC.
+The earliest bucket is the following UTC day; no partial-day snapshot is introduced. For a two-day
+window activated on UTC day 100, the first check is at midnight starting day 103 and counts days 101
+and 102. Below the floor means triggered; equality or above means recovery.
 `TriggerChecked(windowRevenue, triggered)` fires on each successful check, with
 `TriggerChanged(triggered)` only on a transition. `lastTriggerCheckDay` prevents a second check on the
 same UTC day (`AlreadyCheckedToday`). Before eligibility it reverts `TooEarly`; disabled, defaulted or

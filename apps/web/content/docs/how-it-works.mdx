@@ -26,8 +26,9 @@ the cap. A rounding carry means micro-payments never round investors to zero.
 
 **Optional performance trigger — not yet deployed:** at issuance the business can agree to a larger
 investor share if booked revenue falls below a floor over 1–30 complete UTC days. Anyone can check
-once per UTC day after the full window falls on or after the activation day; today's partial bucket
-is excluded. A later check at or above the floor restores the base share. Both tiers use the same
+once per UTC day when the full window falls strictly after the activation UTC day. The first check is
+on UTC day `activationDay + 1 + triggerWindowDays`; the entire activation day and today's partial bucket
+are excluded. A later check at or above the floor restores the base share. Both tiers use the same
 on-chain check, outside payments, and the cap stays unchanged. The last checked share persists until
 someone checks again. Issuer self-payments count: padding costs real money through the investor share,
 but can avoid the trigger. See [the bond terms](/docs/concepts/bond).

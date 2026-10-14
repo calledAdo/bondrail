@@ -22,8 +22,10 @@ description: The investors' vault and ERC-20 claim.
 
 Anyone can call `checkTrigger()` once per UTC day while Active and not defaulted. It sums the last
 `triggerWindowDays` complete UTC buckets in the account's `revenueByDay` mapping, excluding today.
-Every bucket must fall on or after the activation day; that day's bucket includes earlier same-day
-receipts. Below `triggerRevenue` selects `stepUpBps`; equality or above restores the base share.
+Every bucket must fall strictly after the activation UTC day; receipts before and after activation
+on that day are excluded. The first eligible UTC day is `activationDay + 1 + triggerWindowDays`,
+where `activationDay = floor(activationTime / 86400)`. Below `triggerRevenue` selects `stepUpBps`;
+equality or above restores the base share.
 Payments use the last checked share until another check. Rounding carry and the cap are unchanged.
 `revenueBps()` is the effective share; `baseRevenueBps()` and `terms().revenueBps` retain the base.
 

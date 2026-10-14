@@ -23,14 +23,14 @@ test('worker respects strict lifecycle boundaries and prioritizes close over dra
 });
 
 test('configured trigger runs once per UTC day, including after a worker restart', () => {
-  const active: BondState = { ...state, now: 102n * 86_400n, maturity: 200n * 86_400n,
+  const active: BondState = { ...state, now: 103n * 86_400n, maturity: 200n * 86_400n,
     secondReleaseDeadline: 150n * 86_400n,
     trigger: { triggerWindowDays: 2, activationTime: 100n * 86_400n + 43_200n,
       defaultedAt: 0n, lastTriggerCheckDay: 0n } };
   assert.equal(nextOperation({ ...active, now: active.now - 1n }), undefined);
   assert.equal(nextOperation(active), 'checkTrigger');
   // State re-read from the chain after a confirmation or process restart.
-  const checked = { ...active, trigger: { ...active.trigger!, lastTriggerCheckDay: 102n } };
+  const checked = { ...active, trigger: { ...active.trigger!, lastTriggerCheckDay: 103n } };
   assert.equal(nextOperation(checked), undefined);
   assert.equal(nextOperation({ ...checked, now: active.now + 86_399n }), undefined);
   assert.equal(nextOperation({ ...checked, now: active.now + 86_400n }), 'checkTrigger');
@@ -45,4 +45,19 @@ test('configured trigger runs once per UTC day, including after a worker restart
   // Give the daily check priority so constant new receipts cannot starve it.
   assert.equal(nextOperation({ ...active, freeReceipts: 1n }), 'checkTrigger');
   assert.equal(nextOperation({ ...checked, freeReceipts: 1n }), 'sweep');
+});
+
+test('trigger eligibility starts after complete UTC days strictly after the activation day', () => {
+  for (let window = 1; window <= 30; window++) {
+    for (const activationSecond of [0n, 43_200n, 86_399n]) {
+      const firstCheck = (100n + 1n + BigInt(window)) * 86_400n;
+      const active: BondState = { ...state, now: firstCheck, maturity: 200n * 86_400n,
+        secondReleaseDeadline: 150n * 86_400n,
+        trigger: { triggerWindowDays: window, activationTime: 100n * 86_400n + activationSecond,
+          defaultedAt: 0n, lastTriggerCheckDay: 0n } };
+      assert.equal(nextOperation({ ...active, now: firstCheck - 86_400n }), undefined);
+      assert.equal(nextOperation({ ...active, now: firstCheck - 1n }), undefined);
+      assert.equal(nextOperation(active), 'checkTrigger');
+    }
+  }
 });

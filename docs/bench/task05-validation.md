@@ -5,7 +5,32 @@
 offchain integrations and documentation are separate commits. These are local correctness and gas
 checks, not evidence of live Monad trigger operation.
 
-## Checks
+## Task 05b review correction
+
+The first eligible check now requires `today >= activationDay + 1 + triggerWindowDays`. All counted
+buckets fall strictly after the activation UTC day, excluding receipts both before and after activation
+on that day. Worker eligibility, UI copy, NatSpec and documentation use the same boundary. The web has
+no calculated "evaluable from" date to adjust.
+
+| Check | Result |
+|---|---|
+| `forge test --root contracts` | 94 passed, 0 failed, 0 skipped; 15 trigger tests, including fuzz coverage for activation-day receipts and exact eligibility |
+| Accounting invariant | 128 runs, 8,192 calls, 0 reverts |
+| `pnpm -r test` (10.32.0) | 108 passed, 0 failed: SDK 33, web 4, worker 3, observer 9, scoring 12, demo agent 6, facilitator 41 |
+| `tsc --noEmit -p services/worker` | Pass |
+| `fumadocs-mdx` and `tsc --noEmit -p apps/web` | Pass |
+| `forge fmt --check` (changed Solidity files), `git diff --check` | Pass |
+
+The worker boundary test covers all 1–30 day windows with activation at midnight, midday and the last
+second of the UTC day. Contract regressions cover both tiers, reject checks one second before the first
+eligible midnight, and assert the exact revenue in the first and subsequent windows. Existing carry,
+recovery, partial-day, default, lifecycle and cap tests now use the corrected schedule.
+
+pnpm ran through the cached 10.32.0 executable; its tests required sandbox escalation for local sockets.
+The checks, sizes and gas evidence below record the original Task 05 commits; gas and sizes were not
+remeasured for this correction. No push or deployment was performed.
+
+## Original Task 05 checks
 
 | Check | Result |
 |---|---|
@@ -65,9 +90,11 @@ initialization states is presented as trigger overhead.
 
 ## Boundaries and integration
 
-The earliest eligible UTC bucket is the activation day, including any receipts earlier that day.
-Today is always excluded. Checks are permissionless and external to payments; recovery needs another
-successful daily check. Default freezes trigger evaluation, while cap/default accounting stays unchanged.
+Task 05b corrects the original activation-day inclusion: the earliest eligible UTC bucket is the day
+after activation, excluding all receipts on the activation day. The first check is on UTC day
+`activationDay + 1 + triggerWindowDays`. Today is always excluded. Checks are permissionless and external
+to payments; recovery needs another successful daily check. Default freezes trigger evaluation, while
+cap/default accounting stays unchanged.
 The revenue floor counts issuer self-payments and is not wash-adjusted: padding costs the investor
 share but is possible.
 

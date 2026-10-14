@@ -44,7 +44,8 @@ Structs, exact field order:
 - Investors: `deposit(amount)` (approve the bond; requires `factory.depositAllowed`), `refund(amount, to)`,
   `redeem(amount, to)`. Anyone: `expireUndrawn()`, `finalizeSettlement()`.
 - `checkTrigger()` (**not yet deployed**): anyone, once per UTC day while Active and not defaulted;
-  sums the last complete UTC day buckets, all on/after the activation day. Emits `TriggerChecked`
+  sums the last complete UTC day buckets, all strictly after the activation day. First eligible UTC day:
+  `activationTime / 1 days + 1 + triggerWindowDays`. Emits `TriggerChecked`
   and `TriggerChanged` on transitions. Counts issuer self-payments; padding costs the investor share
   but is possible. See `README.md` for bucket and eligibility semantics.
 - Views: `terms()`, `decimals` (= the asset's), `minFeeBps`, `asset`, `phase`, `adapter`, `source`, `account`, `backingPerToken`, `pool`, `fundingEscrow`,

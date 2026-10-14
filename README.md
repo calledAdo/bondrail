@@ -53,9 +53,10 @@ revenue collection to financing without building a separate repayment system.
    **Optional performance trigger — implemented, not yet deployed:** terms can step the investor share
    up (for example, 25% → 40%) when booked revenue falls below a floor over 1–30 complete UTC days.
    Anyone can call `checkTrigger()` once per UTC day while Active and not defaulted; a later check at
-   or above the floor restores the base share. Checks start only when the entire window falls on or
-   after the activation day, exclude the current partial day, and run outside payments. Without a
-   check, the last share persists. This works on-chain for both tiers and does not change the cap.
+   or above the floor restores the base share. Checks start only when the entire window falls strictly
+   after the activation UTC day: `today >= activationDay + 1 + triggerWindowDays`. They exclude the
+   activation day and current partial day, and run outside payments. Without a check, the last share
+   persists. This works on-chain for both tiers and does not change the cap.
 6. **Hold, trade, or redeem.** Listed claims can trade on Kuru, subject to available liquidity. Redemption
    burns claims for their share of the current pool. **Early redemption gives up those claims' rights to
    future revenue and recoveries.** It is not a payout withdrawal that preserves the position. The last
@@ -67,8 +68,9 @@ not the same outcome.
 
 The trigger counts **all booked account revenue, including money the issuer pays itself**. Padding
 revenue to avoid a trigger costs the issuer real money because investors receive their share, but it
-is possible. This counter is not the indexer's attributed or wash-adjusted revenue. The activation-day
-bucket includes receipts earlier that same UTC day; plain transfers count on the day they are swept.
+is possible. This counter is not the indexer's attributed or wash-adjusted revenue. The entire
+activation-day bucket is excluded, including receipts before and after activation; plain transfers
+count on the day they are swept.
 All three trigger terms must be zero to disable it. See [contract details](contracts/README.md#performance-triggers--not-yet-deployed).
 
 ## Two revenue integrations

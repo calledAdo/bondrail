@@ -30,7 +30,7 @@ export function nextOperation(s: BondState): Operation | undefined {
     const today = s.now / 86_400n;
     const t = s.trigger;
     if (t && t.triggerWindowDays > 0 && t.defaultedAt === 0n
-        && today >= t.activationTime / 86_400n + BigInt(t.triggerWindowDays)
+        && today >= t.activationTime / 86_400n + 1n + BigInt(t.triggerWindowDays)
         && today > t.lastTriggerCheckDay) return 'checkTrigger';
     if (s.freeReceipts > 0n) return 'sweep';
   }

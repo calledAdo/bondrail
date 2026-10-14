@@ -10,7 +10,8 @@ The loop is bounded to120cycles by default, four writes per cycle, a fixed gas-p
 `checkTrigger()` maintenance for target bonds using the new implementation. It defaults off and keeps
 the original terms decoder for old deployments. With checking enabled, the worker reads trigger terms,
 activation time, default state and `lastTriggerCheckDay`. It uses the latest chain block's UTC day,
-waits for a complete eligible window, and skips disabled/defaulted/non-Active/already-checked bonds.
+waits until `today >= activationDay + 1 + triggerWindowDays` (excluding the entire activation UTC day),
+and skips disabled/defaulted/non-Active/already-checked bonds.
 The on-chain check day survives restarts and also reflects checks sent by other callers. A simulation
 skips a race lost to another checker; the existing transaction journal still governs uncertain sends.
 Maturity close and undrawn expiry take priority; checks precede sweeps so continuous receipts cannot
