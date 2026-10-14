@@ -76,17 +76,21 @@ All three trigger terms must be zero to disable it. See [contract details](contr
 ## Bondrail Credit vault — not yet deployed
 
 `BondrailVault` lets investors deposit one asset (such as USDC) for ERC-4626 shares;
-a disclosed curator allocates across eligible Funding bonds. Its conservative NAV is idle cash plus
-refundable Funding/Cancelled claims and each other holding's realized share of the bond pool.
-Future revenue is excluded: activation can reduce NAV, and repayments/recoveries raise it.
-Deposits and minting close while any tracked claims are Active or Closing to prevent entry just before repayments.
+a disclosed curator allocates across eligible Funding bonds. Healthy positions carry unrecovered cost,
+so activation preserves NAV and deposits stay open. Entries ignore unrealized impairments; exits apply
+a 50% performance-trigger haircut or a 30-day default/maturity writedown. Repayments replace cost first;
+realized profit enters both prices over seven days after a checkpoint. New profit merges with the
+unvested remainder, so later inflows can extend that remainder's vesting. Collection cannot unlock it early.
+`totalAssets()` and conversions report **exit NAV**; use `previewDeposit`/`previewMint` for entry quotes.
+Carrying at cost assumes healthy bonds keep paying; impairment is rule-based, not a market price.
 
 The vault never redeems claims early. Withdrawals use idle liquidity only, with no queue or guaranteed
-exit. Fixed allocation limits are 25% of NAV per bond, 16 holdings, and 20% idle remaining; concentrations
+exit. Fixed allocation limits are 25% of exit NAV per bond, 16 holdings, and 20% idle remaining; concentrations
 can drift and withdrawals can consume that buffer. The immutable owner can only replace the curator
 after a two-day delay. There are no arbitrary calls, rescue transfers, fee recipients or upgrades.
 
-The app's `/vault` page is read-only and shows **not yet deployed** until an address is configured.
+The app's `/vault` page shows entry/exit prices, NAV and unvested income. It is read-only and shows
+**not yet deployed** until an address is configured.
 No deployment manifests were changed. See [design and residual risks](docs/vault/DESIGN.md),
 [validation](docs/vault/VALIDATION.md), and [web configuration](apps/web/README.md#credit-vault--not-yet-deployed).
 

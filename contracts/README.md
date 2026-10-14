@@ -108,16 +108,24 @@ deployment or live worker transactions were performed. See [validation](../docs/
 `BondrailVault(IERC20 asset, SliceFactory factory, address owner, address curator)` is a standalone,
 non-upgradeable ERC-4626 vault; existing bond contracts are unchanged. Choose an exact-transfer,
 non-rebasing asset. Shares use asset decimals + 6 (12 for USDC), with OZ virtual shares/assets.
-`holdings()`, `holdingValue(bond)`, `idleAssets()`, `totalAssets()` and `depositsOpen()` expose the
-portfolio without an indexer. `maxWithdraw`/`maxRedeem` reflect idle liquidity.
+`holdings()`, `costBasis(bond)`, `holdingRecovered(bond)`, `holdingRealizedValue(bond)`,
+`holdingValue(bond)` and `holdingEntryValue(bond)` expose the portfolio. Position carrying values
+are before the vault-wide `unvestedIncome()` deduction. `totalAssets()`/conversions use exit NAV;
+`entryAssets()`/`previewDeposit`/`previewMint` use entry NAV without unrealized impairment.
+`maxWithdraw`/`maxRedeem` reflect idle liquidity. Deposits/mints remain open in every phase.
 
-Only the curator can `allocate`, `withdrawFromRaise` or `collect`; all bond payouts go to the vault.
+Only the curator can `allocate`, `withdrawFromRaise` or `collect`; payouts always go to the vault.
 Only the immutable owner can `proposeCurator` and, after `CURATOR_DELAY`, `acceptCurator`.
-`MAX_BOND_BPS = 2500`, `MAX_BONDS = 16`, and `MIN_IDLE_BPS = 2000` have no setters.
-Entry closes with Active/Closing holdings, including zero-valued claims; collection requires Closed
-or Cancelled. Defaulted backing remains in NAV; unslashed issuer stake and undrawn commitments do not.
+`MAX_BOND_BPS = 2500`, `MAX_BONDS = 16`, and `MIN_IDLE_BPS = 2000` have no setters and use exit NAV.
+Collection requires Closed/Cancelled. Healthy Active positions carry unrecovered cost within their
+repayment ceiling, including undrawn principal; triggered positions take a 50% haircut on unrecovered
+cost and default/maturity starts a 30-day writedown. Closing/Closed use realized backing only.
 
-The 28 vault tests cover these limits, lifecycle, default, cancellation, roles/delay, entry windows,
-exact transfers, callbacks/reentrancy, donation inflation, dust, and a fuzz receipt oracle for NAV.
-Realized backing is not immediate collectability; see [design](../docs/vault/DESIGN.md) and
-[validation](../docs/vault/VALIDATION.md). No deployment was performed.
+Permissionless `checkpointIncome()` starts seven-day vesting for newly observed realized profit;
+all successful money movements checkpoint too. Unobserved profit stays fully locked in views. New
+income merges with the unvested remainder, extending its schedule; collection preserves the lock.
+The 36 vault tests cover valuation/pricing, vesting, limits, roles, liquidity, exact transfers,
+reentrancy, donation inflation, dust and an independent realized-backing receipt oracle.
+Carried NAV is not immediately realizable: healthy repayment assumptions and rule-based impairments
+remain risks. See [design](../docs/vault/DESIGN.md) and [validation](../docs/vault/VALIDATION.md).
+No deployment was performed.

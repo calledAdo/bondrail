@@ -13,7 +13,7 @@ const phases = ['Funding', 'Active', 'Closing', 'Closed', 'Cancelled'];
 async function readVault(client: NonNullable<ReturnType<typeof usePublicClient>>, address: Address) {
   const blockNumber = await client.getBlockNumber();
   const base = { address, abi: vaultAbi, blockNumber } as const;
-  const [asset, decimals, nav, idle, curator, owner, held, cap, maxBonds, buffer, open, pending, changeAfter, delay] = await Promise.all([
+  const [asset, decimals, nav, idle, curator, owner, held, cap, maxBonds, buffer, entryNav, unvested, pending, changeAfter, delay] = await Promise.all([
     client.readContract({ ...base, functionName: 'asset' }),
     client.readContract({ ...base, functionName: 'decimals' }),
     client.readContract({ ...base, functionName: 'totalAssets' }),
@@ -24,30 +24,35 @@ async function readVault(client: NonNullable<ReturnType<typeof usePublicClient>>
     client.readContract({ ...base, functionName: 'MAX_BOND_BPS' }),
     client.readContract({ ...base, functionName: 'MAX_BONDS' }),
     client.readContract({ ...base, functionName: 'MIN_IDLE_BPS' }),
-    client.readContract({ ...base, functionName: 'depositsOpen' }),
+    client.readContract({ ...base, functionName: 'entryAssets' }),
+    client.readContract({ ...base, functionName: 'unvestedIncome' }),
     client.readContract({ ...base, functionName: 'pendingCurator' }),
     client.readContract({ ...base, functionName: 'curatorChangeAfter' }),
     client.readContract({ ...base, functionName: 'CURATOR_DELAY' }),
   ]);
   // Fail explicitly for a misconfigured contract instead of querying an unbounded address list.
   if (held.length > 16) throw new Error('Unexpected vault holdings limit');
-  const [symbol, assetDecimals, price, holdings] = await Promise.all([
+  const [symbol, assetDecimals, exitPrice, entryPrice, holdings] = await Promise.all([
     client.readContract({ address: asset, abi: erc20Abi, functionName: 'symbol', blockNumber }),
     client.readContract({ address: asset, abi: erc20Abi, functionName: 'decimals', blockNumber }),
-    client.readContract({ ...base, functionName: 'convertToAssets', args: [10n ** BigInt(decimals)] }),
+    client.readContract({ ...base, functionName: 'previewRedeem', args: [10n ** BigInt(decimals)] }),
+    client.readContract({ ...base, functionName: 'previewMint', args: [10n ** BigInt(decimals)] }),
     Promise.all(held.map(async (bond) => {
       const b = { address: bond, abi: bondAbi, blockNumber } as const;
-      const [name, phase, claims, value, defaultedAt] = await Promise.all([
+      const [name, phase, claims, value, realized, cost, triggered, defaultedAt] = await Promise.all([
         client.readContract({ ...b, functionName: 'name' }),
         client.readContract({ ...b, functionName: 'phase' }),
         client.readContract({ ...b, functionName: 'balanceOf', args: [address] }),
         client.readContract({ ...base, functionName: 'holdingValue', args: [bond] }),
+        client.readContract({ ...base, functionName: 'holdingRealizedValue', args: [bond] }),
+        client.readContract({ ...base, functionName: 'costBasis', args: [bond] }),
+        client.readContract({ ...b, functionName: 'triggered' }),
         client.readContract({ ...b, functionName: 'defaultedAt' }),
       ]);
-      return { bond, name, phase, claims, value, defaulted: defaultedAt > 0n };
+      return { bond, name, phase, claims, value, realized, cost, triggered, defaulted: defaultedAt > 0n };
     })),
   ]);
-  return { blockNumber, asset, symbol, assetDecimals, nav, idle, price, curator, owner, holdings, cap, maxBonds, buffer, open, pending, changeAfter, delay };
+  return { blockNumber, asset, symbol, assetDecimals, nav, idle, exitPrice, entryPrice, curator, owner, holdings, cap, maxBonds, buffer, entryNav, unvested, pending, changeAfter, delay };
 }
 
 export function CreditVault() {
@@ -68,7 +73,7 @@ export function CreditVault() {
       <header className="space-y-3">
         <p className="font-mono text-xs text-foreground/60">(credit vault)</p>
         <h1 className="text-4xl font-semibold">One deposit. A portfolio of revenue bonds.</h1>
-        <p className="max-w-3xl text-foreground/70">A disclosed curator allocates within fixed limits. Shares track idle cash and realized bond backing. Future revenue is excluded.</p>
+        <p className="max-w-3xl text-foreground/70">A disclosed curator allocates within fixed limits. Healthy bonds are carried at unrecovered cost. Exit prices reflect rule-based losses; realized profit enters share value over seven days.</p>
         <Badge>{address ? 'Read-only' : 'Not yet deployed'}</Badge>
       </header>
 
@@ -84,13 +89,16 @@ export function CreditVault() {
         </div>
       )}
 
-      <Panel title="Realized backing" aside={data && <Badge>{data.open ? 'Entry window open' : 'Entry window closed'}</Badge>}>
+      <Panel title="Vault valuation" aside={data && <Badge>Open to deposits</Badge>}>
         <dl className="grid gap-6 sm:grid-cols-3">
-          <Figure label="Net asset value" value={data ? amount(data.nav) : '—'} />
-          <Figure label="Value per vault share" value={data ? amount(data.price) : '—'} />
+          <Figure label="Entry price / share" value={data ? amount(data.entryPrice) : '—'} />
+          <Figure label="Exit price / share" value={data ? amount(data.exitPrice) : '—'} />
           <Figure label="Idle liquidity" value={data ? amount(data.idle) : '—'} />
+          <Figure label="Entry net asset value" value={data ? amount(data.entryNav) : '—'} />
+          <Figure label="Exit net asset value" value={data ? amount(data.nav) : '—'} />
+          <Figure label="Unvested income" value={data ? amount(data.unvested) : '—'} />
         </dl>
-        <p className="mt-5 max-w-3xl text-sm text-foreground/70">Withdrawals are limited to idle cash and can exhaust it. Claims stay invested until settlement or cancellation. Deposits and minting close while any holding is Active or Closing; activation can sharply reduce reported NAV.</p>
+        <p className="mt-5 max-w-3xl text-sm text-foreground/70">Deposits remain open while bonds are active. Entry prices ignore trigger and default impairments; exit prices include them. Both prices exclude unvested income. Withdrawals are limited to idle cash and can exhaust it. Claims stay invested until settlement or cancellation.</p>
         {data && <p className="mt-3 text-xs text-foreground/60">{chain.name} · block {data.blockNumber.toString()} · refreshes every 30 seconds</p>}
       </Panel>
 
@@ -103,20 +111,23 @@ export function CreditVault() {
                 <li key={holding.bond} className="space-y-3 py-4 first:pt-0 last:pb-0">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <Link href={`/bonds/${holding.bond}`} className="inline-flex min-h-11 items-center font-medium underline-offset-4 hover:underline">{holding.name}</Link>
-                    <div className="flex flex-wrap gap-2"><Badge>{phases[holding.phase] ?? 'Unknown'}</Badge>{holding.defaulted && <Badge tone="danger">Defaulted</Badge>}</div>
+                    <div className="flex flex-wrap gap-2"><Badge>{phases[holding.phase] ?? 'Unknown'}</Badge>{holding.defaulted ? <Badge tone="danger">Defaulted</Badge> : holding.triggered && <Badge tone="danger">Performance trigger</Badge>}</div>
                   </div>
                   <p className="break-all font-mono text-xs text-foreground/60">{holding.bond}</p>
                   <dl className="grid gap-4 sm:grid-cols-2">
                     <Figure label="Claims held" value={formatUnits(holding.claims, data.assetDecimals)} />
-                    <Figure label="Realized backing" value={amount(holding.value)} />
+                    <Figure label="Cost basis" value={amount(holding.cost)} />
+                    <Figure label="Realized backing" value={amount(holding.realized)} />
+                    <Figure label="Exit carrying value" value={amount(holding.value)} />
                   </dl>
                 </li>
               ))}
             </ul>}
+          <p className="mt-5 text-sm text-foreground/70">Holding values are before the vault-wide income vesting deduction. Carrying at cost assumes healthy bonds keep paying; impairments are rules, not market prices.</p>
         </Panel>
         <Panel title="Mandate & curator">
           <dl className="space-y-4 text-sm">
-            <div><dt className="text-foreground/60">Maximum per bond</dt><dd>{data ? Number(data.cap) / 100 : 25}% of NAV at allocation</dd></div>
+            <div><dt className="text-foreground/60">Maximum per bond</dt><dd>{data ? Number(data.cap) / 100 : 25}% of exit NAV at allocation</dd></div>
             <div><dt className="text-foreground/60">Minimum idle buffer</dt><dd>{data ? Number(data.buffer) / 100 : 20}% at allocation</dd></div>
             <div><dt className="text-foreground/60">Maximum holdings</dt><dd>{data ? data.maxBonds.toString() : 16} bonds</dd></div>
             <div><dt className="text-foreground/60">Curator replacement delay</dt><dd>{data ? Number(data.delay) / 86_400 : 2} days</dd></div>

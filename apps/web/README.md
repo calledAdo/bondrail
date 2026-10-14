@@ -18,8 +18,14 @@ No wallet, RPC or provider credentials are required to explore the synthetic pre
 a vault exists on the configured `NEXT_PUBLIC_CHAIN_ID`/RPC. No deployment address is supplied by this
 change. A missing address shows “Not yet deployed” and unavailable balances, not synthetic holdings.
 
-Once configured, it reads NAV, one-share value, idle assets, per-bond claims/realized backing, limits,
-entry-window status, owner, curator and pending curator change directly at one block, refreshing every
+Once configured, it reads entry/exit NAV, entry/exit one-share prices, idle assets, unvested income,
+per-bond claims/cost/realized backing/exit carrying value, trigger/default flags, limits, owner, curator
+and pending curator change directly at one block, refreshing every
 30 seconds. It needs no wallet or indexer. Read failures are explicit; failed refreshes label the last
 successful block. No deposit, withdrawal or curator transactions are exposed. Design limits shown
 before configuration are labeled as design values, not live readings.
+
+Entry prices use `previewMint(one share)`; exit prices use `previewRedeem(one share)`. Deposits stay
+open during Active/Closing phases. Prices exclude unvested income; exit prices also include impairment.
+Holding values precede the vault-wide vesting deduction. Carrying at cost assumes healthy bonds keep
+paying, and impairment follows rules rather than a market price.

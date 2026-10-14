@@ -89,12 +89,15 @@ contract VaultTest is TestBase {
         t.stake = watched ? 20e6 : 0;
         t.minRevenue = 1;
         t.fundingDeadline = uint64(vm.getBlockTimestamp() + 1 days);
-        t.maturity = uint64(vm.getBlockTimestamp() + 10 days);
+        t.maturity = uint64(vm.getBlockTimestamp() + 60 days);
         t.secondReleaseNotBefore = uint64(vm.getBlockTimestamp() + 30);
         t.secondReleaseDeadline = uint64(vm.getBlockTimestamp() + 5 days);
         t.minOperatingPeriod = 30;
         t.revenueBps = 2000;
         t.firstReleaseBps = 5000;
+        t.triggerWindowDays = 1;
+        t.triggerRevenue = 100e6;
+        t.stepUpBps = 4000;
         token.mint(address(this), t.stake);
         token.approve(address(factory), t.stake);
         b = SliceBond(
@@ -239,17 +242,20 @@ contract VaultTest is TestBase {
         eq(asset.allowance(address(vault), address(b)), 0);
     }
 
-    function testAllocationUsesNAVAfterActivationMarkdown() public {
+    function testAllocationUsesExitNAVAfterTriggerImpairment() public {
         _deposit(1000e6);
         SliceBond a = _new(asset, false, 250e6);
-        SliceBond b = _new(asset, false, 250e6);
         _allocate(a, 250e6);
         _activate(a);
-        eq(vault.totalAssets(), 750e6);
+        vm.warp(vm.getBlockTimestamp() + 2 days);
+        a.checkTrigger();
+        eq(vault.totalAssets(), 875e6);
+        eq(vault.entryAssets(), 1000e6);
+        SliceBond b = _new(asset, false, 250e6);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.ConcentrationLimit.selector);
-        vault.allocate(address(b), 200e6);
-        _allocate(b, 187.5e6);
+        vault.allocate(address(b), 218.75e6 + 1);
+        _allocate(b, 218.75e6);
     }
 
     function testFundingDeadlineRollsBackTrackingAndApproval() public {
@@ -344,11 +350,14 @@ contract VaultTest is TestBase {
         vm.prank(CURATOR);
         vault.withdrawFromRaise(address(b), 30e6);
         eq(vault.holdingValue(address(b)), 70e6);
+        eq(vault.costBasis(address(b)), 70e6);
         eq(vault.totalAssets(), 1000e6);
         vm.prank(CURATOR);
         vault.withdrawFromRaise(address(b), 70e6);
         eq(vault.holdings().length, 0);
+        eq(vault.costBasis(address(b)), 0);
         _allocate(b, 10e6);
+        eq(vault.costBasis(address(b)), 10e6);
         eq(vault.holdings().length, 1);
     }
 
@@ -358,48 +367,52 @@ contract VaultTest is TestBase {
         _allocate(b, 100e6);
         eq(vault.totalAssets(), 1000e6);
         _activate(b);
-        eq(vault.totalAssets(), 900e6); // even undrawn principal is excluded until recovered
+        eq(vault.totalAssets(), 1000e6); // cost survives staged activation
         eq(b.undrawnPrincipal(), 50e6);
         asset.mint(address(b), 99e6); // unaccounted donation is not backing
-        eq(vault.totalAssets(), 900e6);
+        eq(vault.totalAssets(), 1000e6);
         _revenue(b, 100e6);
-        eq(vault.totalAssets(), 920e6);
+        eq(vault.totalAssets(), 1000e6);
+        eq(vault.holdingRecovered(address(b)), 20e6);
         _revenue(b, 200e6); // cap closes Native immediately, recovers undrawn 50
         eq(uint256(b.phase()), uint256(SliceTypes.Phase.Closed));
-        eq(vault.totalAssets(), 1010e6);
+        eq(vault.totalAssets(), 1000e6); // ten of profit remains unvested
+        vault.checkpointIncome();
         vm.expectEmit(true, false, false, true, address(vault));
         emit Collected(address(b), 100e6, 110e6);
         eq(_collect(b), 110e6);
         eq(vault.idleAssets(), 1010e6);
+        eq(vault.totalAssets(), 1000e6);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
         eq(vault.totalAssets(), 1010e6);
         eq(vault.holdings().length, 0);
     }
 
-    function testEntryWindowsAlsoCloseForZeroValuedClaimsAndMint() public {
+    function testDepositsAndMintsStayOpenAcrossActivationAndClosing() public {
         _deposit(1000e6);
         SliceBond b = _new(asset, true, 100e6);
         _allocate(b, 100e6);
-        yes(vault.depositsOpen());
         _activate(b);
-        yes(!vault.depositsOpen());
-        eq(vault.holdingValue(address(b)), 0);
-        eq(vault.maxDeposit(BOB), 0);
-        eq(vault.maxMint(BOB), 0);
+        eq(vault.totalAssets(), 1000e6);
+        eq(vault.holdingValue(address(b)), 100e6);
+        eq(vault.maxDeposit(BOB), type(uint256).max);
+        eq(vault.maxMint(BOB), type(uint256).max);
+        eq(vault.previewDeposit(100e6), 100e12);
         vm.prank(BOB);
-        vm.expectRevert();
-        vault.deposit(1e6, BOB);
+        eq(vault.deposit(100e6, BOB), 100e12);
+        eq(vault.convertToAssets(vault.balanceOf(ALICE)), 1000e6);
+        eq(vault.previewMint(100e12), 100e6);
         vm.prank(BOB);
-        vm.expectRevert();
-        vault.mint(1e12, BOB);
+        eq(vault.mint(100e12, BOB), 100e6);
         _revenue(b, 300e6);
         eq(uint256(b.phase()), uint256(SliceTypes.Phase.Closing));
-        yes(!vault.depositsOpen());
-        vm.warp(b.settleAfter());
-        yes(!vault.depositsOpen()); // elapsed grace is not finalized settlement
-        b.finalizeSettlement();
-        yes(vault.depositsOpen());
         vm.prank(BOB);
-        vault.deposit(1e6, BOB);
+        eq(vault.deposit(1e6, BOB), 1e12);
+        vm.warp(b.settleAfter());
+        vm.prank(BOB);
+        vault.mint(1e12, BOB);
+        b.finalizeSettlement();
+        eq(vault.maxDeposit(BOB), type(uint256).max);
     }
 
     function testNeverRedeemActiveOrClosingEvenAfterGrace() public {
@@ -440,7 +453,7 @@ contract VaultTest is TestBase {
         SliceAccount(b.account()).cancelFunding(address(b));
         eq(b.stakeReturnCredit(), 20e6);
         eq(vault.holdingValue(address(b)), 40e6);
-        yes(vault.depositsOpen());
+        eq(vault.maxDeposit(BOB), type(uint256).max);
         eq(_collect(b), 40e6);
         eq(vault.totalAssets(), 1000e6);
         eq(vault.holdings().length, 0);
@@ -458,13 +471,16 @@ contract VaultTest is TestBase {
         _observe(b, 2);
         yes(b.defaultedAt() != 0);
         eq(b.pool(), 140e6); // recovered 100 + revenue 20 + stake 20
-        eq(vault.holdingValue(address(b)), 70e6);
-        eq(vault.totalAssets(), 970e6);
+        eq(vault.holdingRecovered(address(b)), 70e6);
+        eq(vault.holdingRealizedValue(address(b)), 70e6);
+        eq(vault.holdingValue(address(b)), 100e6);
+        eq(vault.totalAssets(), 1000e6);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.InvalidState.selector);
         vault.collect(address(b));
         _revenue(b, 50e6); // default does not terminate revenue collection
-        eq(vault.holdingValue(address(b)), 75e6);
+        eq(vault.holdingRecovered(address(b)), 75e6);
+        eq(vault.holdingValue(address(b)), 100e6);
         _close(b);
         eq(_collect(b), 75e6);
         eq(vault.totalAssets(), 975e6);
@@ -586,7 +602,9 @@ contract VaultTest is TestBase {
         _activate(tracked);
         tracked.transfer(address(vault), 50e6);
         _revenue(tracked, 100e6);
-        eq(vault.holdingValue(address(tracked)), 10e6);
+        eq(vault.holdingRealizedValue(address(tracked)), 10e6);
+        eq(vault.holdingValue(address(tracked)), 50e6);
+        eq(vault.costBasis(address(tracked)), 50e6);
         eq(vault.holdings().length, 1);
     }
 
@@ -616,7 +634,7 @@ contract VaultTest is TestBase {
         _close(b);
         eq(b.pool(), 1);
         eq(vault.holdingValue(address(b)), 0);
-        yes(vault.depositsOpen());
+        eq(vault.maxDeposit(BOB), type(uint256).max);
         vm.prank(CURATOR);
         vm.expectRevert(SliceBond.InvalidAmount.selector);
         vault.collect(address(b));
@@ -687,10 +705,244 @@ contract VaultTest is TestBase {
         yes(bytes4(token.result()) == bytes4(keccak256("ReentrancyGuardReentrantCall()")));
     }
 
+    function _default(SliceBond b) internal {
+        vm.warp(vm.getBlockTimestamp() + 31);
+        _observe(b, 2);
+        vm.warp(vm.getBlockTimestamp() + 30);
+        _observe(b, 2);
+        yes(b.defaultedAt() != 0);
+    }
+
+    function testTriggerSeparatesEntryAndExitPricesAndReverses() public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, false, 200e6);
+        _allocate(b, 200e6);
+        _activate(b);
+        vm.warp(vm.getBlockTimestamp() + 2 days);
+        b.checkTrigger();
+        eq(vault.entryAssets(), 1000e6);
+        eq(vault.totalAssets(), 900e6);
+        eq(vault.previewDeposit(100e6), 100e12);
+        eq(vault.previewMint(100e12), 100e6);
+        eq(vault.previewRedeem(100e12), 90e6);
+        yes(vault.previewWithdraw(100e6) > 100e12);
+        uint256 quoted = vault.previewDeposit(100e6);
+        vm.prank(BOB);
+        eq(vault.deposit(100e6, BOB), quoted);
+        eq(vault.entryAssets(), 1100e6);
+        eq(vault.totalAssets(), 1000e6);
+        uint256 mintCost = vault.previewMint(100e12);
+        vm.prank(BOB);
+        eq(vault.mint(100e12, BOB), mintCost);
+        uint256 burn = vault.previewWithdraw(10e6);
+        vm.prank(BOB);
+        eq(vault.withdraw(10e6, BOB, BOB), burn);
+        _revenue(b, 100e6); // 40 investor revenue under step-up; still below cost
+        vm.warp(vm.getBlockTimestamp() + 1 days);
+        b.checkTrigger();
+        yes(!b.triggered());
+        eq(vault.totalAssets(), vault.entryAssets());
+    }
+
+    function testDefaultLinearWritedownAndRecoveryReversesLoss() public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, true, 200e6);
+        _allocate(b, 100e6);
+        _activate(b);
+        _default(b);
+        uint256 start = b.defaultedAt();
+        eq(vault.holdingRecovered(address(b)), 60e6); // half of undrawn 100 + stake 20
+        eq(vault.totalAssets(), 1000e6);
+        eq(vault.entryAssets(), 1000e6);
+        vm.warp(start + 15 days);
+        eq(vault.holdingValue(address(b)), 80e6); // 60 + 40/2
+        eq(vault.totalAssets(), 980e6);
+        eq(vault.entryAssets(), 1000e6);
+        _revenue(b, 100e6); // current holder's share receives another 10
+        eq(vault.holdingValue(address(b)), 85e6); // 70 + 30/2, impairment reverses by 5
+        eq(vault.entryAssets(), 1000e6);
+        vm.warp(start + 30 days);
+        eq(vault.holdingValue(address(b)), 70e6);
+        vm.warp(start + 31 days);
+        eq(vault.holdingValue(address(b)), 70e6);
+        _revenue(b, 50e6);
+        eq(vault.holdingValue(address(b)), 75e6);
+        eq(vault.entryAssets(), 1000e6);
+        _close(b);
+        eq(vault.holdingValue(address(b)), 75e6);
+        eq(vault.holdingEntryValue(address(b)), 75e6);
+        eq(_collect(b), 75e6);
+        eq(vault.costBasis(address(b)), 0);
+    }
+
+    function testMaturityWritedownWithoutSettlementAndLateDefaultDoesNotRestart() public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, true, 200e6);
+        _allocate(b, 100e6);
+        _activate(b);
+        uint256 maturity = b.maturity();
+        vm.warp(maturity);
+        eq(vault.totalAssets(), 1000e6);
+        vm.warp(maturity + 15 days);
+        eq(vault.holdingValue(address(b)), 50e6);
+        eq(vault.holdingEntryValue(address(b)), 100e6);
+        // Default recovers undrawn + stake but the existing maturity clock continues.
+        vm.prank(address(covenant));
+        b.markDefault(keccak256("late-default"));
+        eq(vault.holdingValue(address(b)), 80e6);
+        vm.warp(maturity + 30 days);
+        eq(vault.holdingValue(address(b)), 60e6);
+        SliceAccount(b.account()).closeBondAtMaturity(address(b));
+        eq(vault.holdingEntryValue(address(b)), 60e6);
+        eq(vault.holdingValue(address(b)), 60e6);
+    }
+
+    function testProfitVestsLinearlyAndCollectDoesNotUnlockIt() public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, false, 100e6);
+        _allocate(b, 100e6);
+        _activate(b);
+        _revenue(b, 100e6);
+        eq(vault.holdingRecovered(address(b)), 20e6);
+        eq(vault.totalAssets(), 1000e6);
+        _revenue(b, 200e6);
+        eq(vault.unvestedIncome(), 10e6);
+        eq(vault.totalAssets(), 1000e6);
+        // Views are conservative even when nobody checkpoints promptly.
+        vm.warp(vm.getBlockTimestamp() + 2 days);
+        eq(vault.totalAssets(), 1000e6);
+        vault.checkpointIncome();
+        uint256 start = vault.incomeVestingStart();
+        vm.warp(start + 3.5 days);
+        eq(vault.totalAssets(), 1005e6);
+        eq(vault.entryAssets(), 1005e6);
+        eq(vault.unvestedIncome(), 5e6);
+        vault.checkpointIncome(); // cannot relock without new income
+        eq(vault.incomeVestingStart(), start);
+        eq(_collect(b), 110e6);
+        eq(vault.totalAssets(), 1005e6);
+        eq(vault.unvestedIncome(), 5e6);
+        vm.warp(start + 7 days);
+        eq(vault.totalAssets(), 1010e6);
+        eq(vault.unvestedIncome(), 0);
+    }
+
+    function testFrontRunningRepaymentCannotCaptureImmediateIncome() public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, false, 250e6);
+        _allocate(b, 250e6);
+        _activate(b);
+        vm.prank(BOB);
+        uint256 shares = vault.deposit(1000e6, BOB);
+        _revenue(b, 750e6); // finishes the cap: 275 recovered, 25 profit
+        eq(vault.unvestedIncome(), 25e6);
+        eq(vault.previewRedeem(shares), 1000e6);
+        vm.prank(BOB);
+        eq(vault.redeem(shares, BOB, BOB), 1000e6);
+        eq(vault.totalAssets(), 1000e6);
+        // Exiting checkpointed income. One-second capture is only the linear vested fraction.
+        vm.warp(vm.getBlockTimestamp() + 1);
+        yes(vault.totalAssets() - 1000e6 <= uint256(25e6) / 7 days);
+    }
+
+    function testNewProfitMergesOnlyUnvestedRemainderAndSlotsCanBeReused() public {
+        _deposit(1000e6);
+        SliceBond a = _new(asset, false, 100e6);
+        SliceBond b = _new(asset, false, 100e6);
+        _allocate(a, 100e6);
+        _allocate(b, 100e6);
+        _activate(a);
+        _activate(b);
+        _revenue(a, 300e6);
+        vault.checkpointIncome();
+        vm.warp(vm.getBlockTimestamp() + 3.5 days);
+        eq(vault.totalAssets(), 1005e6);
+        _revenue(b, 300e6);
+        eq(vault.unvestedIncome(), 15e6);
+        uint256 beforeNav = vault.totalAssets();
+        vault.checkpointIncome();
+        eq(vault.totalAssets(), beforeNav);
+        eq(vault.lockedIncome(), 15e6);
+        _collect(a);
+        _collect(b);
+        _allocate(_new(asset, false, 100e6), 100e6);
+        eq(vault.totalAssets(), 1005e6);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        eq(vault.totalAssets(), 1020e6);
+    }
+
+    function testCapSubtractsPriorRedemptionsAndIncludesStagedPrincipal() public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, false, 200e6);
+        _allocate(b, 100e6);
+        _activate(b);
+        eq(vault.holdingEntryValue(address(b)), 100e6);
+        _revenue(b, 100e6);
+        eq(b.redeem(50e6, address(this)), 5e6);
+        uint256 cap = (b.effectiveRevenueCap() + b.undrawnPrincipal() - b.totalRedeemed()) * b.balanceOf(address(vault))
+            / b.totalSupply();
+        yes(vault.holdingEntryValue(address(b)) <= cap);
+        yes(vault.holdingValue(address(b)) <= cap);
+        // Releasing the second tranche changes the effective cap without creating profit.
+        vm.warp(b.terms().secondReleaseNotBefore);
+        factory.releaseSecond(address(b));
+        eq(b.undrawnPrincipal(), 0);
+        cap = (b.effectiveRevenueCap() - b.totalRedeemed()) * b.balanceOf(address(vault)) / b.totalSupply();
+        yes(vault.holdingEntryValue(address(b)) <= cap);
+        eq(vault.unvestedIncome(), 0);
+    }
+
+    function testFuzzExitNAVNeverExceedsEntryNAV(uint128 seed, uint32 elapsed, uint8 stage) public {
+        _deposit(1000e6);
+        SliceBond b = _new(asset, true, 300e6);
+        _allocate(b, uint256(seed) % 250e6 + 1);
+        _activate(b);
+        _revenue(b, uint256(seed) % 800e6);
+        if (stage % 4 == 0) {
+            vm.warp(vm.getBlockTimestamp() + 2 days);
+            b.checkTrigger();
+        } else if (stage % 4 == 1) {
+            _default(b);
+            vm.warp(vm.getBlockTimestamp() + uint256(elapsed) % 31 days);
+        } else if (stage % 4 == 2) {
+            vm.warp(uint256(b.maturity()) + uint256(elapsed) % 31 days);
+        } else {
+            _close(b);
+        }
+        uint256 exitNav = vault.totalAssets();
+        uint256 entryNav = vault.entryAssets();
+        yes(exitNav <= entryNav);
+        yes(vault.holdingValue(address(b)) <= vault.holdingEntryValue(address(b)));
+        uint256 ceiling =
+            (b.effectiveRevenueCap()
+                    + b.undrawnPrincipal()
+                    + b.principalRecovery()
+                    + b.stakeRecovery()
+                    - b.totalRedeemed()) * b.balanceOf(address(vault)) / b.totalSupply();
+        yes(vault.holdingEntryValue(address(b)) <= ceiling);
+        vault.checkpointIncome();
+        eq(vault.totalAssets(), exitNav);
+        eq(vault.entryAssets(), entryNav);
+        vm.warp(vm.getBlockTimestamp() + 7 days);
+        yes(vault.totalAssets() <= vault.entryAssets());
+        uint256 shares = vault.previewDeposit(1e6);
+        vm.prank(BOB);
+        eq(vault.deposit(1e6, BOB), shares);
+        yes(vault.totalAssets() <= vault.entryAssets());
+        uint256 assets = vault.previewRedeem(shares);
+        yes(assets <= 1e6);
+        vm.prank(BOB);
+        eq(vault.redeem(shares, BOB, BOB), assets);
+    }
+
     /// Independent receipt oracle: snapshot, actually withdraw/refund/redeem as the vault, restore.
     /// Active/Closing redemption is counterfactual backing only; production collect forbids it.
     function _assertRealizable() internal {
-        uint256 nav = vault.totalAssets();
+        uint256 backing = vault.idleAssets();
+        address[] memory positions = vault.holdings();
+        for (uint256 i; i < positions.length; ++i) {
+            backing += vault.holdingRealizedValue(positions[i]);
+        }
         uint256 snapshot = SnapshotVm(address(vm)).snapshotState();
         address[] memory held = vault.holdings();
         for (uint256 i; i < held.length; ++i) {
@@ -704,17 +956,17 @@ contract VaultTest is TestBase {
                 vm.prank(address(vault));
                 b.refund(claims, address(vault));
             } else if (b.pool() != 0 && claims * b.pool() / b.totalSupply() == 0) {
-                eq(vault.holdingValue(address(b)), 0); // bond rejects a zero-valued slice of positive pool
+                eq(vault.holdingRealizedValue(address(b)), 0); // bond rejects a zero-valued slice of positive pool
             } else {
                 vm.prank(address(vault));
                 b.redeem(claims, address(vault));
             }
         }
-        yes(nav <= asset.balanceOf(address(vault)));
+        eq(backing, asset.balanceOf(address(vault)));
         yes(SnapshotVm(address(vm)).revertToState(snapshot));
     }
 
-    function testFuzzNAVNeverExceedsActualRealizableBacking(uint128 seed, bool defaulted) public {
+    function testFuzzRealizedBackingMatchesReceiptsAndSettlementNAV(uint128 seed, bool defaulted) public {
         _deposit(1000e6);
         SliceBond a = _new(asset, false, 300e6);
         SliceBond b = _new(asset, true, 300e6);
