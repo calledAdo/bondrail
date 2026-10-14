@@ -1,4 +1,4 @@
-import { impliedYield } from '@slice/sdk/yield';
+import { impliedYield } from '@bondrail/sdk/yield';
 import type { AccountView, BondView } from './protocol';
 
 type YieldBond = Pick<BondView, 'phase' | 'kuru' | 'supply' | 'pool' | 'effectiveCap' | 'collected' | 'revenueShare' | 'maturity'>;
