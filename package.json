@@ -13,10 +13,13 @@
     "contracts:build": "forge build --root contracts",
     "abi": "pnpm --filter @bondrail/sdk generate",
     "readiness": "tsx scripts/readiness.ts",
-    "local:deploy": "tsx scripts/deploy-local.ts",
+    "local:deploy": "BONDRAIL_CHAIN_ID=31337 tsx scripts/deploy.ts",
     "test:e2e": "playwright test",
     "check": "pnpm typecheck && pnpm test",
-    "sdk:pack": "pnpm --filter @bondrail/sdk pack --pack-destination packages/sdk"
+    "sdk:pack": "pnpm --filter @bondrail/sdk pack --pack-destination packages/sdk",
+    "e2e:local": "tsx scripts/e2e-local.ts",
+    "scripts:typecheck": "tsc -p scripts/tsconfig.json",
+    "scripts:test": "node --test scripts/deployment-path.test.mjs"
   },
   "devDependencies": {
     "@kuru-labs/kuru-sdk": "^0.0.95",

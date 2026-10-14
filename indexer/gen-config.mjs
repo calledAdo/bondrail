@@ -19,7 +19,7 @@ for (const file of ['config.yaml', 'src/deployment.ts']) assertWritable(path.joi
 fs.mkdirSync(path.join(output, 'src'), { recursive: true });
 const rpc =
   chainId === '31337'
-    ? '\n    rpc: http://127.0.0.1:8545'
+    ? `\n    rpc: ${JSON.stringify(process.env.BONDRAIL_RPC_URL ?? 'http://127.0.0.1:8545')}`
     : !process.env.MONAD_RPC // default: HyperSync (Envio Cloud); MONAD_RPC=<url> syncs from an RPC instead
       ? ''
       : `\n    rpc:\n      - url: ${process.env.MONAD_RPC}\n        for: sync\n        # Monad's public RPC caps eth_getLogs at 100 blocks.\n        initial_block_interval: 100\n        interval_ceiling: 100`;

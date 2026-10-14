@@ -1,7 +1,7 @@
 // Shared helpers for Bondrail operational scripts: chains, keys, clients, forge artifacts, deployments.
 // Keys live outside the repo in ~/.slice (chmod 600) and are never printed.
 import fs from 'node:fs';
-import { deploymentName, deploymentPath, assertWritable, writeJson } from './deployment-path.mjs';
+import { deploymentName, deploymentPath, assertWritable, writeJson, roleKeyPath } from './deployment-path.mjs';
 import os from 'node:os';
 import path from 'node:path';
 import {
@@ -22,12 +22,7 @@ export const KEY_ROOT = process.env.BONDRAIL_KEY_DIR ?? path.join(os.homedir(), 
 const prefix = process.env.BONDRAIL_KEY_PREFIX ?? (DEPLOYMENT === 'main' ? '' : DEPLOYMENT);
 if (prefix && !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(prefix)) throw new Error('Invalid BONDRAIL_KEY_PREFIX');
 export const KEY_DIR = path.join(KEY_ROOT, prefix);
-export function keyFile(name: string): string {
-  if (!/^[a-z0-9][a-z0-9_-]*$/.test(name)) throw new Error('Invalid key name');
-  return name === 'deployer'
-    ? process.env.BONDRAIL_DEPLOYER_KEY_FILE ?? path.join(KEY_ROOT, 'deployer.key')
-    : path.join(KEY_DIR, `${name}.key`);
-}
+export const keyFile = (name: string) => roleKeyPath(name);
 
 export const chainId = Number(process.env.BONDRAIL_CHAIN_ID ?? 10143) as 10143 | 31337;
 if (chainId !== 10143 && chainId !== 31337)

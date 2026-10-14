@@ -262,6 +262,7 @@ async function setupLaunchpad(id: string, name: string, tokenName: string, token
     // own account in one transaction, with no per-project review.
     const { bytecode } = artifact('PumpLab');
     const templateHash = keccak256(bytecode);
+    if (d.templateHash !== templateHash) throw new Error('PumpLab artifact differs from the deployed reviewed template');
     const reviewed = await publicClient.readContract({
       address: d.factory,
       abi: factoryAbi,

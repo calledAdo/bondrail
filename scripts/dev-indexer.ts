@@ -16,6 +16,7 @@ const low = (a: string) => a.toLowerCase();
 const DAY = 86_400;
 
 const ev = {
+  settled: parseAbiItem('event Settled(address indexed payer,uint256 value,bytes32 indexed nonce)'),
   account: parseAbiItem('event AccountCreated(address indexed issuer, address indexed account, address indexed asset)'),
   bond: parseAbiItem(
     'event BondCreated(address indexed issuer, address indexed account, address indexed bond, uint8 adapter, bytes32 policyHash, bytes32 termsHash)',
@@ -36,6 +37,8 @@ async function snapshot() {
   const accounts = await logs(ev.account, d.factory);
   const bonds = await logs(ev.bond, d.factory);
   const revenue = accounts.length ? await logs(ev.revenue, accounts.map((a) => a.args.account)) : [];
+  const settled = accounts.length ? await logs(ev.settled, accounts.map((a) => a.args.account)) : [];
+  const x402 = new Set(settled.map(s => `${low(s.address)}-${s.transactionHash}`));
   const times = new Map<bigint, number>();
   const ts = async (block: bigint) => {
     if (!times.has(block)) times.set(block, Number((await publicClient.getBlock({ blockNumber: block })).timestamp));
@@ -58,6 +61,7 @@ async function snapshot() {
       const mine = revenue.filter((r) => low(r.address) === id);
       return {
         id,
+        chainId,
         issuer: low(a.args.issuer),
         asset: low(a.args.asset),
         tier: bound ? 0 : bond ? Number(bond.args.adapter) : null,
@@ -97,6 +101,7 @@ async function snapshot() {
         totalSupply: String(supply),
         effectiveCap: String(cap),
         defaulted: Number(defaulted) !== 0,
+        triggered: await read(at, bondAbi, 'triggered'),
         createdAt: String(await ts(b.blockNumber)),
       };
     }),
@@ -108,13 +113,14 @@ async function snapshot() {
   for (const r of revenue) {
     const t = await ts(r.blockNumber);
     const account = low(r.address);
+    const source = x402.has(`${account}-${r.transactionHash}`) ? 'x402' : r.args.collected ? 'native' : 'transfer';
     Payment.push({
       account,
       payer: low(r.args.payer),
       amount: String(r.args.amount),
       related: !r.args.collected,
       reasons: r.args.collected ? [] : ['unclassified_inflow'],
-      source: r.args.collected ? 'native' : 'transfer',
+      source,
       timestamp: String(t),
       txHash: r.transactionHash,
     });
@@ -122,10 +128,11 @@ async function snapshot() {
     const row = daily.get(key) ?? { account, day: Math.floor(t / DAY), gross: 0n, verified: 0n, x402: 0n };
     row.gross += r.args.amount;
     if (r.args.collected) row.verified += r.args.amount;
+    if (source === 'x402') row.x402 += r.args.amount;
     daily.set(key, row);
     const payer = low(r.args.payer);
     const pt = payerTotals.get(`${account}-${payer}`) ?? {
-      account, payer, amount: 0n, payments: 0, related: false, reasons: [] as string[], source: r.args.collected ? 'native' : 'transfer',
+      account, payer, amount: 0n, payments: 0, related: false, reasons: [] as string[], source,
     };
     pt.amount += r.args.amount;
     pt.payments += 1;
@@ -136,8 +143,8 @@ async function snapshot() {
   return {
     Issuer,
     Bond: Bond.sort((a, b) => Number(b.createdAt) - Number(a.createdAt)),
-    DailyRevenue: [...daily.values()].map((x) => ({ ...x, gross: String(x.gross), verified: String(x.verified), x402: String(x.x402) })),
-    PayerTotal: [...payerTotals.values()].map((x) => ({ ...x, amount: String(x.amount) })),
+    DailyRevenue: [...daily.values()].map((x) => ({ ...x, id: `${x.account}-${x.day}`, gross: String(x.gross), verified: String(x.verified), x402: String(x.x402) })),
+    PayerTotal: [...payerTotals.values()].map((x) => ({ ...x, id: `${x.account}-${x.payer}`, amount: String(x.amount) })),
     Payment: Payment.reverse(),
     CovenantCheck: await Promise.all(
       checks.map(async (c) => ({ bond: low(c.args.bond), result: Number(c.args.result), observedAt: String(c.args.observedAt), txHash: c.transactionHash })),
@@ -152,6 +159,17 @@ http
     if (req.method === 'OPTIONS') return void res.end();
     try {
       const data = await snapshot();
+      // The attester uses account-scoped keyset queries. Implement just those variables;
+      // this remains a local app adapter, not a general GraphQL implementation.
+      let body = '';
+      for await (const chunk of req) { body += chunk; if (body.length > 16384) throw new Error('Request too large'); }
+      const { variables: v = {} } = body ? JSON.parse(body) : {};
+      if (v.account) {
+        const target = low(v.account);
+        data.Issuer = data.Issuer.filter(i => i.id === target && (!v.chain || v.chain === chainId));
+        data.PayerTotal = data.PayerTotal.filter(p => p.account === target && p.id > (v.cursor ?? '')).sort((a, b) => a.id.localeCompare(b.id)).slice(0, 1000);
+        data.DailyRevenue = data.DailyRevenue.filter(r => r.account === target && r.day >= (v.from ?? 0) && r.day <= (v.to ?? Infinity));
+      }
       res.setHeader('content-type', 'application/json');
       res.end(JSON.stringify({ data }));
     } catch (e) {
@@ -159,4 +177,4 @@ http
       res.end(JSON.stringify({ errors: [{ message: (e as Error).message }] }));
     }
   })
-  .listen(8546, '127.0.0.1', () => console.log('dev indexer on http://127.0.0.1:8546 (local chain)'));
+  .listen(Number(process.env.INDEXER_PORT ?? 8546), '127.0.0.1', () => console.log('dev indexer ready (local chain)'));

@@ -33,7 +33,7 @@ async function main() {
         deployedAt: new Date().toISOString(), startBlock: String(await publicClient.getBlockNumber()),
         deployer: deployer.address, roles, minHistory, templateHash, issuers: {} });
   if (d.chainId !== chainId || d.deployment !== DEPLOYMENT || d.minHistory !== minHistory ||
-      d.templateHash !== templateHash || JSON.stringify(d.roles) !== JSON.stringify(roles))
+      d.templateHash !== templateHash || Object.entries(roles).some(([role, address]) => d.roles?.[role]?.toLowerCase() !== address.toLowerCase()))
     throw new Error('Deployment configuration/keys changed; restore the original inputs before resuming');
   const checkpoint = () => writeJson(journal, d, true);
   const ensure = async (field: 'asset' | 'bondImplementation' | 'accountImplementation' | 'covenant' | 'factory' | 'creditRegistry' | 'vault',

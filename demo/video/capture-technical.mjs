@@ -1,4 +1,4 @@
-import { deploymentName } from '../../scripts/deployment-path.mjs';
+import { deploymentName, roleKeyPath } from '../../scripts/deployment-path.mjs';
 const deploymentSuffix = deploymentName() === 'main' ? '' : `-${deploymentName()}`;
 // Real browser capture and a narrowly scoped, Node-held testnet wallet.
 // No key enters the browser. No simulated balances, responses or transaction receipts.
@@ -22,7 +22,7 @@ fs.mkdirSync(path.join(OUT, 'raw'), { recursive: true });
 const d = JSON.parse(fs.readFileSync(path.join(HERE, `../../docs/deployments/${process.env.BONDRAIL_CHAIN_ID ?? '10143'}${deploymentSuffix}.json`)));
 const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://bondrail.vercel.app';
 const RPC = process.env.BONDRAIL_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
-const keyText = fs.readFileSync(path.join(os.homedir(), `.slice/${issuerMode?scenario.issuerKey:scenario.payerKey}.key`), 'utf8').trim();
+const keyText = fs.readFileSync(roleKeyPath(issuerMode?scenario.issuerKey:scenario.payerKey), 'utf8').trim();
 const account = privateKeyToAccount(keyText.startsWith('0x') ? keyText : `0x${keyText}`);
 const publicClient = createPublicClient({ chain: monadTestnet, transport: http(RPC, { timeout: 10000, retryCount: 2 }) });
 const wallet = createWalletClient({ account, chain: monadTestnet, transport: http(RPC, { timeout: 10000, retryCount: 0 }) });

@@ -1,4 +1,4 @@
-import { deploymentName } from '../../scripts/deployment-path.mjs';
+import { deploymentName, roleKeyPath } from '../../scripts/deployment-path.mjs';
 const deploymentSuffix = deploymentName() === 'main' ? '' : `-${deploymentName()}`;
 // Read-only preparation. Keys stay in Node memory; output contains public addresses/balances only.
 import fs from 'node:fs';
@@ -12,7 +12,7 @@ const deployment = JSON.parse(fs.readFileSync(new URL(`../../docs/deployments/${
 const client = createPublicClient({ chain: monadTestnet, transport: http('https://testnet-rpc.monad.xyz', { retryCount: 3 }) });
 if (await client.getChainId() !== 10143) throw new Error('Monad testnet required');
 for (const name of ['pumplab-issuer', 'curvelab-issuer', 'classic-issuer']) {
-  const raw = fs.readFileSync(path.join(os.homedir(), '.slice', `${name}.key`), 'utf8').trim();
+  const raw = fs.readFileSync(roleKeyPath(name), 'utf8').trim();
   const account = privateKeyToAccount(raw.startsWith('0x') ? raw : `0x${raw}`);
   const [mon, cash, claims] = await Promise.all([
     client.getBalance({ address: account.address }),

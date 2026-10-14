@@ -2,6 +2,7 @@
 // code: snippets come from real (compiled, tested) files, reference tables from the generated ABIs, and
 // addresses from the deployment manifest. A missing file or marker fails the build.
 import fs from 'node:fs';
+import { deploymentPath } from '../../../../scripts/deployment-path.mjs';
 import path from 'node:path';
 import { ServerCodeBlock } from 'fumadocs-ui/components/codeblock.rsc';
 import * as abis from '@bondrail/sdk/abis';
@@ -60,6 +61,10 @@ type Deployment = {
   covenant: string;
   forwarder: string;
   asset: string;
+  creditRegistry?: string;
+  vault?: string;
+  attester?: string;
+  curator?: string;
   reviewer?: string;
   milestoneSigner?: string;
   observer?: string;
@@ -68,15 +73,15 @@ type Deployment = {
 };
 
 /** The live deployment, straight from docs/deployments/<chainId>.json. */
-export function Deployments({ chainId = 10143 }: { chainId?: number }) {
-  const d = JSON.parse(read(`docs/deployments/${chainId}.json`)) as Deployment;
+export function Deployments({ chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 10143) }: { chainId?: number }) {
+  const d = JSON.parse(fs.readFileSync(deploymentPath(ROOT, chainId), 'utf8')) as Deployment;
   const explorer = (a: string) => `https://testnet.monadexplorer.com/address/${a}`;
   const row = (label: string, a?: string) =>
     a ? (
       <tr key={label}>
         <td>{label}</td>
         <td>
-          <a href={explorer(a)} className="font-mono text-xs">
+          <a href={chainId === 31337 ? undefined : explorer(a)} className="font-mono text-xs">
             {a}
           </a>
         </td>
@@ -99,6 +104,10 @@ export function Deployments({ chainId = 10143 }: { chainId?: number }) {
           {row('BondrailFactory', d.factory)}
           {row('BondrailCovenant (CRE receiver)', d.covenant)}
           {row('CRE forwarder', d.forwarder)}
+          {row('BondrailCreditRegistry', d.creditRegistry)}
+          {row('BondrailVault', d.vault)}
+          {row('Credit attester', d.attester)}
+          {row('Vault curator', d.curator)}
           {row('Default asset (USDC)', d.asset)}
           {row('Native reviewer', d.reviewer)}
           {row('Milestone signer', d.milestoneSigner)}

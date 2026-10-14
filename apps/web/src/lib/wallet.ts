@@ -1,5 +1,4 @@
-import { createConfig, http } from 'wagmi';
-import { injected, mock } from 'wagmi/connectors';
+import { createConfig, http, injected, mock } from 'wagmi';
 import { passkey } from './passkey-connector';
 import { defineChain, isAddress, type Address } from 'viem';
 const configuredId = Number(process.env.NEXT_PUBLIC_CHAIN_ID || 10143);
