@@ -1,4 +1,4 @@
-import type { Address, ContractFunctionReturnType, PublicClient } from 'viem';
+import { zeroAddress, type Address, type ContractFunctionReturnType, type PublicClient } from 'viem';
 import { bondrailCreditRegistryAbi } from './abis';
 
 // Credit line: the largest raise an account's own history supports, priced on that history.
@@ -115,8 +115,18 @@ export type CreditAttestation = ContractFunctionReturnType<typeof bondrailCredit
 export interface CreditProfile {
   blockNumber: bigint;
   onchain: OnchainCreditProfile;
+  /** valid requires the current attester and unexpired chain time; history remains readable. */
   attested: { attestation: CreditAttestation; signer: Address; valid: boolean };
   currentAttester: Address;
+}
+
+/** Label a stored assessment without presenting a previous signer as current or merely expired. */
+export function creditAttestationLabel(profile: Pick<CreditProfile, 'attested' | 'currentAttester'>, now: bigint): string {
+  const { attestation, signer, valid } = profile.attested;
+  if (signer.toLowerCase() === zeroAddress) return 'No attestation';
+  if (signer.toLowerCase() !== profile.currentAttester.toLowerCase()) return 'Signed by a previous attester — not valid';
+  if (attestation.expiresAt <= now) return 'Expired';
+  return valid ? 'Valid current attester signature' : 'Not valid';
 }
 
 export const creditAttestationTypes = {

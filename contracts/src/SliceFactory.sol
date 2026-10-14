@@ -42,6 +42,8 @@ contract SliceFactory is EIP712, ReentrancyGuard {
 
     mapping(address => bool) public isAccount;
     mapping(address => bool) public isBond;
+    /// @notice Lifetime issuance count, including cancelled and defaulted bonds.
+    mapping(address account => uint256) public bondsCreated;
     /// @notice Native projects whose code the reviewer has checked routes every fee through `collect`.
     mapping(address => bool) public nativeApproved;
     /// @notice Reviewed templates, by the hash of their creation code (constructor arguments excluded).
@@ -176,6 +178,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         if (config.adapter == SliceTypes.Adapter.Watched) {
             ISliceCovenant(covenant).registerBond(bond, config.policyHash);
         }
+        ++bondsCreated[account];
         emit BondCreated(msg.sender, account, bond, config.adapter, config.policyHash, keccak256(abi.encode(terms_)));
     }
 

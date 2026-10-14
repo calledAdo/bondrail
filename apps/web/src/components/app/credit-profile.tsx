@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { erc20Abi, formatUnits, isAddress, zeroAddress, type Address } from 'viem';
-import { getCreditProfile } from '@bondrail/sdk/credit';
+import { creditAttestationLabel, getCreditProfile } from '@bondrail/sdk/credit';
 import { chain, deployment, safeNetwork } from '@/lib/wallet';
 import { Badge, Figure, Panel } from './ui';
 
@@ -40,7 +40,7 @@ export function RegistryCreditProfile({ account }: { account: string }) {
   const a = signed?.attestation;
   const present = signed && signed.signer !== zeroAddress;
   // An expired cached signature must not continue to look current while a refresh fails.
-  const valid = !!signed?.valid && !!a && a.expiresAt > BigInt(now);
+  const attestationLabel = data ? creditAttestationLabel(data, BigInt(now)) : 'No attestation';
   const amount = (v: bigint | undefined) => data && v !== undefined ? `${formatUnits(v, data.decimals)} ${data.symbol}` : '—';
   const count = (v: bigint | undefined) => v?.toString() ?? '—';
   const configuredInvalid = !!process.env.NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS && !registry;
@@ -51,7 +51,7 @@ export function RegistryCreditProfile({ account }: { account: string }) {
         <Badge>{registry ? 'Registry reads' : 'Not deployed'}</Badge>
         {data && <span className="text-xs text-foreground/60">Block {data.blockNumber.toString()}</span>}
       </div>
-      <p className="max-w-3xl text-sm text-foreground/70">Other lenders can read both layers from one registry. Recorded bond history may be incomplete; compare factory issuance before lending. Each account is limited to 64 recorded bonds.</p>
+      <p className="max-w-3xl text-sm text-foreground/70">Other lenders can read both layers from one registry. Repayment coverage compares recorded bonds with all bonds created by this factory for the account. Each account is limited to 64 recorded bonds.</p>
       {!validAccount ? <p role="alert">Invalid account address.</p>
         : !safeNetwork ? <p role="alert">Unsupported network configuration.</p>
         : configuredInvalid ? <p role="alert">Invalid credit registry address.</p>
@@ -80,8 +80,12 @@ export function RegistryCreditProfile({ account }: { account: string }) {
         </dl>}
       </Panel>
       <Panel title="Repayment record">
+        {p && <div className="mb-5 space-y-2 text-sm">
+          <p>Repayment record covers {p.repayment.bondsIssued.toString()} of {p.bondsCreated.toString()} bonds</p>
+          {!p.complete && <p role="alert" className="font-semibold">Incomplete repayment record: missing bonds may include defaults. Do not treat these totals as the account’s full repayment history.{p.bondsCreated > 64n ? ' This account exceeds the registry’s 64-bond limit.' : ''}</p>}
+        </div>}
         <dl className="grid grid-cols-2 gap-5 [overflow-wrap:anywhere] lg:grid-cols-4">
-          <Figure label="Bonds issued (recorded)" value={count(repayment?.bondsIssued)} />
+          <Figure label="Bonds recorded" value={count(repayment?.bondsIssued)} />
           <Figure label="Funding" value={count(repayment?.funding)} />
           <Figure label="Active" value={count(repayment?.active)} />
           <Figure label="Closing settlement" value={count(repayment?.closing)} />
@@ -108,7 +112,7 @@ export function RegistryCreditProfile({ account }: { account: string }) {
           </table>
         </div>}
       </Panel>
-      <Panel title="Attested" aside={<Badge>{!present ? 'No attestation' : valid ? 'Unexpired signature' : 'Expired'}</Badge>}>
+      <Panel title="Attested" aside={<Badge>{attestationLabel}</Badge>}>
         <p className="mb-5 text-sm text-foreground/60">Trust the disclosed attester for attribution, exclusions, distinct payers, concentration and the recommended credit line. The evidence hash binds its inputs; it does not prove their truth or availability.</p>
         <dl className="grid grid-cols-2 gap-5 [overflow-wrap:anywhere] lg:grid-cols-3">
           <Figure label="Attributed revenue" value={present ? amount(a?.attributedRevenue) : '—'} />

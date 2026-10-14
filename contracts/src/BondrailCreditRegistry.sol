@@ -10,7 +10,7 @@ import {SliceBond} from "./SliceBond.sol";
 import {SliceTypes} from "./SliceTypes.sol";
 
 /// @notice Factory-scoped booked history plus separately signed underwriting assertions.
-/// @dev Bond history is recorded-only, not necessarily complete. Booked payers can self-pay;
+/// @dev Bond history covers recorded bonds; complete compares coverage to factory issuance. Booked payers can self-pay;
 /// defaults preserve the existing covenant's trust. See docs/credit/DESIGN.md before lending.
 contract BondrailCreditRegistry is EIP712 {
     error Unauthorized();
@@ -86,6 +86,8 @@ contract BondrailCreditRegistry is EIP712 {
         uint64 paymentCount;
         uint64 collectedCount;
         uint64 uniquePayers;
+        uint256 bondsCreated;
+        bool complete;
         RepaymentRecord repayment;
         BondRecord[] bonds;
     }
@@ -175,6 +177,8 @@ contract BondrailCreditRegistry is EIP712 {
         p.issuer = a.issuer();
         p.project = a.project();
         uint256 count = _bonds[account].length;
+        p.bondsCreated = factory.bondsCreated(account);
+        p.complete = count == p.bondsCreated;
         p.tier = p.project != address(0) ? 0 : count != 0 ? 1 : 2;
         p.firstRevenueAt = a.firstRevenueAt();
         p.historyAge = p.firstRevenueAt == 0 ? 0 : block.timestamp - p.firstRevenueAt;
@@ -250,7 +254,8 @@ contract BondrailCreditRegistry is EIP712 {
         );
     }
 
-    /// @notice Valid means present and unexpired, not independently verified; signer is the original signer.
+    /// @notice Valid means signed by the current attester and unexpired, not independently verified.
+    /// The stored payload and original signer remain visible after rotation or expiry.
     function attestedProfile(address account)
         external
         view
@@ -258,6 +263,6 @@ contract BondrailCreditRegistry is EIP712 {
     {
         attestation = _attestations[account];
         signer = _signers[account];
-        valid = signer != address(0) && block.timestamp < attestation.expiresAt;
+        valid = signer != address(0) && signer == attester && block.timestamp < attestation.expiresAt;
     }
 }

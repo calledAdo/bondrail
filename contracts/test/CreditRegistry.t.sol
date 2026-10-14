@@ -183,6 +183,7 @@ contract CreditRegistryTest is TestBase {
             _record();
             _cancel();
         }
+        yes(registry.onchainProfile(address(router)).complete);
         _nextTerms();
         _new(false);
         vm.expectRevert(BondrailCreditRegistry.BondLimit.selector);
@@ -191,6 +192,84 @@ contract CreditRegistryTest is TestBase {
         BondrailCreditRegistry.OnchainProfile memory p = registry.onchainProfile(address(router));
         eq(p.bonds.length, 64);
         eq(p.repayment.cancelled, 64);
+        eq(p.bondsCreated, 65);
+        yes(!p.complete);
+    }
+
+    function testCoverageIncompleteUntilEveryBondIsRecorded() public {
+        BondrailCreditRegistry.OnchainProfile memory p = registry.onchainProfile(address(router));
+        eq(p.bondsCreated, 0);
+        yes(p.complete);
+        _new(false);
+        address first = address(bond);
+        _cancel();
+        _nextTerms();
+        _new(true);
+        p = registry.onchainProfile(address(router));
+        eq(p.bondsCreated, 2);
+        eq(p.repayment.bondsIssued, 0);
+        yes(!p.complete);
+        _record();
+        p = registry.onchainProfile(address(router));
+        eq(p.repayment.bondsIssued, 1);
+        yes(!p.complete);
+        vm.prank(buyer);
+        registry.recordBond(first);
+        p = registry.onchainProfile(address(router));
+        eq(p.repayment.bondsIssued, 2);
+        yes(p.complete);
+        _cancel();
+        _nextTerms();
+        _new(false);
+        p = registry.onchainProfile(address(router));
+        eq(p.bondsCreated, 3);
+        yes(!p.complete); // new issuance makes a previously complete record incomplete
+    }
+
+    function testThirdPartyRecordsHiddenDefault() public {
+        _activate(true);
+        vm.warp(vm.getBlockTimestamp() + 30);
+        _observe(uint64(vm.getBlockTimestamp()), 2);
+        vm.warp(vm.getBlockTimestamp() + 30);
+        _observe(uint64(vm.getBlockTimestamp()), 2);
+        yes(bond.defaultedAt() != 0);
+        BondrailCreditRegistry.OnchainProfile memory p = registry.onchainProfile(address(router));
+        eq(p.bondsCreated, 1);
+        eq(p.repayment.defaulted, 0);
+        yes(!p.complete);
+        _record(); // unrelated buyer, after the default
+        p = registry.onchainProfile(address(router));
+        eq(p.repayment.defaulted, 1);
+        eq(p.bonds[0].bond, address(bond));
+        eq(p.bonds[0].defaultedAt, bond.defaultedAt());
+        yes(p.complete);
+    }
+
+    function testFactoryCounterIncrementsOncePerSuccessfulBond() public {
+        eq(factory.bondsCreated(address(router)), 0);
+        _activate(false);
+        eq(factory.bondsCreated(address(router)), 1);
+        _record();
+        _revenue(300e6);
+        eq(factory.bondsCreated(address(router)), 1);
+        _nextTerms();
+        _new(true);
+        eq(factory.bondsCreated(address(router)), 2);
+        _record();
+        _cancel();
+        eq(factory.bondsCreated(address(router)), 2);
+        _nextTerms();
+        // Failure after cloning/initialization must not count as issuance.
+        vm.prank(issuer);
+        asset.approve(address(factory), 0);
+        SliceTypes.AdapterConfig memory c =
+            SliceTypes.AdapterConfig(SliceTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
+        vm.prank(issuer);
+        vm.expectRevert();
+        factory.createBond(address(router), t, c, "Failed", "FAIL");
+        eq(factory.bondsCreated(address(router)), 2);
+        SliceAccount empty = SliceAccount(factory.createAccount(address(asset)));
+        eq(factory.bondsCreated(address(empty)), 0);
     }
 
     function testAccountViewsAndUnknownTier() public {
@@ -346,6 +425,8 @@ contract CreditRegistryTest is TestBase {
         BondrailCreditRegistry.OnchainProfile memory p = registry.onchainProfile(address(router));
         eq(p.repayment.bondsIssued, count);
         eq(p.bonds.length, count);
+        eq(p.bondsCreated, count);
+        yes(p.complete);
         eq(p.repayment.totalRaised, raised);
         eq(p.repayment.totalCollected, collected);
         eq(p.repayment.totalRepaidToInvestors, redeemed);
@@ -480,13 +561,17 @@ contract CreditRegistryTest is TestBase {
         vm.prank(buyer);
         vm.expectRevert(BondrailCreditRegistry.Unauthorized.selector);
         registry.acceptAttester();
+        (,, bool beforeRotation) = registry.attestedProfile(address(router));
+        yes(beforeRotation);
         registry.acceptAttester();
         eq(registry.attester(), vm.addr(456));
         eq(registry.pendingAttester(), address(0));
         eq(registry.attesterChangeAfter(), 0);
-        (, address original, bool valid) = registry.attestedProfile(address(router));
+        (BondrailCreditRegistry.CreditAttestation memory stored, address original, bool valid) =
+            registry.attestedProfile(address(router));
         eq(original, vm.addr(ATTESTER_PK));
-        yes(valid);
+        yes(keccak256(abi.encode(stored)) == keccak256(abi.encode(a)));
+        yes(!valid);
         a.issuedAt = uint64(vm.getBlockTimestamp());
         a.periodEnd = a.issuedAt;
         bytes memory sig = _sig(456, registry.hashAttestation(a));
@@ -498,5 +583,9 @@ contract CreditRegistryTest is TestBase {
         registry.attest(a, sig);
         sig = _sig(456, registry.hashAttestation(a));
         registry.attest(a, sig);
+        (stored, original, valid) = registry.attestedProfile(address(router));
+        eq(original, vm.addr(456));
+        yes(keccak256(abi.encode(stored)) == keccak256(abi.encode(a)));
+        yes(valid);
     }
 }

@@ -3,9 +3,9 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { createPublicClient, createWalletClient, defineChain, http, isAddress, type Hex } from 'viem';
 import { privateKeyToAccount } from 'viem/accounts';
-import { bondrailCreditRegistryAbi } from '@bondrail/sdk/abis';
 import { creditAttestationDomain, creditAttestationTypes } from '@bondrail/sdk/credit';
 import { buildAttestation, readIndexedInputs, type CreditInputs } from './attestation.ts';
+import { relayAttestation } from './relay.ts';
 
 const json = (v: unknown) => JSON.stringify(v, (_, value) => typeof value === 'bigint' ? String(value) : value, 2);
 async function main() {
@@ -67,15 +67,10 @@ async function main() {
     return;
   }
   if (!client || !signer || !signature) throw new Error('--relay requires RPC_URL and ATTESTER_PRIVATE_KEY');
-  const current = await client.readContract({ address: inputs.registry, abi: bondrailCreditRegistryAbi, functionName: 'attester' });
-  if (current.toLowerCase() !== signer.address.toLowerCase()) throw new Error('Signing key is not the registry attester');
-  const { request } = await client.simulateContract({ address: inputs.registry, abi: bondrailCreditRegistryAbi,
-    functionName: 'attest', args: [result.attestation, signature], account: signer });
   const wallet = createWalletClient({ account: signer, chain, transport: http(rpc!) });
-  const hash = await wallet.writeContract(request);
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  if (receipt.status !== 'success') throw new Error(`Attest reverted: ${hash}`);
-  console.log(json({ mode: 'relayed', hash, signer: signer.address, evidencePath }));
+  const { hash, recordedHashes } = await relayAttestation(client, wallet, inputs.registry,
+    result.attestation, signature, BigInt(process.env.FACTORY_START_BLOCK ?? '0'));
+  console.log(json({ mode: 'relayed', hash, recordedHashes, signer: signer.address, evidencePath }));
 }
 main().catch((error) => {
   // viem errors can embed the signed payload or provider URLs. Do not print those details.
