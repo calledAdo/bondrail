@@ -37,6 +37,7 @@ contracts:
   - name: SliceAccount
     events:
       - event: "Revenue(address indexed bond, address indexed payer, uint256 amount, uint256 toBond, uint256 toIssuer, bool collected)"${tx}
+      - event: "Settled(address indexed payer, uint256 value, bytes32 indexed nonce)"${tx}
       - event: "Collected(address indexed payer, uint256 gross, uint256 fee, bool outgoing)"
       - event: "ProjectBound(address indexed project)"
       - event: "Attached(address indexed bond)"

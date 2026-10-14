@@ -6,6 +6,9 @@ const low = (a: string) => a.toLowerCase();
 const rowId = (e: any) => `${e.chainId}:${e.block.number}:${e.transaction?.hash ?? e.block.hash}:${e.logIndex}`;
 const DAY = 86_400;
 const NATIVE = 0;
+const authorizationId = (e: any, payer: string) => `${e.chainId}:${low(e.srcAddress)}:${e.transaction.hash}:${payer}`;
+const settlementId = (e: any) => `${e.chainId}:${e.transaction.hash}:${low(e.srcAddress)}`;
+const x402Id = (e: any, asset: string, payer: string, nonce: string) => `${e.chainId}:${asset}:${payer}:${low(nonce)}:x402`;
 
 // ---------- dynamic contracts: everything the factory creates gets indexed ----------
 
@@ -114,7 +117,20 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'SecondReleaseApproved' }, as
   );
 });
 
-// Every booked payment: how it was split, and (for Native collects) the proven payer.
+// A settlement is a proven x402 payment. The indexed token's Transfer may already have recorded it;
+// the nonce is the shared identity, independent of transaction entrypoint or batching.
+indexer.onEvent({ contract: 'SliceAccount', event: 'Settled' }, async ({ event, context }) => {
+  const account = low(event.srcAddress);
+  const payer = low(event.params.payer);
+  const issuer = await context.Issuer.get(account);
+  if (!issuer) return;
+  context.Issuer.set({ ...issuer, volume: issuer.volume + event.params.value });
+  context.AccountSettlement.set({ id: settlementId(event), payer, amount: event.params.value });
+  await recordPayment(context, event, account, payer, event.params.value, 'x402', rowId(event), [],
+    x402Id(event, issuer.asset, payer, event.params.nonce));
+});
+
+// Every booked payment: split accounting; Settled already attributes an authorized payment.
 indexer.onEvent({ contract: 'SliceAccount', event: 'Revenue' }, async ({ event, context }) => {
   const account = low(event.srcAddress);
   const payer = low(event.params.payer);
@@ -138,9 +154,12 @@ indexer.onEvent({ contract: 'SliceAccount', event: 'Revenue' }, async ({ event, 
       toIssuer: i.toIssuer + event.params.toIssuer,
       firstRevenueAt: i.firstRevenueAt ?? BigInt(event.block.timestamp),
     });
-  if (event.params.collected)
+  const settled = await context.AccountSettlement.get(settlementId(event));
+  if (event.params.collected && settled?.payer === payer && settled.amount === event.params.amount) {
+    context.AccountSettlement.deleteUnsafe(settled.id);
+  } else if (event.params.collected)
     await recordPayment(context, event, account, payer, event.params.amount, 'native', rowId(event));
-  // Swept receipts in an asset whose Transfers are not indexed: unclassified (x402 settles only in INDEXED_ASSET).
+  // Swept receipts in an asset whose Transfers are not indexed remain unclassified.
   else if (i && i.asset !== INDEXED_ASSET)
     await recordPayment(context, event, account, payer, event.params.amount, 'transfer', rowId(event), [
       'unclassified_inflow',
@@ -173,7 +192,9 @@ async function recordPayment(
   source: 'native' | 'transfer' | 'x402',
   receiptId: string,
   extraReasons: string[] = [],
+  paymentId = `${rowId(event)}:${source}`,
 ) {
+  if (await context.Payment.get(paymentId)) return;
   const issuer = await context.Issuer.get(account);
   if (!issuer) return;
   const reasons: string[] = [...extraReasons];
@@ -182,7 +203,7 @@ async function recordPayment(
   const related = reasons.length > 0;
   const ts = BigInt(event.block.timestamp);
   context.Payment.set({
-    id: `${rowId(event)}:${source}`,
+    id: paymentId,
     chainId: event.chainId,
     account,
     receiptId,
@@ -236,15 +257,18 @@ async function recordPayment(
 }
 
 // EIP-3009 transferWithAuthorization (how x402 settles) marks the payer's authorization used just before
-// the transfer itself. Remembered per transaction so the Transfer handler can classify the payment.
+// the transfer itself. Consume it once so later unrelated transfers in the same tx are not x402.
 indexer.onEvent({ contract: 'USDC', event: 'AuthorizationUsed' }, async ({ event, context }) => {
-  context.Authorization.set({ id: `${event.transaction.hash}:${low(event.params.authorizer)}` });
+  context.Authorization.set({ id: authorizationId(event, low(event.params.authorizer)), nonce: low(event.params.nonce) });
 });
 
 indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context }) => {
   const from = low(event.params.from);
   const to = low(event.params.to);
   const value = event.params.value;
+  const authId = authorizationId(event, from);
+  const authorization = await context.Authorization.get(authId);
+  if (authorization) context.Authorization.deleteUnsafe(authId);
   if (value === 0n) return;
 
   // Treasury funding: the issuer's wallet sending USDC to someone else (wash-trading detector input).
@@ -277,7 +301,7 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
   //   transfer  anything else: booked on-chain by sweep(), shown as an unclassified inflow and never
   //             counted as verified revenue (anyone, including the issuer, can send USDC to an account)
   const issuer = await context.Issuer.get(to);
-  if (!issuer || viaSlice) return;
+  if (!issuer || issuer.asset !== low(event.srcAddress) || (viaSlice && !authorization)) return;
   const id = rowId(event);
   context.Receipt.set({
     id,
@@ -291,8 +315,9 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
     logIndex: event.logIndex,
     timestamp: BigInt(event.block.timestamp),
   });
-  if (await context.Authorization.get(`${event.transaction.hash}:${from}`))
-    await recordPayment(context, event, to, from, value, 'x402', id);
+  if (authorization)
+    await recordPayment(context, event, to, from, value, 'x402', id, [],
+      x402Id(event, issuer.asset, from, authorization.nonce));
   else if (!issuer.project || low(event.transaction.to ?? '') !== issuer.project)
     await recordPayment(context, event, to, from, value, 'transfer', id, ['unclassified_inflow']);
 });

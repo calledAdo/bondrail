@@ -11,6 +11,6 @@
     "noEmit": true,
     "allowImportingTsExtensions": true
   },
-  "include": ["src/**/*.ts", "envio-env.d.ts"],
+  "include": ["src/**/*.ts", "test/**/*.ts", "envio-env.d.ts"],
   "exclude": ["node_modules"]
 }

@@ -8,7 +8,8 @@
     "dev": "envio dev",
     "start": "envio start",
     "typecheck": "tsc --noEmit",
-    "config:testnet": "node gen-config.mjs 10143"
+    "config:testnet": "node gen-config.mjs 10143",
+    "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
     "envio": "3.14.0"
@@ -19,6 +20,7 @@
   },
   "devDependencies": {
     "typescript": "5.9.3",
-    "@types/node": "22.15.30"
+    "@types/node": "22.15.30",
+    "tsx": "4.20.6"
   }
 }

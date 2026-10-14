@@ -1,5 +1,5 @@
 # Slice on-chain history, indexed by Envio HyperIndex.
-# Ids for event-derived rows are chain:block:tx:logIndex, so re-orgs and replays never double count.
+# Event rows use chain:block:tx:logIndex; x402 payments use chain:asset:payer:nonce to correlate logs.
 
 # One business's SliceAccount: its revenue address and payment entrypoint from day one.
 type Issuer {
@@ -13,7 +13,7 @@ type Issuer {
   template: String @index # creation-code hash of the reviewed template it was deployed from
   activeBond: String
   grossRevenue: BigInt!
-  volume: BigInt! # gross payments behind collected fees (in and out)
+  volume: BigInt! # collected gross payments (in and out) plus account settlements
   toInvestors: BigInt!
   toIssuer: BigInt!
   payments: Int!
@@ -173,7 +173,15 @@ type PayerTotal {
   source: String! # the first payment's source
 }
 
-# An EIP-3009 authorization used in a transaction (tx hash : authorizer). Marks x402 settlements.
+# EIP-3009 emits AuthorizationUsed immediately before Transfer. Consumed by that Transfer.
 type Authorization {
-  id: ID!
+  id: ID! # chain:asset:tx:authorizer
+  nonce: String!
+}
+
+# Settled precedes its Revenue event, even inside a batched transaction. Consumed by Revenue.
+type AccountSettlement {
+  id: ID! # chain:tx:account
+  payer: String!
+  amount: BigInt!
 }
