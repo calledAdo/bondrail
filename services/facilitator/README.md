@@ -22,3 +22,9 @@ npx -y pnpm@10.32.0 --filter @bondrail/facilitator typecheck
 ```
 
 Tests use real EIP-712 signatures, mocked chain clients, and the agent's actual SDK client over local HTTP. Live Monad/USDC settlement remains a check after deployment.
+
+## Independent next deployment
+
+Use `BONDRAIL_DEPLOYMENT=next pnpm tsx scripts/service.ts facilitator` from the repository root to pin the selected factory, asset, RPC and scoped gas key. The [next runbook](../../docs/deployments/NEXT-RUNBOOK.md) includes funding and independent systemd units. `pnpm e2e:local` exercises this server with real EIP-3009 signatures on isolated anvil.
+
+For a separate Vercel Preview, the optional `api/[action].ts` facade and `vercel.json` forward only `/supported`, `/verify` and `/settle` to `FACILITATOR_UPSTREAM_URL` (a dedicated HTTPS origin). Keep one persistent writer behind that origin; the Preview stores no gas key. Both raw request streams and Vercel-parsed bodies are supported. The facade has unit coverage; remote Vercel deployment is owner-run.
