@@ -98,8 +98,8 @@ No deployment manifests were changed. See [design and residual risks](docs/vault
 
 | Integration | How it works | Trust boundary |
 |---|---|---|
-| **Native** | A business inherits `SliceEarner` and binds its revenue account. Payments in (`collect`) and payouts out (`settleOut`) book fees and split the investor share in the same transaction. An optional fee floor applies while the bond is active. | A disclosed reviewer approves individual contracts or reusable templates. Routing is enforced for that reviewed contract's payment path; a business can still stop operating or move customers elsewhere. |
-| **Watched** | An x402 API publishes its revenue account and covered endpoints in `/.well-known/slice.json`. Account-mediated x402 settlement proves the payer and books/splits immediately (**not yet deployed**); direct transfers still use `sweep()`. Chainlink CRE checks payment offers against the committed policy. | Monitoring covers declared endpoints and observed offers. It cannot prove that every customer sees the same offer or discover all undeclared endpoints. The testnet deployment uses a trusted observer signer. |
+| **Native** | A business inherits `BondrailEarner` and binds its revenue account. Payments in (`collect`) and payouts out (`settleOut`) book fees and split the investor share in the same transaction. An optional fee floor applies while the bond is active. | A disclosed reviewer approves individual contracts or reusable templates. Routing is enforced for that reviewed contract's payment path; a business can still stop operating or move customers elsewhere. |
+| **Watched** | An x402 API publishes its revenue account and covered endpoints in `/.well-known/bondrail.json`. Account-mediated x402 settlement proves the payer and books/splits immediately (**not yet deployed**); direct transfers still use `sweep()`. Chainlink CRE checks payment offers against the committed policy. | Monitoring covers declared endpoints and observed offers. It cannot prove that every customer sees the same offer or discover all undeclared endpoints. The testnet deployment uses a trusted observer signer. |
 
 Watched bonds require a stake. Two qualifying violation reports in adjacent 30-second epochs record a
 default, recover unreleased principal, and slash held stake into the investor pool. Sustained Unknown
@@ -160,11 +160,11 @@ the hackathon submission. Recordings use actual testnet operations with edited t
   payments are a core use case; the demo API charges 0.01 test USDC per request.
 - **Envio HyperIndex:** the app's core indexed data layer, with dynamic account/bond registration,
   payment attribution, treasury-funding links, and lifecycle history.
-  [Handlers](indexer/src/handlers/slice.ts) · [Schema](indexer/schema.graphql).
+  [Handlers](indexer/src/handlers/bondrail.ts) · [Schema](indexer/schema.graphql).
 - **Chainlink CRE:** independently fetches payment offers, checks agreement with a signed observer
   result, and submits reports to the covenant. The demonstrated setup is **CLI simulation with real
   testnet broadcasts**, not a production DON deployment. Activation and second release for Watched
-  bonds require a fresh compliant report. [Workflow](cre/slice-covenant/src/workflow.ts).
+  bonds require a fresh compliant report. [Workflow](cre/bondrail-covenant/src/workflow.ts).
 - **Kuru:** claim/USDC markets backed by an order book and AMM vault. The issuer console supports
   listing; the bond page supports buys and sells. Quotes simulate the actual market order, include
   price impact and fees, and apply a 1% minimum-output tolerance. Quotes older than 30 seconds are
@@ -186,8 +186,8 @@ The later LaunchLab recording has its own addresses and receipt journal in the t
 
 | Contract / asset | Monad testnet address |
 |---|---|
-| Factory (`SliceFactory`) | `0xef7916dc8c95338cd060d498528484e97aa3c597` |
-| Covenant (`SliceCovenant`) | `0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3` |
+| Factory (`SliceFactory`, live legacy deployment) | `0xef7916dc8c95338cd060d498528484e97aa3c597` |
+| Covenant (`SliceCovenant`, live legacy deployment) | `0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3` |
 | Test USDC | `0x534b2f3A21130d7a60830c2Df862319e593943A3` |
 | CRE mock forwarder | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` |
 | LaunchLab technical-demo bond | `0xa57E7Bd5c0874e195C192a43a6caF8aA22335C35` |
@@ -258,11 +258,11 @@ anvil
 In a second terminal, deploy and seed the Native example, then start the local data service:
 
 ```sh
-SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts
-SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
-SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1
-SLICE_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
-SLICE_CHAIN_ID=31337 pnpm tsx scripts/dev-indexer.ts
+BONDRAIL_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts
+BONDRAIL_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
+BONDRAIL_CHAIN_ID=31337 pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1
+BONDRAIL_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
+BONDRAIL_CHAIN_ID=31337 pnpm tsx scripts/dev-indexer.ts
 ```
 
 The second setup run advances the local clock past the minimum-history requirement. The local data
@@ -299,7 +299,7 @@ Demo setup requires test USDC and MON and waits for the configured minimum histo
 
 Configure the web app with the new addresses and indexer URL. Generate indexer configuration with
 `node indexer/gen-config.mjs 10143`. See the [observer](services/observer/README.md),
-[worker](services/worker/README.md), [CRE workflow](cre/slice-covenant/README.md), and
+[worker](services/worker/README.md), [CRE workflow](cre/bondrail-covenant/README.md), and
 [reporter operations](ops/covenant-server/README.md) for their separate configuration. Watched policies
 must match the deployed account, bond, covenant, and observer signer.
 
@@ -322,11 +322,16 @@ must match the deployed account, bond, covenant, and observer signer.
 
 ## Naming and compatibility
 
-Bondrail was developed under the working name **Slice**. User-facing branding and workspace packages
-now use Bondrail and `@bondrail/*`. Deployed contracts retain their `Slice*` names. Existing `SLICE_*`
-environment variables, `~/.slice` key paths, signed-message domains, and `/.well-known/slice.json` remain
-in use for compatibility. The example API remains at `https://slice-agent.vercel.app/api/oracle`.
-These identifiers refer to the same product. [Brand assets and migration notes](brand/bondrail/README.md).
+Bondrail was developed under the working name **Slice**. On `next`, Solidity contracts, SDK exports,
+workspace packages and operator environment variables use Bondrail / `BONDRAIL_*`.
+The EIP-712 domains are now `BondrailFactory`, `BondrailCovenant`, and `Bondrail Profile` (all v1).
+This breaks old signatures and policies; these sources require fresh deployments and signatures.
+The judged deployment in `docs/deployments/10143.json` remains historical and unchanged.
+
+New policies and clients use `/.well-known/bondrail.json`; the agent serves `/.well-known/slice.json`
+as an alias to the same document. Local credentials still default to `~/.slice` (override with
+`BONDRAIL_KEY_DIR`), and existing deployment hostnames remain stable, including
+`https://slice-agent.vercel.app/api/oracle`. [Brand assets and migration notes](brand/bondrail/README.md).
 
 ## Build history, attribution, and license
 

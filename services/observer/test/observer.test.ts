@@ -26,7 +26,7 @@ const p: WatchPolicy = {
   chainSelector: '2183018362218727504',
   covenant: '0x1111111111111111111111111111111111111111',
   bond: '0x2222222222222222222222222222222222222222',
-  manifestUrl: 'https://agent.example/.well-known/slice.json',
+  manifestUrl: 'https://agent.example/.well-known/bondrail.json',
   endpoints: [
     { url: 'https://agent.example/api/oracle?question=health', minAmount: '10000' },
     { url: 'https://agent.example/api/summary?text=health', minAmount: '20000' },
@@ -145,7 +145,7 @@ test('SSRF checks deny private, loopback, reserved and mapped address ranges', (
   assert.equal(validateURL('http://127.0.0.1:3001/', true).port, '3001');
 });
 test('durable CAS elects one writer across store instances and survives reopening', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'slice-store-'));
+  const dir = await mkdtemp(join(tmpdir(), 'bondrail-store-'));
   try {
     const a = new LocalStore(dir),
       b = new LocalStore(dir);
@@ -159,7 +159,7 @@ test('durable CAS elects one writer across store instances and survives reopenin
   }
 });
 test('observer fetches independently, signs immutable one-per-epoch and binds deployment', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'slice-observer-'));
+  const dir = await mkdtemp(join(tmpdir(), 'bondrail-observer-'));
   try {
     let calls = 0;
     const key = `0x${'11'.repeat(32)}` as Hex;

@@ -1,5 +1,5 @@
 [Unit]
-Description=Slice covenant report (observer + Chainlink CRE broadcast)
+Description=Bondrail covenant report (observer + Chainlink CRE broadcast)
 After=network-online.target
 [Service]
 Type=oneshot

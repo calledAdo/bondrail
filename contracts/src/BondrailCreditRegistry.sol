@@ -4,10 +4,10 @@ pragma solidity 0.8.28;
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceFactory} from "./SliceFactory.sol";
-import {SliceAccount} from "./SliceAccount.sol";
-import {SliceBond} from "./SliceBond.sol";
-import {SliceTypes} from "./SliceTypes.sol";
+import {BondrailFactory} from "./BondrailFactory.sol";
+import {BondrailAccount} from "./BondrailAccount.sol";
+import {BondrailBond} from "./BondrailBond.sol";
+import {BondrailTypes} from "./BondrailTypes.sol";
 
 /// @notice Factory-scoped booked history plus separately signed underwriting assertions.
 /// @dev Bond history covers recorded bonds; complete compares coverage to factory issuance. Booked payers can self-pay;
@@ -49,9 +49,9 @@ contract BondrailCreditRegistry is EIP712 {
 
     struct BondRecord {
         address bond;
-        SliceTypes.Adapter adapter;
-        SliceTypes.Phase phase;
-        SliceTypes.CloseReason closeReason;
+        BondrailTypes.Adapter adapter;
+        BondrailTypes.Phase phase;
+        BondrailTypes.CloseReason closeReason;
         uint64 defaultedAt;
         uint256 raised;
         uint256 collected;
@@ -92,7 +92,7 @@ contract BondrailCreditRegistry is EIP712 {
         BondRecord[] bonds;
     }
 
-    SliceFactory public immutable factory;
+    BondrailFactory public immutable factory;
     address public immutable owner;
     address public attester;
     address public pendingAttester;
@@ -123,7 +123,7 @@ contract BondrailCreditRegistry is EIP712 {
     event AttesterProposed(address indexed attester, uint256 executableAt);
     event AttesterChanged(address indexed previousAttester, address indexed attester);
 
-    constructor(SliceFactory factory_, address owner_, address attester_) EIP712("BondrailCreditRegistry", "1") {
+    constructor(BondrailFactory factory_, address owner_, address attester_) EIP712("BondrailCreditRegistry", "1") {
         if (address(factory_).code.length == 0 || owner_ == address(0) || attester_ == address(0)) {
             revert InvalidConfiguration();
         }
@@ -159,7 +159,7 @@ contract BondrailCreditRegistry is EIP712 {
     function recordBond(address bond) external {
         if (!factory.isBond(bond)) revert InvalidBond();
         if (recorded[bond]) revert AlreadyRecorded();
-        address account = SliceBond(bond).account();
+        address account = BondrailBond(bond).account();
         if (_bonds[account].length == MAX_BONDS) revert BondLimit();
         recorded[bond] = true;
         _bonds[account].push(bond);
@@ -172,7 +172,7 @@ contract BondrailCreditRegistry is EIP712 {
 
     function onchainProfile(address account) external view returns (OnchainProfile memory p) {
         if (!factory.isAccount(account)) revert InvalidAccount();
-        SliceAccount a = SliceAccount(account);
+        BondrailAccount a = BondrailAccount(account);
         p.asset = address(a.asset());
         p.issuer = a.issuer();
         p.project = a.project();
@@ -190,7 +190,7 @@ contract BondrailCreditRegistry is EIP712 {
         p.repayment.bondsIssued = count;
         p.bonds = new BondRecord[](count);
         for (uint256 i; i < count; ++i) {
-            SliceBond b = SliceBond(_bonds[account][i]);
+            BondrailBond b = BondrailBond(_bonds[account][i]);
             BondRecord memory r;
             r.bond = address(b);
             r.adapter = b.adapter();
@@ -203,12 +203,12 @@ contract BondrailCreditRegistry is EIP712 {
             r.repaidRatioBps = r.effectiveCap == 0 ? 0 : Math.mulDiv(r.collected, 10_000, r.effectiveCap);
             r.repaidToInvestors = b.totalRedeemed();
             p.bonds[i] = r;
-            if (r.phase == SliceTypes.Phase.Funding) ++p.repayment.funding;
-            if (r.phase == SliceTypes.Phase.Active) ++p.repayment.active;
-            if (r.phase == SliceTypes.Phase.Closing) ++p.repayment.closing;
-            if (r.phase == SliceTypes.Phase.Cancelled) ++p.repayment.cancelled;
-            if (r.closeReason == SliceTypes.CloseReason.RevenueCap) ++p.repayment.fullyRepaid;
-            if (r.closeReason == SliceTypes.CloseReason.Maturity) ++p.repayment.closedAtMaturity;
+            if (r.phase == BondrailTypes.Phase.Funding) ++p.repayment.funding;
+            if (r.phase == BondrailTypes.Phase.Active) ++p.repayment.active;
+            if (r.phase == BondrailTypes.Phase.Closing) ++p.repayment.closing;
+            if (r.phase == BondrailTypes.Phase.Cancelled) ++p.repayment.cancelled;
+            if (r.closeReason == BondrailTypes.CloseReason.RevenueCap) ++p.repayment.fullyRepaid;
+            if (r.closeReason == BondrailTypes.CloseReason.Maturity) ++p.repayment.closedAtMaturity;
             if (r.defaultedAt != 0) ++p.repayment.defaulted;
             p.repayment.totalRaised += r.raised;
             p.repayment.totalCollected += r.collected;

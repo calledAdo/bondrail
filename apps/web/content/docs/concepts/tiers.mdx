@@ -4,7 +4,7 @@ description: How each tier makes diversion impossible or expensive.
 ---
 
 ## Native: impossible by construction
-The project inherits `SliceEarner`, which fixes its SliceAccount at deploy. Every fee moves through
+The project inherits `BondrailEarner`, which fixes its BondrailAccount at deploy. Every fee moves through
 `_collect` or `_settleOut`. The issuer binds the project to the account once, and a disclosed reviewer
 approves the code before it can raise. Before every deposit, activation and second release the factory checks
 that the project is still approved, bound and pointing at the account.
@@ -15,7 +15,7 @@ Kuru price is where the remaining risk shows.
 
 ## Watched: caught and punished
 For revenue paid over HTTP (x402). The business sets its `payTo` to the account and publishes
-`/.well-known/slice.json`. On every check (every 30 minutes on testnet, each report covering one 30-second
+`/.well-known/bondrail.json`. On every check (every 30 minutes on testnet, each report covering one 30-second
 epoch) the observer and Chainlink CRE read the manifest and every paid endpoint independently:
 
 - **Violation:** any payment option pays someone else, uses another network, asset or scheme, or is priced

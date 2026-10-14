@@ -7,7 +7,7 @@ import {monadTestnet} from 'viem/chains';
 const out=new URL('./output/technical/',import.meta.url);
 const d=JSON.parse(fs.readFileSync(new URL('../../docs/deployments/10143.json',import.meta.url)));
 const artifact=n=>JSON.parse(fs.readFileSync(new URL(`../../contracts/out/${n}.sol/${n}.json`,import.meta.url)));
-const factory=artifact('SliceFactory'),launch=artifact('PumpLab');
+const factory=artifact('BondrailFactory'),launch=artifact('PumpLab');
 const key=n=>{const s=fs.readFileSync(`${os.homedir()}/.slice/${n}.key`,'utf8').trim();return privateKeyToAccount(s.startsWith('0x')?s:`0x${s}`)};
 const issuer=key('classic-issuer'),payer=key('pumplab-organic-0');
 const client=createPublicClient({chain:monadTestnet,transport:http('https://testnet-rpc.monad.xyz',{retryCount:3})});
@@ -40,7 +40,7 @@ if(!s.historyHash){
 if(!s.profile){
  const profile={account:s.account,name:s.name,description:'Team-run testnet launchpad demonstrating revenue-bond issuance and automatic fee repayment. Activity is demo traffic, not customer traction.',website:'',x:'',useOfFunds:'Demonstrate a small capital raise with staged release on Monad testnet.',updatedAt:BigInt(Math.floor(Date.now()/1000))};
  const types={Profile:[{name:'account',type:'address'},...['name','description','website','x','useOfFunds'].map(name=>({name,type:'string'})),{name:'updatedAt',type:'uint64'}]};
- const signature=await issuer.signTypedData({domain:{name:'Slice Profile',version:'1',chainId:10143},types,primaryType:'Profile',message:profile});
+ const signature=await issuer.signTypedData({domain:{name:'Bondrail Profile',version:'1',chainId:10143},types,primaryType:'Profile',message:profile});
  const r=await fetch('https://bondrail.vercel.app/api/registry',{method:'POST',headers:{'content-type':'application/json'},body:json({type:'profile',profile,signature})});if(!r.ok)throw Error(await r.text());s.profile=true;save();
 }
 console.log(json(s));

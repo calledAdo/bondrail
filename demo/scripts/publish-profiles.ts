@@ -46,7 +46,7 @@ async function main() {
     if (!issuer) continue;
     const profile = { account: issuer.account, name: p.name, description: p.description, website: p.website, x: p.x, useOfFunds: p.useOfFunds, updatedAt: BigInt(Math.floor(Date.now() / 1000)) };
     const signature = await account(p.key).signTypedData({
-      domain: { name: 'Slice Profile', version: '1', chainId },
+      domain: { name: 'Bondrail Profile', version: '1', chainId },
       types: {
         Profile: [
           { name: 'account', type: 'address' },

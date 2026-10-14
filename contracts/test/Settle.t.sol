@@ -2,11 +2,11 @@
 pragma solidity 0.8.28;
 
 import {TestBase} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
 import {MockERC3009} from "./mocks/MockERC3009.sol";
 import {MockEarner} from "./mocks/MockEarner.sol";
 
@@ -20,9 +20,9 @@ contract ShortERC3009 is MockERC3009 {
 contract SettleTest is TestBase {
     uint256 constant PAYER_PK = 0xA11CE;
     MockERC3009 asset;
-    SliceAccount account;
-    SliceFactory factory;
-    SliceBond bond;
+    BondrailAccount account;
+    BondrailFactory factory;
+    BondrailBond bond;
     address payer;
     uint256 deadline;
 
@@ -31,12 +31,12 @@ contract SettleTest is TestBase {
         payer = vm.addr(PAYER_PK);
         deadline = vm.getBlockTimestamp() + 300;
         asset = new MockERC3009();
-        SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
-        factory = new SliceFactory(
-            address(c), vm.addr(67890), address(new SliceBond()), address(new SliceAccount()), address(this), 0
+        BondrailCovenant c = new BondrailCovenant(address(0x444), vm.addr(12345));
+        factory = new BondrailFactory(
+            address(c), vm.addr(67890), address(new BondrailBond()), address(new BondrailAccount()), address(this), 0
         );
         c.initializeFactory(address(factory));
-        account = SliceAccount(factory.createAccount(address(asset)));
+        account = BondrailAccount(factory.createAccount(address(asset)));
         asset.mint(payer, 10_000e6);
     }
 
@@ -55,7 +55,7 @@ contract SettleTest is TestBase {
         account.bindProject(address(project));
         factory.setNativeApproval(address(project), true);
         uint64 now_ = uint64(vm.getBlockTimestamp());
-        SliceTypes.Terms memory t = SliceTypes.Terms(
+        BondrailTypes.Terms memory t = BondrailTypes.Terms(
             100e6,
             100e6,
             0,
@@ -67,17 +67,17 @@ contract SettleTest is TestBase {
             60,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Onchain,
+            BondrailTypes.MilestoneMode.Onchain,
             10_000,
             0,
             0,
             0
         );
-        bond = SliceBond(
+        bond = BondrailBond(
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(project), keccak256("native")),
+                BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, address(project), keccak256("native")),
                 "Claim",
                 "RC"
             )
@@ -140,17 +140,17 @@ contract SettleTest is TestBase {
     }
 
     function testZeroValueReverts() public {
-        vm.expectRevert(SliceAccount.InvalidAmount.selector);
+        vm.expectRevert(BondrailAccount.InvalidAmount.selector);
         account.settle(payer, 0, 0, deadline, bytes32(0), 27, bytes32(0), bytes32(0));
     }
 
     function testZeroPayerReverts() public {
-        vm.expectRevert(SliceAccount.InvalidAmount.selector);
+        vm.expectRevert(BondrailAccount.InvalidAmount.selector);
         account.settle(address(0), 1, 0, deadline, bytes32(0), 27, bytes32(0), bytes32(0));
     }
 
     function testSelfPayerReverts() public {
-        vm.expectRevert(SliceAccount.InvalidAmount.selector);
+        vm.expectRevert(BondrailAccount.InvalidAmount.selector);
         account.settle(address(account), 1, 0, deadline, bytes32(0), 27, bytes32(0), bytes32(0));
     }
 
@@ -173,7 +173,7 @@ contract SettleTest is TestBase {
         activate();
         pay(300e6, 1); // candidate 60; effective cap is 50 after first release
         eq(bond.totalRevenueCollected(), 50e6);
-        eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Closed));
+        eq(uint256(bond.phase()), uint256(BondrailTypes.Phase.Closed));
         eq(account.activeBond(), address(0));
         eq(account.issuerCredit(), 250e6);
         eq(account.splitRemainder(), 0);
@@ -211,10 +211,10 @@ contract SettleTest is TestBase {
 
     function testShortTransferRollsBackAuthorizationAndAccounting() public {
         asset = new ShortERC3009();
-        account = SliceAccount(factory.createAccount(address(asset)));
+        account = BondrailAccount(factory.createAccount(address(asset)));
         asset.mint(payer, 100);
         (uint8 v, bytes32 r, bytes32 s) = signature(address(account), 10, bytes32(uint256(1)));
-        vm.expectRevert(SliceAccount.InvalidAmount.selector);
+        vm.expectRevert(BondrailAccount.InvalidAmount.selector);
         account.settle(payer, 10, 0, deadline, bytes32(uint256(1)), v, r, s);
         eq(account.paymentCount(), 0);
         eq(asset.balanceOf(address(account)), 0);

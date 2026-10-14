@@ -47,10 +47,10 @@ interface Target {
   bond: Address;
   account: Address;
 }
-const chainId = Number(process.env.SLICE_CHAIN_ID ?? 10143);
+const chainId = Number(process.env.BONDRAIL_CHAIN_ID ?? 10143);
 if (chainId !== 10143 && chainId !== 31337) throw new Error('Worker forbids mainnet writes');
-const { SLICE_RPC_URL, WORKER_TARGETS_FILE, WORKER_PRIVATE_KEY } = process.env;
-if (!SLICE_RPC_URL || !WORKER_TARGETS_FILE) throw new Error('Worker RPC and targets file required');
+const { BONDRAIL_RPC_URL, WORKER_TARGETS_FILE, WORKER_PRIVATE_KEY } = process.env;
+if (!BONDRAIL_RPC_URL || !WORKER_TARGETS_FILE) throw new Error('Worker RPC and targets file required');
 const targets = JSON.parse(await readFile(WORKER_TARGETS_FILE, 'utf8')) as Target[];
 if (
   !Array.isArray(targets) ||
@@ -64,12 +64,12 @@ const chain = defineChain({
   id: chainId,
   name: chainId === 10143 ? 'Monad Testnet' : 'Bondrail Local',
   nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-  rpcUrls: { default: { http: [SLICE_RPC_URL] } },
+  rpcUrls: { default: { http: [BONDRAIL_RPC_URL] } },
 });
 const client = createPublicClient({
   chain,
   // Public RPCs rate-limit (Monad testnet: 15 requests/s); retries back off.
-  transport: http(SLICE_RPC_URL, { timeout: 10000, retryCount: 4, retryDelay: 400 }),
+  transport: http(BONDRAIL_RPC_URL, { timeout: 10000, retryCount: 4, retryDelay: 400 }),
 });
 let rpcChain: number;
 try {
@@ -78,7 +78,7 @@ try {
   throw new Error('Worker RPC unavailable (provider details withheld)');
 }
 if (rpcChain !== chainId) throw new Error('Worker RPC chain mismatch');
-const enabled = process.env.SLICE_ENABLE_TESTNET_WRITES === '1';
+const enabled = process.env.BONDRAIL_ENABLE_TESTNET_WRITES === '1';
 if (!enabled || process.argv.includes('--check')) {
   console.log(
     JSON.stringify({
@@ -97,7 +97,7 @@ const signer = privateKeyToAccount(WORKER_PRIVATE_KEY as Hex),
   wallet = createWalletClient({
     chain,
     account: signer,
-    transport: http(SLICE_RPC_URL, { timeout: 10000, retryCount: 0 }),
+    transport: http(BONDRAIL_RPC_URL, { timeout: 10000, retryCount: 0 }),
   });
 const store = storeFromEnv(),
   owner = randomUUID(),

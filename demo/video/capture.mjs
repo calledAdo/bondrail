@@ -13,8 +13,8 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, 'output');
 fs.mkdirSync(path.join(OUT, 'raw'), { recursive: true });
 const d = JSON.parse(fs.readFileSync(path.join(HERE, '../../docs/deployments/10143.json')));
-const LIVE = process.env.SLICE_VIDEO_APP ?? 'https://slice-flame.vercel.app';
-const RPC = process.env.SLICE_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
+const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://slice-flame.vercel.app';
+const RPC = process.env.BONDRAIL_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
 const keyText = fs.readFileSync(path.join(os.homedir(), '.slice/pumplab-organic-0.key'), 'utf8').trim();
 const account = privateKeyToAccount(keyText.startsWith('0x') ? keyText : `0x${keyText}`);
 const publicClient = createPublicClient({ chain: monadTestnet, transport: http(RPC, { timeout: 10000, retryCount: 2 }) });
@@ -38,7 +38,7 @@ async function receiptDocument(hash, name) {
   }
   fs.writeFileSync(path.join(OUT,`${name}-rpc.json`),json(r));
   const esc = x => String(x).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');
-  const body = `<!doctype html><meta charset="utf-8"><title>Monad testnet receipt</title><style>body{margin:0;background:#0a0a0a;color:#f5f5f5;font:22px system-ui;padding:58px 80px}small{color:#a0aaa5;font-size:17px}h1{font-size:38px;margin:15px 0 30px}h2{font-size:25px;margin-top:34px}code,pre{font:18px ui-monospace,monospace}dl{display:grid;grid-template-columns:180px 1fr;gap:15px}dt{color:#a0aaa5}dd{margin:0}strong{color:#34dfad}table{width:100%;border-collapse:collapse;font-size:17px}td,th{padding:16px 10px;text-align:left;border-bottom:1px solid #303733}td code{font-size:14px}.note{color:#a0aaa5;margin-top:30px;font-size:16px}</style><small>SLICE · PUBLIC CHAIN EVIDENCE / MONAD TESTNET · 10143</small><h1>${name==='native'?'A trade fee repays the bond':'Covenant report recorded onchain'}</h1><dl><dt>Status</dt><dd><strong>SUCCESS</strong></dd><dt>Transaction</dt><dd><code>${esc(hash)}</code></dd><dt>Block</dt><dd>${r.blockNumber}</dd><dt>From</dt><dd><code>${r.from}</code></dd><dt>To</dt><dd><code>${r.to}</code></dd></dl>${transfers.length?'<h2>USDC transfers in this transaction</h2><table><tr><th>From</th><th>To</th><th>USDC</th></tr>'+transfers.map(t=>`<tr><td><code>${t.from}</code></td><td><code>${t.to}</code>${t.investorRepayment?'<br><strong>SliceBond · investor repayment</strong>':''}</td><td>${t.investorRepayment?'<strong>':''}${t.usdc}${t.investorRepayment?'</strong>':''}</td></tr>`).join('')+'</table>':`<h2>Receipt evidence</h2><p>${r.logs.length} event log${r.logs.length===1?'':'s'} emitted by this transaction.</p><p><code>${r.logs.map(l=>l.address).join('<br>')}</code></p>`}<p class="note">Read-only evidence report, retrieved from Monad RPC. Transfers decoded from actual receipt logs.<br>Explorer reference: https://testnet.monadscan.com/tx/${hash}</p>`;
+  const body = `<!doctype html><meta charset="utf-8"><title>Monad testnet receipt</title><style>body{margin:0;background:#0a0a0a;color:#f5f5f5;font:22px system-ui;padding:58px 80px}small{color:#a0aaa5;font-size:17px}h1{font-size:38px;margin:15px 0 30px}h2{font-size:25px;margin-top:34px}code,pre{font:18px ui-monospace,monospace}dl{display:grid;grid-template-columns:180px 1fr;gap:15px}dt{color:#a0aaa5}dd{margin:0}strong{color:#34dfad}table{width:100%;border-collapse:collapse;font-size:17px}td,th{padding:16px 10px;text-align:left;border-bottom:1px solid #303733}td code{font-size:14px}.note{color:#a0aaa5;margin-top:30px;font-size:16px}</style><small>BONDRAIL · PUBLIC CHAIN EVIDENCE / MONAD TESTNET · 10143</small><h1>${name==='native'?'A trade fee repays the bond':'Covenant report recorded onchain'}</h1><dl><dt>Status</dt><dd><strong>SUCCESS</strong></dd><dt>Transaction</dt><dd><code>${esc(hash)}</code></dd><dt>Block</dt><dd>${r.blockNumber}</dd><dt>From</dt><dd><code>${r.from}</code></dd><dt>To</dt><dd><code>${r.to}</code></dd></dl>${transfers.length?'<h2>USDC transfers in this transaction</h2><table><tr><th>From</th><th>To</th><th>USDC</th></tr>'+transfers.map(t=>`<tr><td><code>${t.from}</code></td><td><code>${t.to}</code>${t.investorRepayment?'<br><strong>BondrailBond · investor repayment</strong>':''}</td><td>${t.investorRepayment?'<strong>':''}${t.usdc}${t.investorRepayment?'</strong>':''}</td></tr>`).join('')+'</table>':`<h2>Receipt evidence</h2><p>${r.logs.length} event log${r.logs.length===1?'':'s'} emitted by this transaction.</p><p><code>${r.logs.map(l=>l.address).join('<br>')}</code></p>`}<p class="note">Read-only evidence report, retrieved from Monad RPC. Transfers decoded from actual receipt logs.<br>Explorer reference: https://testnet.monadscan.com/tx/${hash}</p>`;
   const file = path.join(OUT,`${name}-receipt.html`);fs.writeFileSync(file,body);return 'file://'+file;
 }
 const bondAbi = parseAbi(['function deposit(uint256 amount)', 'function totalRevenueCollected() view returns (uint256)', 'function backingPerToken() view returns (uint256)']);
@@ -102,7 +102,7 @@ async function send(to, data, value = 0n) {
 }
 
 if (await publicClient.getChainId() !== 10143) throw new Error('Monad testnet required');
-const browser = await chromium.launch({ executablePath: process.env.SLICE_CHROME ?? path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'), headless: true });
+const browser = await chromium.launch({ executablePath: process.env.BONDRAIL_CHROME ?? path.join(os.homedir(), 'Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing'), headless: true });
 const context = await browser.newContext({ viewport: { width: 1600, height: 800 }, deviceScaleFactor: 1, colorScheme: 'dark', recordVideo: { dir: path.join(OUT, 'raw'), size: { width: 1600, height: 800 } } });
 // Same real chain, alternate public read transport when the default RPC is unavailable.
 // No response bodies or balances are fabricated or edited.
@@ -110,8 +110,8 @@ await context.route('https://testnet-rpc.monad.xyz/**', async route => {
   const response = await route.fetch({ url: RPC, timeout: 20000 });
   await route.fulfill({ response });
 });
-await context.exposeBinding('__sliceWalletRequest', async ({ frame }, { method, params = [] }) => {
-  if (new URL(frame.url()).origin !== LIVE) throw new Error('Wallet restricted to Slice app');
+await context.exposeBinding('__bondrailWalletRequest', async ({ frame }, { method, params = [] }) => {
+  if (new URL(frame.url()).origin !== LIVE) throw new Error('Wallet restricted to Bondrail app');
   if (method === 'eth_accounts' || method === 'eth_requestAccounts') return [account.address];
   if (method === 'eth_chainId') return '0x279f';
   if (method === 'net_version') return '10143';
@@ -132,8 +132,8 @@ await context.exposeBinding('__sliceWalletRequest', async ({ frame }, { method, 
 await context.addInitScript(() => {
   const listeners = new Map();
   window.ethereum = {
-    isSliceDemo: true,
-    request: args => window.__sliceWalletRequest(args),
+    isBondrailDemo: true,
+    request: args => window.__bondrailWalletRequest(args),
     on: (name, cb) => { const a = listeners.get(name) ?? []; a.push(cb); listeners.set(name, a); },
     removeListener: (name, cb) => listeners.set(name, (listeners.get(name) ?? []).filter(x => x !== cb)),
   };

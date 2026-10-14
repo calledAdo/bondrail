@@ -8,7 +8,7 @@ import '@/styles/docs.css';
 export const metadata: Metadata = {
   ...brandMetadata,
   title: { default: 'Bondrail docs', template: '%s | Bondrail docs' },
-  description: 'Integrate Bondrail: route revenue through a SliceAccount, raise against it, and invest in revenue bonds.',
+  description: 'Integrate Bondrail: route revenue through a BondrailAccount, raise against it, and invest in revenue bonds.',
 };
 
 export default function DocsRoot({ children }: { children: React.ReactNode }) {

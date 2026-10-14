@@ -12,13 +12,13 @@ if (
   OBSERVER_API_TOKEN.length < 32
 )
   throw new Error('Observer registry, signer and 32-character API token required');
-const policies = await loadRegistry(OBSERVER_REGISTRY, process.env.SLICE_ENV === 'local');
+const policies = await loadRegistry(OBSERVER_REGISTRY, process.env.BONDRAIL_ENV === 'local');
 const store = storeFromEnv();
 const observer = new Observer(
   policies,
   store,
   OBSERVER_PRIVATE_KEY as Hex,
-  process.env.SLICE_ENV === 'local',
+  process.env.BONDRAIL_ENV === 'local',
 );
 const server = createServer(async (req, res) => {
   const reply = (status: number, data: unknown) => {

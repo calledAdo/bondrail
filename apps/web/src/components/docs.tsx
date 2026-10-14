@@ -96,8 +96,8 @@ export function Deployments({ chainId = 10143 }: { chainId?: number }) {
           </tr>
         </thead>
         <tbody>
-          {row('SliceFactory', d.factory)}
-          {row('SliceCovenant (CRE receiver)', d.covenant)}
+          {row('BondrailFactory', d.factory)}
+          {row('BondrailCovenant (CRE receiver)', d.covenant)}
           {row('CRE forwarder', d.forwarder)}
           {row('Default asset (USDC)', d.asset)}
           {row('Native reviewer', d.reviewer)}
@@ -145,7 +145,7 @@ type AbiItem = {
 const params = (xs: AbiItem['inputs'] = []) => xs.map((x) => `${x.type}${x.name ? ' ' + x.name : ''}`).join(', ');
 
 /** Every function, event and error of a protocol contract, from the SDK's generated ABIs. */
-export function Abi({ contract }: { contract: 'SliceFactory' | 'SliceAccount' | 'SliceBond' | 'SliceCovenant' | 'SliceEarner' }) {
+export function Abi({ contract }: { contract: 'BondrailFactory' | 'BondrailAccount' | 'BondrailBond' | 'BondrailCovenant' | 'BondrailEarner' }) {
   const id = `${contract[0]!.toLowerCase()}${contract.slice(1)}Abi` as keyof typeof abis;
   const abi = abis[id] as unknown as AbiItem[];
   const fns = abi.filter((x) => x.type === 'function').sort((a, b) => a.name!.localeCompare(b.name!));

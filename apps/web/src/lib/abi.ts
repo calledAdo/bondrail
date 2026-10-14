@@ -1,8 +1,8 @@
 // Protocol ABIs come from @bondrail/sdk, generated from the Foundry build of contracts/src.
 export {
-  sliceBondAbi as bondAbi,
+  bondrailBondAbi as bondAbi,
   bondrailVaultAbi as vaultAbi,
-  sliceAccountAbi as accountAbi,
-  sliceFactoryAbi as factoryAbi,
-  sliceCovenantAbi as covenantAbi,
+  bondrailAccountAbi as accountAbi,
+  bondrailFactoryAbi as factoryAbi,
+  bondrailCovenantAbi as covenantAbi,
 } from '@bondrail/sdk/abis';

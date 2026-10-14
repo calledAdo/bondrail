@@ -1,9 +1,9 @@
-# Slice contracts: integration reference (v1)
+# Bondrail contracts: integration reference (v1)
 
 Addresses come from `docs/deployments/<chainId>.json`, never from this file. Amounts use the account
 asset's smallest units (six decimals for USDC). ABIs are generated into `packages/sdk/src/abis.ts` from `out/`.
 
-Enums (`src/SliceTypes.sol`): Phase Funding0, Active1, Closing2, Closed3, Cancelled4; Adapter Native0,
+Enums (`src/BondrailTypes.sol`): Phase Funding0, Active1, Closing2, Closed3, Cancelled4; Adapter Native0,
 Watched1; MilestoneMode Onchain0, Signed1; CloseReason None0, RevenueCap1, Maturity2.
 
 Structs, exact field order:
@@ -18,7 +18,7 @@ Structs, exact field order:
 - Milestone: address bond, bytes32 policyHash, uint64 periodStart, uint64 periodEnd, uint256 eligibleRevenue,
   bytes32 evidenceHash, uint64 expiresAt, uint256 nonce.
 
-**SliceFactory**
+**BondrailFactory**
 - `createAccount(asset)` → account (issuer = caller; `asset` is any ERC-20 contract: the token the business
   charges fees in, raises and repays in).
 - `setNativeApproval(project, approved)`: reviewer only.
@@ -30,7 +30,7 @@ Structs, exact field order:
 - Views: `depositAllowed(bond)`, `minHistory`, `nativeApproved(project)`, `reviewer`, `milestoneSigner`,
   `hashMilestone(Milestone)`, `isAccount`, `isBond`.
 
-**SliceAccount**
+**BondrailAccount**
 - Native project, money in: `collect(payer, gross, fee)`, `collectWithPermit(payer, gross, fee, deadline, v, r, s)`.
 - Native project, money out: `settleOut(payer, gross, fee)` (pulls `gross` from the project, pays `gross − fee`).
 - Both revert with `FeeBelowFloor` while an Active bond's `minFeeBps` is not met; both emit
@@ -40,7 +40,7 @@ Structs, exact field order:
 - History: `cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `collectedCount`, `uniquePayers`, `firstRevenueAt`,
   `lastRevenueAt`, `revenueByDay(day)`; state `asset`, `issuer`, `project`, `activeBond`, `issuerCredit`.
 
-**SliceBond** (ERC-20 claim)
+**BondrailBond** (ERC-20 claim)
 - Investors: `deposit(amount)` (approve the bond; requires `factory.depositAllowed`), `refund(amount, to)`,
   `redeem(amount, to)`. Anyone: `expireUndrawn()`, `finalizeSettlement()`.
 - `checkTrigger()` (**not yet deployed**): anyone, once per UTC day while Active and not defaulted;
@@ -54,7 +54,7 @@ Structs, exact field order:
 - Trigger views (**not yet deployed**): `triggered`, `lastTriggerCheckDay`, `baseRevenueBps`;
   `revenueBps` is now the effective share, while `terms().revenueBps` remains the base.
 
-**SliceCovenant** (CRE receiver)
+**BondrailCovenant** (CRE receiver)
 - `onReport(metadata, report)`: forwarder only; `report = abi.encode(Observation, observerSignature)`.
 - Views: `isHealthy(bond)` (fresh Compliant), `inViolation(bond)` (defaulted, latest is Violation, or dark
   for `DARK_WARN`), `darkFor(bond)`, `darkSince`, `darkLast`, `lastDecisiveAt`, `hashObservation(Observation)`,
@@ -62,4 +62,4 @@ Structs, exact field order:
 - Constants: `DARK_MAX_GAP` 1 h, `DARK_WARN` 1 h, `DARK_DEFAULT` 24 h. Events: `CovenantDefault` (two
   adjacent violations), `DarkDefault` (24 h of Unknowns).
 
-EIP-712 domains: observations `SliceCovenant` v1, milestones `SliceFactory` v1, actual chainId and contract.
+EIP-712 domains: observations `BondrailCovenant` v1, milestones `BondrailFactory` v1, actual chainId and contract.

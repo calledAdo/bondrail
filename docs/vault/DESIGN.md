@@ -18,7 +18,7 @@ For the vault's current `n` claims of current supply `S`, all ratios round down:
 - `recovered = floor(n * (totalRevenueCollected + principalRecovery + stakeRecovery) / S)`.
 - `unrecovered = max(0, costBasis - recovered)`.
 
-These are existing bond views; **SliceBond is unchanged**. Recovered is the current
+These are existing bond views; **BondrailBond is unchanged**. Recovered is the current
 claims' share of cumulative pool inflows, not just revenue, and is not reduced by
 other holders' redemptions. Other holders can burn early, changing `S`; this is a
 current-position accounting convention, not historical cash received by the vault.

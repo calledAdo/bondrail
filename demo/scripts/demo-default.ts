@@ -17,7 +17,7 @@ const d = readDeployment();
 const agent = d.issuers.agent!;
 const AGENT = new URL(agent.endpoint!).origin;
 const ADMIN = fs.readFileSync(path.join(KEY_DIR, 'agent-admin.token'), 'utf8').trim();
-const bondAbi = artifact('SliceBond').abi;
+const bondAbi = artifact('BondrailBond').abi;
 
 async function setPayTo(payTo: string) {
   const cur = (await (await fetch(`${AGENT}/api/config`, { cache: 'no-store' })).json()) as {
@@ -38,7 +38,7 @@ function creReport() {
     [
       'workflow',
       'simulate',
-      'slice-covenant',
+      'bondrail-covenant',
       '--target',
       'testnet',
       '--non-interactive',
@@ -53,7 +53,7 @@ function creReport() {
       stdio: ['ignore', 'pipe', 'pipe'],
     },
   );
-  const tx = /SLICE_REPORT_TX=(0x[0-9a-f]{64})/.exec(out)?.[1];
+  const tx = /BONDRAIL_REPORT_TX=(0x[0-9a-f]{64})/.exec(out)?.[1];
   console.log(`  CRE report ${tx ?? '(no report)'}`);
 }
 

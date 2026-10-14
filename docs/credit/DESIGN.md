@@ -1,6 +1,6 @@
 # Portable credit profiles
 
-Status: **not deployed**. Registry scoped to one immutable SliceFactory and its chain. No existing account/bond state changes. SliceFactory adds one lifetime `bondsCreated(account)` counter increment per successful `createBond`; issuance behavior is otherwise unchanged. These undeployed contract/ABI revisions require a factory with this getter; an older deployed factory cannot supply coverage.
+Status: **not deployed**. Registry scoped to one immutable BondrailFactory and its chain. No existing account/bond state changes. BondrailFactory adds one lifetime `bondsCreated(account)` counter increment per successful `createBond`; issuance behavior is otherwise unchanged. These undeployed contract/ABI revisions require a factory with this getter; an older deployed factory cannot supply coverage.
 
 ## EAS decision (checked 2026-10-14)
 

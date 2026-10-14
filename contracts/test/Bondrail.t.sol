@@ -1,21 +1,21 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 import {TestBase} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLab} from "@slice-demo/PumpLab.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
+import {PumpLab} from "@bondrail-demo/PumpLab.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
-contract SliceTest is TestBase {
+contract BondrailTest is TestBase {
     MockUSDC asset;
-    SliceFactory factory;
-    SliceCovenant covenant;
-    SliceAccount router;
+    BondrailFactory factory;
+    BondrailCovenant covenant;
+    BondrailAccount router;
     PumpLab source;
-    SliceBond bond;
+    BondrailBond bond;
     address issuer = address(0x111);
     address investor = address(0x222);
     address buyer = address(0x333);
@@ -23,29 +23,29 @@ contract SliceTest is TestBase {
     uint256 constant OBSERVER_PK = 12345;
     uint256 constant MILESTONE_PK = 67890;
     address constant REVIEWER = address(0x777);
-    SliceTypes.Terms t;
+    BondrailTypes.Terms t;
 
     function setUp() public {
         vm.warp(1_800_000);
         vm.chainId(31337);
         asset = new MockUSDC();
-        covenant = new SliceCovenant(forwarder, vm.addr(OBSERVER_PK));
-        factory = new SliceFactory(
-            address(covenant), vm.addr(MILESTONE_PK), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 0
+        covenant = new BondrailCovenant(forwarder, vm.addr(OBSERVER_PK));
+        factory = new BondrailFactory(
+            address(covenant), vm.addr(MILESTONE_PK), address(new BondrailBond()), address(new BondrailAccount()), REVIEWER, 0
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 10_000_000e6);
         asset.mint(investor, 10_000_000e6);
         vm.startPrank(issuer);
-        router = SliceAccount(factory.createAccount(address(asset)));
-        // Native tier: the issuer's own project, built on SliceEarner and bound to the account.
+        router = BondrailAccount(factory.createAccount(address(asset)));
+        // Native tier: the issuer's own project, built on BondrailEarner and bound to the account.
         source = new PumpLab(address(router), "Lab", "LAB");
         router.bindProject(address(source));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
         vm.prank(REVIEWER);
         factory.setNativeApproval(address(source), true);
-        t = SliceTypes.Terms(
+        t = BondrailTypes.Terms(
             100e6,
             120e6,
             20e6,
@@ -57,7 +57,7 @@ contract SliceTest is TestBase {
             30,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Signed,
+            BondrailTypes.MilestoneMode.Signed,
             0,
             0,
             0,
@@ -66,13 +66,13 @@ contract SliceTest is TestBase {
     }
 
     function _new(bool watched) internal {
-        SliceTypes.AdapterConfig memory c = SliceTypes.AdapterConfig(
-            watched ? SliceTypes.Adapter.Watched : SliceTypes.Adapter.Native,
+        BondrailTypes.AdapterConfig memory c = BondrailTypes.AdapterConfig(
+            watched ? BondrailTypes.Adapter.Watched : BondrailTypes.Adapter.Native,
             watched ? address(0) : address(source),
             keccak256("policy-v1")
         );
         vm.prank(issuer);
-        bond = SliceBond(factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC"));
+        bond = BondrailBond(factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC"));
         vm.prank(investor);
         asset.approve(address(bond), type(uint256).max);
     }
@@ -90,8 +90,8 @@ contract SliceTest is TestBase {
         factory.activate(address(bond));
     }
 
-    function _observation(uint64 at, uint8 result) internal view returns (SliceTypes.Observation memory) {
-        return SliceTypes.Observation(
+    function _observation(uint64 at, uint8 result) internal view returns (BondrailTypes.Observation memory) {
+        return BondrailTypes.Observation(
             address(bond),
             bond.policyHash(),
             at / 30,
@@ -105,7 +105,7 @@ contract SliceTest is TestBase {
     }
 
     function _observe(uint64 at, uint8 result) internal {
-        SliceTypes.Observation memory o = _observation(at, result);
+        BondrailTypes.Observation memory o = _observation(at, result);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
@@ -116,8 +116,8 @@ contract SliceTest is TestBase {
         router.sweep();
     }
 
-    function _milestone() internal view returns (SliceTypes.Milestone memory) {
-        return SliceTypes.Milestone(
+    function _milestone() internal view returns (BondrailTypes.Milestone memory) {
+        return BondrailTypes.Milestone(
             address(bond),
             bond.policyHash(),
             bond.activationTime(),
@@ -130,14 +130,14 @@ contract SliceTest is TestBase {
     }
 
     function _release() internal {
-        SliceTypes.Milestone memory m = _milestone();
+        BondrailTypes.Milestone memory m = _milestone();
         bytes memory signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
         factory.releaseSecondSigned(address(bond), m, signature);
     }
 
     function _expectReleaseFailure() internal {
-        SliceTypes.Milestone memory m = _milestone();
+        BondrailTypes.Milestone memory m = _milestone();
         bytes memory signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
         vm.expectRevert();
@@ -152,7 +152,7 @@ contract SliceTest is TestBase {
             bond.pool() + bond.totalRedeemed(),
             bond.totalRevenueCollected() + bond.principalRecovery() + bond.stakeRecovery()
         );
-        if (bond.phase() != SliceTypes.Phase.Funding && bond.phase() != SliceTypes.Phase.Cancelled) {
+        if (bond.phase() != BondrailTypes.Phase.Funding && bond.phase() != BondrailTypes.Phase.Cancelled) {
             eq(bond.releasedPrincipal() + bond.undrawnPrincipal() + bond.principalRecovery(), t.raiseAmount);
         }
     }
@@ -162,11 +162,11 @@ contract SliceTest is TestBase {
         vm.prank(investor);
         bond.deposit(40e6);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.TransferLocked.selector);
+        vm.expectRevert(BondrailBond.TransferLocked.selector);
         bond.transfer(buyer, 1e6);
         vm.warp(t.fundingDeadline);
         vm.prank(issuer);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         factory.activate(address(bond));
         router.cancelFunding(address(bond));
         eq(router.activeBond(), address(0));
@@ -207,32 +207,32 @@ contract SliceTest is TestBase {
     function testForgedAndCrossChainMilestoneRejected() public {
         _activate(false);
         vm.warp(t.secondReleaseNotBefore);
-        SliceTypes.Milestone memory m = _milestone();
+        BondrailTypes.Milestone memory m = _milestone();
         bytes memory wrong = _sig(999, factory.hashMilestone(m));
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.Unauthorized.selector);
+        vm.expectRevert(BondrailFactory.Unauthorized.selector);
         factory.releaseSecondSigned(address(bond), m, wrong);
         bytes memory valid = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.chainId(10143);
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.Unauthorized.selector);
+        vm.expectRevert(BondrailFactory.Unauthorized.selector);
         factory.releaseSecondSigned(address(bond), m, valid);
     }
 
     function testExpiredAndTooShortMilestoneRejected() public {
         _activate(false);
         vm.warp(t.secondReleaseNotBefore);
-        SliceTypes.Milestone memory m = _milestone();
+        BondrailTypes.Milestone memory m = _milestone();
         m.periodStart = m.periodEnd - 1;
         bytes memory signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidMilestone.selector);
+        vm.expectRevert(BondrailFactory.InvalidMilestone.selector);
         factory.releaseSecondSigned(address(bond), m, signature);
         m = _milestone();
         m.expiresAt = uint64(vm.getBlockTimestamp() - 1);
         signature = _sig(MILESTONE_PK, factory.hashMilestone(m));
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidMilestone.selector);
+        vm.expectRevert(BondrailFactory.InvalidMilestone.selector);
         factory.releaseSecondSigned(address(bond), m, signature);
     }
 
@@ -253,7 +253,7 @@ contract SliceTest is TestBase {
         vm.prank(investor);
         bond.transfer(buyer, 40e6);
         _revenue(300e6);
-        eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Closed));
+        eq(uint256(bond.phase()), uint256(BondrailTypes.Phase.Closed));
         eq(bond.pool(), 110e6);
         eq(bond.principalRecovery(), 50e6);
         eq(router.activeBond(), address(0));
@@ -287,7 +287,7 @@ contract SliceTest is TestBase {
         _activate(false);
         _revenue(10e6);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.LastHolderWaitsForClose.selector);
+        vm.expectRevert(BondrailBond.LastHolderWaitsForClose.selector);
         bond.redeem(100e6, investor);
         vm.prank(investor);
         (bool ok,) = address(bond).call(abi.encodeWithSignature("burn(uint256)", 1e6));
@@ -299,13 +299,13 @@ contract SliceTest is TestBase {
         _new(false);
         _fund();
         vm.prank(investor);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.redeem(1e6, investor);
     }
 
     function testObservationsOnlyThroughCreForwarder() public {
         _new(true);
-        SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 1);
+        BondrailTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 1);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
         (bool ok,) = address(covenant)
             .call(
@@ -317,7 +317,7 @@ contract SliceTest is TestBase {
             );
         yes(!ok);
         vm.prank(buyer);
-        vm.expectRevert(SliceCovenant.Unauthorized.selector);
+        vm.expectRevert(BondrailCovenant.Unauthorized.selector);
         covenant.onReport("", abi.encode(o, signature));
     }
 
@@ -333,7 +333,7 @@ contract SliceTest is TestBase {
         vm.warp(t.maturity + 1);
         asset.mint(address(router), 100e6);
         router.closeBondAtMaturity(address(bond));
-        eq(uint256(bond.closeReason()), uint256(SliceTypes.CloseReason.RevenueCap));
+        eq(uint256(bond.closeReason()), uint256(BondrailTypes.CloseReason.RevenueCap));
         eq(bond.totalRevenueCollected(), 60e6);
         _revenue(50e6);
         eq(bond.totalRevenueCollected(), 60e6);
@@ -380,7 +380,7 @@ contract SliceTest is TestBase {
         _new(true);
         _fund();
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.Unhealthy.selector);
+        vm.expectRevert(BondrailFactory.Unhealthy.selector);
         factory.activate(address(bond));
         _observe(uint64(vm.getBlockTimestamp()), 1);
         vm.prank(issuer);
@@ -442,21 +442,21 @@ contract SliceTest is TestBase {
 
     function testReportSignatureForwarderReplayAndFreshness() public {
         _new(true);
-        SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 1);
+        BondrailTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 1);
         bytes memory forged = _sig(999, covenant.hashObservation(o));
         vm.prank(forwarder);
-        vm.expectRevert(SliceCovenant.Unauthorized.selector);
+        vm.expectRevert(BondrailCovenant.Unauthorized.selector);
         covenant.onReport("", abi.encode(o, forged));
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
-        vm.expectRevert(SliceCovenant.Unauthorized.selector);
+        vm.expectRevert(BondrailCovenant.Unauthorized.selector);
         covenant.onReport("", abi.encode(o, signature));
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
-        vm.expectRevert(SliceCovenant.DuplicateEpoch.selector);
+        vm.expectRevert(BondrailCovenant.DuplicateEpoch.selector);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
         vm.warp(vm.getBlockTimestamp() + 91);
-        vm.expectRevert(SliceCovenant.InvalidObservation.selector);
+        vm.expectRevert(BondrailCovenant.InvalidObservation.selector);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
     }
@@ -466,24 +466,24 @@ contract SliceTest is TestBase {
         vm.warp(t.maturity - 40);
         uint64 first = uint64(vm.getBlockTimestamp());
         uint64 second = first + 30;
-        SliceTypes.Observation memory a = _observation(first, 2);
-        SliceTypes.Observation memory b = _observation(second, 2);
+        BondrailTypes.Observation memory a = _observation(first, 2);
+        BondrailTypes.Observation memory b = _observation(second, 2);
         bytes memory sa = _sig(OBSERVER_PK, covenant.hashObservation(a));
         bytes memory sb = _sig(OBSERVER_PK, covenant.hashObservation(b));
         vm.warp(t.maturity);
         router.closeBondAtMaturity(address(bond));
-        eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Closing));
+        eq(uint256(bond.phase()), uint256(BondrailTypes.Phase.Closing));
         eq(bond.stakeHeld(), 20e6);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(b, sb));
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(a, sa));
         eq(bond.stakeRecovery(), 20e6);
-        vm.expectRevert(SliceBond.TooEarly.selector);
+        vm.expectRevert(BondrailBond.TooEarly.selector);
         bond.finalizeSettlement();
-        SliceTypes.Observation memory post = _observation(uint64(vm.getBlockTimestamp()), 2);
+        BondrailTypes.Observation memory post = _observation(uint64(vm.getBlockTimestamp()), 2);
         bytes memory sp = _sig(OBSERVER_PK, covenant.hashObservation(post));
-        vm.expectRevert(SliceCovenant.InvalidObservation.selector);
+        vm.expectRevert(BondrailCovenant.InvalidObservation.selector);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(post, sp));
         vm.warp(bond.settleAfter());
@@ -497,7 +497,7 @@ contract SliceTest is TestBase {
         _activate(true);
         vm.warp(t.maturity);
         router.closeBondAtMaturity(address(bond));
-        SliceBond old = bond;
+        BondrailBond old = bond;
         t.fundingDeadline = uint64(vm.getBlockTimestamp() + 120);
         t.secondReleaseNotBefore = uint64(vm.getBlockTimestamp() + 150);
         t.secondReleaseDeadline = uint64(vm.getBlockTimestamp() + 600);
@@ -516,7 +516,7 @@ contract SliceTest is TestBase {
         vm.prank(REVIEWER);
         factory.setNativeApproval(address(source), false);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.Unhealthy.selector);
+        vm.expectRevert(BondrailBond.Unhealthy.selector);
         bond.deposit(10e6);
         vm.prank(REVIEWER);
         factory.setNativeApproval(address(source), true);
@@ -531,7 +531,7 @@ contract SliceTest is TestBase {
         bond.deposit(10e6); // no observation yet: raising does not need CRE to be running
         _observe(uint64(vm.getBlockTimestamp()), 2);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.Unhealthy.selector);
+        vm.expectRevert(BondrailBond.Unhealthy.selector);
         bond.deposit(10e6);
         vm.warp(vm.getBlockTimestamp() + 30);
         _observe(uint64(vm.getBlockTimestamp()), 1);
@@ -541,24 +541,24 @@ contract SliceTest is TestBase {
     }
 
     function testIssuanceWaitsForMinimumHistory() public {
-        SliceCovenant c = new SliceCovenant(forwarder, vm.addr(OBSERVER_PK));
-        SliceFactory f = new SliceFactory(
-            address(c), vm.addr(MILESTONE_PK), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 600
+        BondrailCovenant c = new BondrailCovenant(forwarder, vm.addr(OBSERVER_PK));
+        BondrailFactory f = new BondrailFactory(
+            address(c), vm.addr(MILESTONE_PK), address(new BondrailBond()), address(new BondrailAccount()), REVIEWER, 600
         );
         c.initializeFactory(address(f));
         vm.startPrank(issuer);
-        SliceAccount a = SliceAccount(f.createAccount(address(asset)));
+        BondrailAccount a = BondrailAccount(f.createAccount(address(asset)));
         asset.approve(address(f), type(uint256).max);
-        SliceTypes.AdapterConfig memory cfg =
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
-        vm.expectRevert(SliceFactory.InsufficientHistory.selector); // no payment yet
+        BondrailTypes.AdapterConfig memory cfg =
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
+        vm.expectRevert(BondrailFactory.InsufficientHistory.selector); // no payment yet
         f.createBond(address(a), t, cfg, "Lab Revenue Claim", "LAB-RC");
         vm.stopPrank();
         asset.mint(address(a), 1e6);
         a.sweep();
         vm.warp(vm.getBlockTimestamp() + 599);
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InsufficientHistory.selector);
+        vm.expectRevert(BondrailFactory.InsufficientHistory.selector);
         f.createBond(address(a), t, cfg, "Lab Revenue Claim", "LAB-RC");
         vm.warp(vm.getBlockTimestamp() + 1);
         uint64 now_ = uint64(vm.getBlockTimestamp());
@@ -639,7 +639,7 @@ contract SliceTest is TestBase {
         router.closeBondAtMaturity(address(bond));
         eq(bond.pool(), 1);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.InvalidAmount.selector);
+        vm.expectRevert(BondrailBond.InvalidAmount.selector);
         bond.redeem(1, investor);
         vm.prank(investor);
         eq(bond.redeem(100e6, investor), 1);
@@ -662,14 +662,14 @@ contract SliceTest is TestBase {
     function testSameEpochEquivocationAndFutureObservationRejected() public {
         _new(true);
         _observe(uint64(vm.getBlockTimestamp()), 1);
-        SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 2);
+        BondrailTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 2);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
-        vm.expectRevert(SliceCovenant.DuplicateEpoch.selector);
+        vm.expectRevert(BondrailCovenant.DuplicateEpoch.selector);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
         o = _observation(uint64(vm.getBlockTimestamp() + 6), 2);
         signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
-        vm.expectRevert(SliceCovenant.InvalidObservation.selector);
+        vm.expectRevert(BondrailCovenant.InvalidObservation.selector);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
     }
@@ -695,9 +695,9 @@ contract SliceTest is TestBase {
         router.closeBondAtMaturity(address(bond));
         vm.warp(bond.settleAfter());
         bond.finalizeSettlement();
-        SliceTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 2);
+        BondrailTypes.Observation memory o = _observation(uint64(vm.getBlockTimestamp()), 2);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
-        vm.expectRevert(SliceCovenant.InvalidObservation.selector);
+        vm.expectRevert(BondrailCovenant.InvalidObservation.selector);
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
         eq(bond.stakeReturnCredit(), 20e6);
@@ -767,7 +767,7 @@ contract SliceTest is TestBase {
         bond.deposit(10e6);
         _dark(1200, 2); // 80 minutes dark
         vm.prank(investor);
-        vm.expectRevert(SliceBond.Unhealthy.selector);
+        vm.expectRevert(BondrailBond.Unhealthy.selector);
         bond.deposit(10e6);
         vm.warp(vm.getBlockTimestamp() + 60);
         _observe(uint64(vm.getBlockTimestamp()), 1);

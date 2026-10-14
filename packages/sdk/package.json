@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Bondrail SDK: revenue accounts and bonds on Monad; x402 payments into a SliceAccount; revenue data.",
+  "description": "Bondrail SDK: revenue accounts and bonds on Monad; x402 payments into a BondrailAccount; revenue data.",
   "exports": {
     ".": "./src/index.ts",
     "./abis": "./src/abis.ts",

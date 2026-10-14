@@ -1,41 +1,41 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 import {TestBase} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {PumpLab} from "@slice-demo/PumpLab.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {PumpLab} from "@bondrail-demo/PumpLab.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
 import {MockERC3009} from "./mocks/MockERC3009.sol";
 
 contract AccountingHandler is TestBase {
     MockERC3009 public asset;
-    SliceFactory public factory;
-    SliceAccount public router;
-    SliceBond public bond;
+    BondrailFactory public factory;
+    BondrailAccount public router;
+    BondrailBond public bond;
     uint256 public receipts;
     uint256 public issuerWithdrawn;
     uint256 public holderPaid;
     uint256 private constant PK = 67890;
-    SliceTypes.Terms private t;
+    BondrailTypes.Terms private t;
     uint256 private settlementNonce;
 
     constructor() {
         asset = new MockERC3009();
-        SliceCovenant c = new SliceCovenant(address(0x444), vm.addr(12345));
-        factory = new SliceFactory(
-            address(c), vm.addr(PK), address(new SliceBond()), address(new SliceAccount()), address(0x777), 0
+        BondrailCovenant c = new BondrailCovenant(address(0x444), vm.addr(12345));
+        factory = new BondrailFactory(
+            address(c), vm.addr(PK), address(new BondrailBond()), address(new BondrailAccount()), address(0x777), 0
         );
         c.initializeFactory(address(factory));
-        router = SliceAccount(factory.createAccount(address(asset)));
+        router = BondrailAccount(factory.createAccount(address(asset)));
         PumpLab lab = new PumpLab(address(router), "Invariant Lab", "INV");
         router.bindProject(address(lab));
         vm.prank(address(0x777));
         factory.setNativeApproval(address(lab), true);
         address source = address(lab);
         uint64 now_ = uint64(vm.getBlockTimestamp());
-        t = SliceTypes.Terms(
+        t = BondrailTypes.Terms(
             100e6,
             120e6,
             20e6,
@@ -47,7 +47,7 @@ contract AccountingHandler is TestBase {
             30,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Signed,
+            BondrailTypes.MilestoneMode.Signed,
             0,
             2,
             4000,
@@ -55,11 +55,11 @@ contract AccountingHandler is TestBase {
         );
         asset.mint(address(this), 120e6);
         asset.approve(address(factory), 20e6);
-        bond = SliceBond(
+        bond = BondrailBond(
             factory.createBond(
                 address(router),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, source, keccak256("invariant-policy")),
+                BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, source, keccak256("invariant-policy")),
                 "Invariant Lab Revenue Claim",
                 "INV-RC"
             )
@@ -108,7 +108,7 @@ contract AccountingHandler is TestBase {
     function checkTrigger() external {
         uint256 today = vm.getBlockTimestamp() / 1 days;
         if (
-            bond.phase() != SliceTypes.Phase.Active || bond.defaultedAt() != 0
+            bond.phase() != BondrailTypes.Phase.Active || bond.defaultedAt() != 0
                 || today < uint256(bond.activationTime()) / 1 days + 1 + t.triggerWindowDays
                 || bond.lastTriggerCheckDay() == today
         ) return;
@@ -116,7 +116,7 @@ contract AccountingHandler is TestBase {
     }
 
     function expire() external {
-        if (bond.phase() == SliceTypes.Phase.Active && vm.getBlockTimestamp() >= t.secondReleaseDeadline) {
+        if (bond.phase() == BondrailTypes.Phase.Active && vm.getBlockTimestamp() >= t.secondReleaseDeadline) {
             bond.expireUndrawn();
         }
     }
@@ -124,10 +124,10 @@ contract AccountingHandler is TestBase {
     function release() external {
         uint64 now_ = uint64(vm.getBlockTimestamp());
         if (
-            bond.phase() != SliceTypes.Phase.Active || bond.undrawnPrincipal() == 0 || now_ < t.secondReleaseNotBefore
+            bond.phase() != BondrailTypes.Phase.Active || bond.undrawnPrincipal() == 0 || now_ < t.secondReleaseNotBefore
                 || now_ >= t.secondReleaseDeadline
         ) return;
-        SliceTypes.Milestone memory m = SliceTypes.Milestone(
+        BondrailTypes.Milestone memory m = BondrailTypes.Milestone(
             address(bond),
             bond.policyHash(),
             bond.activationTime(),
@@ -141,16 +141,16 @@ contract AccountingHandler is TestBase {
     }
 
     function close() external {
-        if (bond.phase() == SliceTypes.Phase.Active && vm.getBlockTimestamp() >= t.maturity) {
+        if (bond.phase() == BondrailTypes.Phase.Active && vm.getBlockTimestamp() >= t.maturity) {
             router.closeBondAtMaturity(address(bond));
         }
     }
 
     function redeem(uint64 raw) external {
         uint256 held = bond.balanceOf(address(this));
-        SliceTypes.Phase p = bond.phase();
-        bool closed = p == SliceTypes.Phase.Closed;
-        if (!closed && p != SliceTypes.Phase.Active && p != SliceTypes.Phase.Closing) return;
+        BondrailTypes.Phase p = bond.phase();
+        bool closed = p == BondrailTypes.Phase.Closed;
+        if (!closed && p != BondrailTypes.Phase.Active && p != BondrailTypes.Phase.Closing) return;
         // Before close the last claim must stay outstanding, so redeem at most held - 1.
         uint256 limit = closed ? held : (held == bond.totalSupply() ? held - 1 : held);
         if (limit == 0) return;
@@ -179,8 +179,8 @@ contract AccountingInvariantTest is TestBase {
     }
 
     function invariantAssetsCoverEveryLiability() public view {
-        SliceBond b = handler.bond();
-        SliceAccount r = handler.router();
+        BondrailBond b = handler.bond();
+        BondrailAccount r = handler.router();
         MockERC3009 a = handler.asset();
         yes(a.balanceOf(address(b)) >= b.accountedBalance());
         yes(a.balanceOf(address(r)) >= r.issuerCredit());
@@ -193,7 +193,7 @@ contract AccountingInvariantTest is TestBase {
         yes(r.splitRemainder() < 10_000);
         // Early redemption only shrinks supply, and the last claim survives until Closed.
         yes(b.totalSupply() <= 100e6);
-        if (b.phase() == SliceTypes.Phase.Active || b.phase() == SliceTypes.Phase.Closing) yes(b.totalSupply() > 0);
+        if (b.phase() == BondrailTypes.Phase.Active || b.phase() == BondrailTypes.Phase.Closing) yes(b.totalSupply() > 0);
         if (b.totalSupply() == 0) eq(b.pool(), 0);
     }
 }

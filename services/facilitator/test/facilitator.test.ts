@@ -211,7 +211,7 @@ const rejects: [string, (f: Fixture) => void | Promise<void>][] = [
   ['accepted domain mismatch', f => { f.payload.accepted.extra.name = 'FAKE'; }],
   ['accepted version mismatch', f => { f.payload.accepted.extra.version = '3'; }],
   ['accepted requirements mismatch', f => { f.payload.accepted.amount = '123'; }],
-  ['non-Slice recipient', f => { f.state.isAccount = false; }],
+  ['non-Bondrail recipient', f => { f.state.isAccount = false; }],
   ['account asset mismatch', f => { f.state.accountAsset = factory; }],
   ['already consumed authorization', f => { f.state.used = true; }],
   ['insufficient payer funds', f => { f.state.balance = 9999n; }],

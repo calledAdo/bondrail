@@ -1,5 +1,5 @@
 [Unit]
-Description=Slice maintenance worker, one cycle (sweeps, expiries, closes, settlement)
+Description=Bondrail maintenance worker, one cycle (sweeps, expiries, closes, settlement)
 After=network-online.target
 [Service]
 Type=oneshot

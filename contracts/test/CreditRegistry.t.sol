@@ -2,12 +2,12 @@
 pragma solidity 0.8.28;
 import {BondrailCreditRegistry} from "../src/BondrailCreditRegistry.sol";
 import {TestBase} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLab} from "@slice-demo/PumpLab.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
+import {PumpLab} from "@bondrail-demo/PumpLab.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 contract CreditRegistryTest is TestBase {
@@ -15,11 +15,11 @@ contract CreditRegistryTest is TestBase {
     uint256 constant ATTESTER_PK = 999;
     event BondRecorded(address indexed account, address indexed bond);
     MockUSDC asset;
-    SliceFactory factory;
-    SliceCovenant covenant;
-    SliceAccount router;
+    BondrailFactory factory;
+    BondrailCovenant covenant;
+    BondrailAccount router;
     PumpLab source;
-    SliceBond bond;
+    BondrailBond bond;
     address issuer = address(0x111);
     address investor = address(0x222);
     address buyer = address(0x333);
@@ -27,30 +27,30 @@ contract CreditRegistryTest is TestBase {
     uint256 constant OBSERVER_PK = 12345;
     uint256 constant MILESTONE_PK = 67890;
     address constant REVIEWER = address(0x777);
-    SliceTypes.Terms t;
+    BondrailTypes.Terms t;
 
     function setUp() public {
         vm.warp(1_800_000);
         vm.chainId(31337);
         asset = new MockUSDC();
-        covenant = new SliceCovenant(forwarder, vm.addr(OBSERVER_PK));
-        factory = new SliceFactory(
-            address(covenant), vm.addr(MILESTONE_PK), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 0
+        covenant = new BondrailCovenant(forwarder, vm.addr(OBSERVER_PK));
+        factory = new BondrailFactory(
+            address(covenant), vm.addr(MILESTONE_PK), address(new BondrailBond()), address(new BondrailAccount()), REVIEWER, 0
         );
         covenant.initializeFactory(address(factory));
         registry = new BondrailCreditRegistry(factory, address(this), vm.addr(ATTESTER_PK));
         asset.mint(issuer, 10_000_000e6);
         asset.mint(investor, 10_000_000e6);
         vm.startPrank(issuer);
-        router = SliceAccount(factory.createAccount(address(asset)));
-        // Native tier: the issuer's own project, built on SliceEarner and bound to the account.
+        router = BondrailAccount(factory.createAccount(address(asset)));
+        // Native tier: the issuer's own project, built on BondrailEarner and bound to the account.
         source = new PumpLab(address(router), "Lab", "LAB");
         router.bindProject(address(source));
         asset.approve(address(factory), type(uint256).max);
         vm.stopPrank();
         vm.prank(REVIEWER);
         factory.setNativeApproval(address(source), true);
-        t = SliceTypes.Terms(
+        t = BondrailTypes.Terms(
             100e6,
             120e6,
             20e6,
@@ -62,7 +62,7 @@ contract CreditRegistryTest is TestBase {
             30,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Signed,
+            BondrailTypes.MilestoneMode.Signed,
             0,
             0,
             0,
@@ -71,13 +71,13 @@ contract CreditRegistryTest is TestBase {
     }
 
     function _new(bool watched) internal {
-        SliceTypes.AdapterConfig memory c = SliceTypes.AdapterConfig(
-            watched ? SliceTypes.Adapter.Watched : SliceTypes.Adapter.Native,
+        BondrailTypes.AdapterConfig memory c = BondrailTypes.AdapterConfig(
+            watched ? BondrailTypes.Adapter.Watched : BondrailTypes.Adapter.Native,
             watched ? address(0) : address(source),
             keccak256("policy-v1")
         );
         vm.prank(issuer);
-        bond = SliceBond(factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC"));
+        bond = BondrailBond(factory.createBond(address(router), t, c, "Lab Revenue Claim", "LAB-RC"));
         vm.prank(investor);
         asset.approve(address(bond), type(uint256).max);
     }
@@ -95,8 +95,8 @@ contract CreditRegistryTest is TestBase {
         factory.activate(address(bond));
     }
 
-    function _observation(uint64 at, uint8 result) internal view returns (SliceTypes.Observation memory) {
-        return SliceTypes.Observation(
+    function _observation(uint64 at, uint8 result) internal view returns (BondrailTypes.Observation memory) {
+        return BondrailTypes.Observation(
             address(bond),
             bond.policyHash(),
             at / 30,
@@ -110,7 +110,7 @@ contract CreditRegistryTest is TestBase {
     }
 
     function _observe(uint64 at, uint8 result) internal {
-        SliceTypes.Observation memory o = _observation(at, result);
+        BondrailTypes.Observation memory o = _observation(at, result);
         bytes memory signature = _sig(OBSERVER_PK, covenant.hashObservation(o));
         vm.prank(forwarder);
         covenant.onReport("", abi.encode(o, signature));
@@ -262,13 +262,13 @@ contract CreditRegistryTest is TestBase {
         // Failure after cloning/initialization must not count as issuance.
         vm.prank(issuer);
         asset.approve(address(factory), 0);
-        SliceTypes.AdapterConfig memory c =
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
+        BondrailTypes.AdapterConfig memory c =
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Watched, address(0), keccak256("policy-v1"));
         vm.prank(issuer);
         vm.expectRevert();
         factory.createBond(address(router), t, c, "Failed", "FAIL");
         eq(factory.bondsCreated(address(router)), 2);
-        SliceAccount empty = SliceAccount(factory.createAccount(address(asset)));
+        BondrailAccount empty = BondrailAccount(factory.createAccount(address(asset)));
         eq(factory.bondsCreated(address(empty)), 0);
     }
 
@@ -282,7 +282,7 @@ contract CreditRegistryTest is TestBase {
         eq(p.tier, 0);
         eq(p.firstRevenueAt, 0);
         eq(p.historyAge, 0);
-        SliceAccount empty = SliceAccount(factory.createAccount(address(asset)));
+        BondrailAccount empty = BondrailAccount(factory.createAccount(address(asset)));
         eq(registry.onchainProfile(address(empty)).tier, 2);
         // Native buy produces payer/volume counters; plain sweep has no proven payer.
         asset.mint(buyer, 100e6);
@@ -410,7 +410,7 @@ contract CreditRegistryTest is TestBase {
                 _record();
                 raised += t.raiseAmount;
                 _revenue(choice % 3 == 1 ? 300e6 : (choice % 300e6));
-                if (bond.phase() == SliceTypes.Phase.Active) {
+                if (bond.phase() == BondrailTypes.Phase.Active) {
                     vm.warp(t.maturity);
                     router.closeBondAtMaturity(address(bond));
                     ++maturityClosed;

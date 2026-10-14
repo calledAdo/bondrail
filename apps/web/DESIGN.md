@@ -6,7 +6,7 @@ Monochrome, tight, quiet. Colour only where it means something.
 ## Brand
 - Idea: *Revenue bonds for onchain businesses.* Businesses issue bonds; investors fund them; a share of revenue goes toward repayment.
 - The recurring visual is **the split**: a payment arrives and a slice peels off (animated beam: payer to
-  SliceAccount to business and bond). Supporting motifs: the capital ribbon (released / escrowed /
+  BondrailAccount to business and bond). Supporting motifs: the capital ribbon (released / escrowed /
   recovered), the live payment ticker, and the logo mark (a circle with one wedge cut out).
 - Voice: plain sentences, concrete numbers, every claim checkable on-chain. No speculative APR, no
   invented customers or testimonials. Synthetic data is labelled.

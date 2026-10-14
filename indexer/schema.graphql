@@ -1,7 +1,7 @@
-# Slice on-chain history, indexed by Envio HyperIndex.
+# Bondrail on-chain history, indexed by Envio HyperIndex.
 # Event rows use chain:block:tx:logIndex; x402 payments use chain:asset:payer:nonce to correlate logs.
 
-# One business's SliceAccount: its revenue address and payment entrypoint from day one.
+# One business's BondrailAccount: its revenue address and payment entrypoint from day one.
 type Issuer {
   id: ID! # account address
   chainId: Int!

@@ -248,12 +248,12 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
   async function checkManifest() {
     try {
       const u = new URL(manifestUrl);
-      const r = await fetch(`${u.origin}/.well-known/slice.json`, { cache: 'no-store' });
+      const r = await fetch(`${u.origin}/.well-known/bondrail.json`, { cache: 'no-store' });
       const m = (await r.json()) as { account?: string; chainId?: number; endpoints?: string[] };
       const ok = !!account && m.account?.toLowerCase() === account.address.toLowerCase() && m.chainId === chain.id;
       setManifest({ ok, endpoints: m.endpoints ?? [], note: ok ? `Lists your account and ${m.endpoints?.length ?? 0} paid endpoint(s).` : 'The manifest does not name this account on this chain.' });
     } catch {
-      setManifest({ ok: false, endpoints: [], note: 'No readable /.well-known/slice.json at that origin.' });
+      setManifest({ ok: false, endpoints: [], note: 'No readable /.well-known/bondrail.json at that origin.' });
     }
   }
 
@@ -270,7 +270,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
       });
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
-      setProfileNote(j.domainVerified ? 'Saved. Domain verified.' : 'Saved. Domain not verified: serve /.well-known/slice.json naming your account on your website.');
+      setProfileNote(j.domainVerified ? 'Saved. Domain verified.' : 'Saved. Domain not verified: serve /.well-known/bondrail.json naming your account on your website.');
     } catch (e) {
       setProfileNote((e as Error).message);
     }
@@ -302,7 +302,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
           ) : (
             <>
               <p className="text-foreground/70">
-                Deploy your contract inheriting <code>SliceEarner(account)</code>, then bind it here (once). <Link href="/docs/guides/native" className="underline-offset-4 hover:underline">Guide</Link>
+                Deploy your contract inheriting <code>BondrailEarner(account)</code>, then bind it here (once). <Link href="/docs/guides/native" className="underline-offset-4 hover:underline">Guide</Link>
               </p>
               <Field label="Project contract">
                 <input value={projectInput} onChange={(e) => setProjectInput(e.target.value)} placeholder="0x…" className={cn(input, 'font-mono')} spellCheck={false} />
@@ -315,7 +315,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
         ) : (
           <>
             <p className="text-foreground/70">
-              Set your x402 <code>payTo</code> to <span className="font-mono">{account ? short(account.address) : 'your account'}</span> and serve <code>/.well-known/slice.json</code> listing every paid endpoint.{' '}
+              Set your x402 <code>payTo</code> to <span className="font-mono">{account ? short(account.address) : 'your account'}</span> and serve <code>/.well-known/bondrail.json</code> listing every paid endpoint.{' '}
               <Link href="/docs/guides/x402" className="underline-offset-4 hover:underline">Guide</Link>
             </p>
             <Field label="Your API's base URL">
@@ -367,7 +367,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
       {tier === 'Native' && (
         <Step index={5} title="Code review" status={s(!!approved, !!boundProject)} summary={approved ? 'approved' : undefined}>
           <p className="text-foreground/70">
-            Deploy a reviewed template (<code>SliceFactory.deployNative</code>) and you qualify at once; a custom contract waits for the disclosed reviewer to check that every fee goes through <code>SliceEarner</code>. History keeps accruing meanwhile.{' '}
+            Deploy a reviewed template (<code>BondrailFactory.deployNative</code>) and you qualify at once; a custom contract waits for the disclosed reviewer to check that every fee goes through <code>BondrailEarner</code>. History keeps accruing meanwhile.{' '}
             {approved ? (fromTemplate ? 'Reviewed template.' : 'Approved.') : 'Not yet approved.'}
           </p>
         </Step>
@@ -502,12 +502,12 @@ function TermsBuilder({
       const bond = getContractAddress({ from: factory, nonce: BigInt(nonce) });
       const origin = new URL(manifest!.endpoints[0]!).origin;
       const watch: WatchPolicy = {
-        id: `slice-${account.address.slice(2, 10).toLowerCase()}`,
+        id: `bondrail-${account.address.slice(2, 10).toLowerCase()}`,
         chainId: chain.id as 10143,
         chainSelector: '2183018362218727504',
         covenant: covenant!,
         bond,
-        manifestUrl: `${origin}/.well-known/slice.json`,
+        manifestUrl: `${origin}/.well-known/bondrail.json`,
         endpoints: manifest!.endpoints.map((url) => ({ url, minAmount: t.priceFloor })),
         method: 'GET',
         headers: { accept: 'application/json' },

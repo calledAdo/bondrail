@@ -5,14 +5,14 @@ Decided 9 October 2026 (user + Claude). 10 October 2026: Locked tier removed; is
 
 ## 1. Idea
 
-A business's revenue flows through its **SliceAccount** from day one. The account records every payment
+A business's revenue flows through its **BondrailAccount** from day one. The account records every payment
 on-chain, with the real payer, and builds a credit history before the business ever asks for money.
 When the business raises against that revenue, the account starts splitting a fixed share to a
-**SliceBond**. When the bond ends, the account goes back to paying the business 100%.
+**BondrailBond**. When the bond ends, the account goes back to paying the business 100%.
 
 ## 2. Contracts
 
-### SliceAccount (one per business, clone created by SliceFactory)
+### BondrailAccount (one per business, clone created by BondrailFactory)
 The business's revenue address and payment entrypoint. Replaces the earlier "router".
 
 **One asset per account, any token.** `createAccount(asset)` fixes the token the business charges fees in
@@ -33,7 +33,7 @@ bricks the account (a shortfall books nothing).
    - It keeps `fee` and sends `gross − fee` to the project. The payer is proven by the pull.
 2. **Out (Native).** The project calls `settleOut(payer, gross, fee)`, for fees charged on what the payer
    receives (a sell paid in the quote asset).
-   - The account pulls `gross` from the project (`SliceEarner._settleOut` approves exactly that), pays
+   - The account pulls `gross` from the project (`BondrailEarner._settleOut` approves exactly that), pays
      `gross − fee` to the payer and keeps `fee`. The payer approves nothing, so it works for tokens without
      permit (WETH) and for sellers who never bought here.
    - Either way the fee is split immediately; no keeper is needed. Native projects charge fees only in the
@@ -60,7 +60,7 @@ bricks the account (a shortfall books nothing).
 **Business share**: pull credit (`issuerCredit`, `withdraw(to, amount)`). A reverting recipient can
 never block payments or investors.
 
-### SliceBond (one per issuance, clone)
+### BondrailBond (one per issuance, clone)
 Vault plus ERC-20 claim (the asset's decimals, name and symbol per bond).
 - **Funding:** deposits mint claims 1:1 until `raiseAmount`; every deposit requires `factory.depositAllowed(bond)` (below); transfers are locked while Funding; cancel and refund after `fundingDeadline`.
 - **Activation:** issuer (via factory), only when fully funded and the source is healthy.
@@ -78,10 +78,10 @@ Vault plus ERC-20 claim (the asset's decimals, name and symbol per bond).
 - **Default (Watched only):** stake slashed into the pool; undrawn principal goes to recovery.
 - **Closing → Closed:** Watched bonds get a 120 s window for late evidence; Native bonds close immediately.
 
-### SliceFactory
+### BondrailFactory
 - `createAccount(asset)`; the issuer is `msg.sender`; `asset` is any ERC-20 contract reporting `decimals()`.
 - `setNativeApproval(project, bool)`: the disclosed `reviewer` approves a Native project's code (it pays every fee through `collect`). History accrues before review; review is required to raise.
-- The factory never deploys projects: Native projects inherit `SliceEarner` and bind themselves (`account.bindProject`, issuer only, the project must point at the account).
+- The factory never deploys projects: Native projects inherit `BondrailEarner` and bind themselves (`account.bindProject`, issuer only, the project must point at the account).
 - `createBond(account, terms, config, name, symbol)`. Requires `minHistory` seconds (immutable, set at deploy:
   60 s local, 600 s testnet, days on mainnet) since the account's `firstRevenueAt`. Watched requires a stake.
 - `depositAllowed(bond)`: Native, the project is still reviewer-approved, bound and pointing at the
@@ -105,7 +105,7 @@ withdraw paths could still divert fees, and making it safe needed Native-level r
 
 ### Watched businesses (x402)
 - The whole x402 price is revenue: it settles straight to the account (EIP-3009, so in USDC) and is booked by `sweep()`.
-- **Manifest.** The business serves `https://<its host>/.well-known/slice.json`:
+- **Manifest.** The business serves `https://<its host>/.well-known/bondrail.json`:
   `{version: 1, chainId, account, endpoints: [...]}`, listing every paid endpoint (an unpaid GET returns
   the 402 offer). The bond's policy covers all of them and commits to a **price floor** per endpoint. The
   same file is the marketplace's domain proof.
@@ -124,7 +124,7 @@ withdraw paths could still divert fees, and making it safe needed Native-level r
   raises an alert when verified x402 revenue in the last 24 h falls under a quarter of the prior 7-day daily
   average while the monitor reports compliant, and shows dark periods and paused deposits.
 
-### SliceCovenant
+### BondrailCovenant
 CRE receiver. Only `onReport` from the pinned forwarder, carrying an observation with the pinned
 observer's EIP-712 signature. 30 s epochs, 90 s freshness, replay and equivocation protection.
 - Two adjacent Violations after activation trigger `markDefault`.
@@ -136,7 +136,7 @@ observer's EIP-712 signature. 30 s epochs, 90 s freshness, replay and equivocati
 - **Observer:** fetches the manifest and every covered endpoint and signs Compliant, Violation or Unknown.
 - **CRE workflow:** fetches the same independently, checks agreement with the observer, writes the report.
 - **Configs:** `demo/scripts/write-watch-config.ts` writes the observer registry and the CRE config from the deployment.
-- **Agent:** x402 paid API; `payTo` = its SliceAccount.
+- **Agent:** x402 paid API; `payTo` = its BondrailAccount.
 - **Envio indexer:** accounts, bonds, payments, treasury funding edges, covenant checks, daily revenue
   (raw and verified). Payment classes:
   - `native`: the account's `Revenue` event from `collect`; payer proven by the pull.

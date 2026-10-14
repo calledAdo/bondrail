@@ -13,16 +13,16 @@ import {
   type PublicClient,
 } from 'viem';
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
-import { monadTestnet, sliceLocal } from '../packages/shared/src/index.ts';
+import { monadTestnet, bondrailLocal } from '../packages/shared/src/index.ts';
 
 export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
-export const KEY_DIR = process.env.SLICE_KEY_DIR ?? path.join(os.homedir(), '.slice');
+export const KEY_DIR = process.env.BONDRAIL_KEY_DIR ?? path.join(os.homedir(), '.slice');
 
-export const chainId = Number(process.env.SLICE_CHAIN_ID ?? 10143) as 10143 | 31337;
+export const chainId = Number(process.env.BONDRAIL_CHAIN_ID ?? 10143) as 10143 | 31337;
 if (chainId !== 10143 && chainId !== 31337)
   throw new Error('Bondrail scripts write to local 31337 or Monad testnet 10143 only');
-export const chain = chainId === 31337 ? sliceLocal : monadTestnet;
-export const rpcUrl = process.env.SLICE_RPC_URL ?? chain.rpcUrls.default.http[0];
+export const chain = chainId === 31337 ? bondrailLocal : monadTestnet;
+export const rpcUrl = process.env.BONDRAIL_RPC_URL ?? chain.rpcUrls.default.http[0];
 
 /** Monad bills the gas limit, not gas used: estimate and add 20%, never a blanket large limit. */
 export const publicClient: PublicClient = createPublicClient({

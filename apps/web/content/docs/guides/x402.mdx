@@ -5,7 +5,7 @@ description: Paid HTTP endpoints whose revenue builds history and repays investo
 
 [x402](https://x402.org) lets any client pay per request: the server answers `402 Payment Required` with an
 offer, the client signs an EIP-3009 USDC authorization, and a facilitator settles it on-chain, straight to the
-offer's `payTo`. Point `payTo` at your SliceAccount and every paid call becomes booked revenue.
+offer's `payTo`. Point `payTo` at your BondrailAccount and every paid call becomes booked revenue.
 
 ## 1. Serve paid requests with `@bondrail/sdk/x402`
 
@@ -16,10 +16,10 @@ settles to your account. This is the demo Oracle Agent's handler:
 
 ## 2. Publish your manifest
 
-Serve `/.well-known/slice.json` listing your account and every paid endpoint (each an unpaid GET returns its
+Serve `/.well-known/bondrail.json` listing your account and every paid endpoint (each an unpaid GET returns its
 402 offer). Monitoring, guarded buyers and the marketplace's domain proof all read it.
 
-<Source file="demo/agent/src/app/.well-known/slice.json/route.ts" from="export async function GET()" />
+<Source file="demo/agent/src/app/.well-known/bondrail.json/route.ts" from="export async function GET()" />
 
 ## 3. What the monitor checks
 
@@ -38,7 +38,7 @@ monitor outage (no reports at all) never counts against you.
 
 ## 4. Buyers can verify you
 
-`sliceGuard` wraps any x402 client's fetch and refuses to sign an offer whose `payTo` is not your published
+`bondrailGuard` wraps any x402 client's fetch and refuses to sign an offer whose `payTo` is not your published
 account (optionally confirmed on-chain). The manifest is your own claim, so a buyer paying a business it has
 financed also **pins** what it expects from the chain: `pinFromBond` reads the bond's account, asset and chain,
 and any offer or manifest that names another account (even another real Bondrail account), another asset or

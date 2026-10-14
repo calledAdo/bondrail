@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createTestIndexer, type Address, type TestIndexerProcessConfig } from 'envio';
 import { FACTORY, INDEXED_ASSET } from '../src/deployment';
-import '../src/handlers/slice';
+import '../src/handlers/bondrail';
 
 type Event = NonNullable<NonNullable<TestIndexerProcessConfig['chains'][10143]>['simulate']>[number];
 const account = '0x1111111111111111111111111111111111111111';
@@ -15,15 +15,15 @@ const zero = `0x${'00'.repeat(20)}` as const;
 const nonce = (n: number) => `0x${n.toString(16).padStart(64, '0')}`;
 const transaction = { hash: `0x${'ab'.repeat(32)}` };
 const block = { number: 70_000_000, timestamp: 1_800_000_000, hash: `0x${'cd'.repeat(32)}` };
-const created = (a: Address = account, asset: Address = INDEXED_ASSET): Event => ({ contract: 'SliceFactory', event: 'AccountCreated', srcAddress: FACTORY,
+const created = (a: Address = account, asset: Address = INDEXED_ASSET): Event => ({ contract: 'BondrailFactory', event: 'AccountCreated', srcAddress: FACTORY,
   params: { issuer, account: a, asset } });
-const revenue = (collected = true, amount = 10n, a: Address = account): Event => ({ contract: 'SliceAccount', event: 'Revenue', srcAddress: a,
+const revenue = (collected = true, amount = 10n, a: Address = account): Event => ({ contract: 'BondrailAccount', event: 'Revenue', srcAddress: a,
   params: { bond: zero, payer: collected ? payer : zero, amount, toBond: 2n, toIssuer: amount - 2n, collected }, transaction });
 const transfer = (amount = 10n, a: Address = account): Event => ({ contract: 'USDC', event: 'Transfer', srcAddress: INDEXED_ASSET,
   params: { from: payer, to: a, value: amount }, transaction: { ...transaction, to: account } });
 const authorized = (n = 1): Event => ({ contract: 'USDC', event: 'AuthorizationUsed', srcAddress: INDEXED_ASSET,
   params: { authorizer: payer, nonce: nonce(n) }, transaction });
-const settled = (n = 1, amount = 10n, a: Address = account): Event => ({ contract: 'SliceAccount', event: 'Settled', srcAddress: a,
+const settled = (n = 1, amount = 10n, a: Address = account): Event => ({ contract: 'BondrailAccount', event: 'Settled', srcAddress: a,
   params: { payer, value: amount, nonce: nonce(n) }, transaction });
 
 async function run(events: Event[]) {
@@ -58,9 +58,9 @@ test('batched identical payments with distinct nonces each count once', async ()
 });
 
 test('settlement marker does not swallow a subsequent Native payment in the same transaction', async () => {
-  const db = await run([created(), { contract: 'SliceAccount', event: 'ProjectBound', srcAddress: account, params: { project } },
+  const db = await run([created(), { contract: 'BondrailAccount', event: 'ProjectBound', srcAddress: account, params: { project } },
     authorized(), transfer(), settled(), revenue(),
-    { contract: 'SliceAccount', event: 'Collected', srcAddress: account, params: { payer, gross: 100n, fee: 10n, outgoing: false } }, revenue()]);
+    { contract: 'BondrailAccount', event: 'Collected', srcAddress: account, params: { payer, gross: 100n, fee: 10n, outgoing: false } }, revenue()]);
   const payments = await db.Payment.getAll();
   assert.deepEqual(payments.map(p => p.source).sort(), ['native', 'x402']);
   const i = await db.Issuer.getOrThrow(account);
@@ -105,9 +105,9 @@ test('issuer-funded payer is counted once but excluded from attributed revenue',
 
 test('bond trigger flag starts false, steps up, and clears on recovery without changing its pool', async () => {
   const bond = '0x7777777777777777777777777777777777777777' as const;
-  const bondCreated: Event = { contract: 'SliceFactory', event: 'BondCreated', srcAddress: FACTORY,
+  const bondCreated: Event = { contract: 'BondrailFactory', event: 'BondCreated', srcAddress: FACTORY,
     params: { issuer, account, bond, adapter: 0n, policyHash: nonce(1), termsHash: nonce(2) }, transaction };
-  const changed = (triggered: boolean): Event => ({ contract: 'SliceBond', event: 'TriggerChanged', srcAddress: bond,
+  const changed = (triggered: boolean): Event => ({ contract: 'BondrailBond', event: 'TriggerChanged', srcAddress: bond,
     params: { triggered }, transaction });
   for (const states of [[], [true], [true, false], [true, false, true]]) {
     const db = await run([created(), bondCreated, ...states.map(changed)]);

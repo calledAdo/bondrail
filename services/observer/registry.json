@@ -1,11 +1,11 @@
 [
   {
-    "id": "slice-agent",
+    "id": "bondrail-agent",
     "chainId": 10143,
     "chainSelector": "2183018362218727504",
     "covenant": "0x5502d6e2b169f69364a4adac594e790e0f2fc7d7",
     "bond": "0xf12f80905f96ff99688d2a5e719f5F208c385c06",
-    "manifestUrl": "https://slice-agent.vercel.app/.well-known/slice.json",
+    "manifestUrl": "https://slice-agent.vercel.app/.well-known/bondrail.json",
     "endpoints": [
       {
         "url": "https://slice-agent.vercel.app/api/oracle?question=health",
@@ -20,7 +20,7 @@
     "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
     "expectedPayTo": "0x4a83E241BCF144f738276F10DbC922dc4f17ef58",
     "maxTimeoutSeconds": 300,
-    "parserVersion": "slice-x402-v2-exact-eip3009/2",
+    "parserVersion": "bondrail-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,
     "freshnessSeconds": 90
   }

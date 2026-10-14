@@ -130,7 +130,7 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
           Built on Bondrail: every fee moves through the account, which is fixed into the project&apos;s code. There is no other fee path.
         </p>
         <p className={cn('mt-3 text-sm', a?.reviewed ? 'text-foreground' : 'text-orange-500')}>
-          {a?.reviewed ? 'Reviewed: the disclosed reviewer checked that every fee goes through SliceEarner.' : 'Awaiting review: history accrues, but the project cannot raise until its code is reviewed.'}
+          {a?.reviewed ? 'Reviewed: the disclosed reviewer checked that every fee goes through BondrailEarner.' : 'Awaiting review: history accrues, but the project cannot raise until its code is reviewed.'}
         </p>
         {b.minFeeBps > 0 && <p className="mt-3 text-sm text-foreground/70">Fee floor while live: {(b.minFeeBps / 100).toFixed(2)}% of each payment.</p>}
       </Panel>

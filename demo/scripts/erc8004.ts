@@ -5,7 +5,7 @@
 //                                           independent reporter wallet (owners can't rate themselves)
 //   pnpm tsx scripts/erc8004.ts repaid      after final cap settlement: positive feedback (no default)
 // Explicit one-shot reporting: operators must check prior feedback before rerunning; no auto watcher.
-import { sliceAccountAbi, sliceBondAbi } from '../../packages/sdk/src/abis.ts';
+import { bondrailAccountAbi, bondrailBondAbi } from '../../packages/sdk/src/abis.ts';
 import os from 'node:os';
 import path from 'node:path';
 import { decodeEventLog, keccak256, parseAbi, stringToHex } from 'viem';
@@ -53,7 +53,7 @@ async function main() {
   if (cmd === 'feedback' || cmd === 'repaid') {
     if (!agent.agentId) throw new Error('Register first');
     const blockNumber = await publicClient.getBlockNumber();
-    const bondRead = { address: agent.bond, abi: sliceBondAbi, blockNumber } as const;
+    const bondRead = { address: agent.bond, abi: bondrailBondAbi, blockNumber } as const;
     const [bondAccount, defaultedAt, phase, closeReason, collected, cap, closedAt, owner] = await Promise.all([
       publicClient.readContract({ ...bondRead, functionName: 'account' }),
       publicClient.readContract({ ...bondRead, functionName: 'defaultedAt' }),
@@ -64,7 +64,7 @@ async function main() {
       publicClient.readContract({ ...bondRead, functionName: 'collectionClosedAt' }),
       publicClient.readContract({ address: IDENTITY, abi: identityAbi, functionName: 'ownerOf', args: [BigInt(agent.agentId)], blockNumber }),
     ]);
-    const issuer = await publicClient.readContract({ address: bondAccount, abi: sliceAccountAbi, functionName: 'issuer', blockNumber });
+    const issuer = await publicClient.readContract({ address: bondAccount, abi: bondrailAccountAbi, functionName: 'issuer', blockNumber });
     if (bondAccount.toLowerCase() !== agent.account.toLowerCase() || issuer.toLowerCase() !== owner.toLowerCase())
       throw new Error('Registered agent owner does not match this bond account issuer');
     const repaid = cmd === 'repaid';
@@ -75,12 +75,12 @@ async function main() {
     const reporter = account('deployer', {
       fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key'),
     });
-    const evidence = repaid ? `slice:fully-repaid:${agent.bond}:${closedAt}:${collected}:${cap}` : `slice:covenant-default:${agent.bond}:${defaultedAt}`;
+    const evidence = repaid ? `bondrail:fully-repaid:${agent.bond}:${closedAt}:${collected}:${cap}` : `bondrail:covenant-default:${agent.bond}:${defaultedAt}`;
     const r = await write(reporter, REPUTATION, reputationAbi, 'giveFeedback', [
       BigInt(agent.agentId),
       repaid ? 100n : -100n,
       0,
-      'slice',
+      'bondrail',
       repaid ? 'fully-repaid' : 'default',
       `${base}/api/oracle`,
       '',

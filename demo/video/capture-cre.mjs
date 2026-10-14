@@ -25,20 +25,20 @@ const offer=await fetch(config.policy.endpoints[0].url);const offerDoc=JSON.pars
 fs.writeFileSync(path.join(OUT,'payment-offer.json'),JSON.stringify(offerDoc,null,2));
 await document('The payment route CRE checks',`<small>Live HTTP response · payment-required header decoded for readability</small><div class="panel"><dl><dt>HTTP status</dt><dd><strong>${offer.status} · Payment Required</strong></dd><dt>Endpoint</dt><dd>${esc(config.policy.endpoints[0].url)}</dd><dt>Payment destination</dt><dd><code>${esc(offerDoc.accepts[0].payTo)}</code></dd><dt>Committed destination</dt><dd><code>${config.policy.expectedPayTo}</code></dd><dt>Network</dt><dd>${esc(offerDoc.accepts[0].network)}</dd><dt>Amount / asset</dt><dd>${esc(offerDoc.accepts[0].amount)} base units / test USDC</dd></dl></div><p>Watch policy bound to bond <code>${config.policy.bond}</code></p>`);mark('offer');await pause(11);await page.screenshot({path:path.join(OUT,'offer.png')});
 await document('Run the CRE workflow',`<small>Live CRE CLI output · local simulation with a real testnet broadcast</small><pre id="terminal"></pre>`);mark('cli');
-const cmd=['workflow','simulate','slice-covenant','--target','testnet','--non-interactive','--trigger-index','0','--wasm',path.join(ROOT,'cre/slice-covenant/dist/workflow.wasm'),'--config',path.join(OUT,'config.json'),'--broadcast'];
-const commandText='$ cre workflow simulate slice-covenant --target testnet \\\n    --non-interactive --trigger-index 0 --wasm <compiled-workflow> \\\n    --config <demo-config> --broadcast\n\n';
+const cmd=['workflow','simulate','bondrail-covenant','--target','testnet','--non-interactive','--trigger-index','0','--wasm',path.join(ROOT,'cre/bondrail-covenant/dist/workflow.wasm'),'--config',path.join(OUT,'config.json'),'--broadcast'];
+const commandText='$ cre workflow simulate bondrail-covenant --target testnet \\\n    --non-interactive --trigger-index 0 --wasm <compiled-workflow> \\\n    --config <demo-config> --broadcast\n\n';
 await page.locator('#terminal').textContent();await page.evaluate(t=>document.getElementById('terminal').textContent=t,commandText);await pause(4);
 fs.writeFileSync(journal,JSON.stringify({status:'attempt_started',startedAt:new Date().toISOString(),bond:config.policy.bond,covenant:config.policy.covenant},null,2));
 let log='',updates=Promise.resolve();const events=[];const start=Date.now();
 const child=spawn('/Users/adokiye/.cre/bin/cre',cmd,{cwd:path.join(ROOT,'cre'),env:{...process.env,PATH:'/Users/adokiye/.bun/bin:/Users/adokiye/.cre/bin:'+process.env.PATH}});
 function append(buf){let s=buf.toString().replace(/\x1b\[[0-9;]*[A-Za-z]/g,'');for(const value of Object.values(env))if(value.length>16)s=s.replaceAll(value,'[REDACTED]');s=s.replaceAll(ROOT,'<project>');log+=s;events.push({at:(Date.now()-start)/1000,text:s});fs.writeFileSync(path.join(OUT,'broadcast.log'),log);fs.writeFileSync(path.join(OUT,'cli-events.json'),JSON.stringify(events,null,2));updates=updates.then(()=>page.evaluate(t=>{const p=document.getElementById('terminal');p.textContent=t;window.scrollTo(0,document.body.scrollHeight)},commandText+log));}
 child.stdout.on('data',append);child.stderr.on('data',append);const code=await new Promise((r,j)=>{child.on('exit',r);child.on('error',j)});await updates;
-const hash=log.match(/SLICE_REPORT_TX=(0x[a-fA-F0-9]{64})/)?.[1];
+const hash=log.match(/BONDRAIL_REPORT_TX=(0x[a-fA-F0-9]{64})/)?.[1];
 fs.writeFileSync(journal,JSON.stringify({status:hash?'submitted':'needs_reconciliation',exitCode:code,hash,bond:config.policy.bond,covenant:config.policy.covenant},null,2));
 mark('cli-result');await pause(10);await page.screenshot({path:path.join(OUT,'cli-result.png')});
 if(code!==0||!hash)throw Error('CLI did not confirm transaction; inspect journal, do not blindly retry');
 const receipt=await client.getTransactionReceipt({hash});
-const abi=JSON.parse(fs.readFileSync('contracts/out/SliceCovenant.sol/SliceCovenant.json')).abi;
+const abi=JSON.parse(fs.readFileSync('contracts/out/BondrailCovenant.sol/BondrailCovenant.json')).abi;
 const accepted=receipt.logs.filter(l=>l.address.toLowerCase()===config.policy.covenant.toLowerCase()).map(l=>{try{return decodeEventLog({abi,...l})}catch{return null}}).find(e=>e?.eventName==='ObservationAccepted');
 if(receipt.status!=='success'||!accepted||Number(accepted.args.result)!==1)throw Error('Successful compliant observation required');
 const data={status:'success',hash,chainId:10143,receipt,observation:accepted};

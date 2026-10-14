@@ -4,7 +4,7 @@ import {
   isAddress, parseAbi, parseSignature, verifyTypedData, zeroAddress,
   type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type TypedDataDomain, type WalletClient,
 } from 'viem';
-import { sliceAccountAbi, sliceFactoryAbi } from '@bondrail/sdk/abis';
+import { bondrailAccountAbi, bondrailFactoryAbi } from '@bondrail/sdk/abis';
 import { settleThroughAccount, type TransferAuthorization } from '@bondrail/sdk/x402';
 
 export const authorizationTypes = {
@@ -116,9 +116,9 @@ export async function createFacilitator(o: FacilitatorOptions) {
       signature,
     });
     if (!valid) throw new Error('invalid_signature');
-    if (!await o.publicClient.readContract({ address: o.factory, abi: sliceFactoryAbi, functionName: 'isAccount', args: [a.to] }))
-      throw new Error('pay_to_not_slice_account');
-    const asset = await o.publicClient.readContract({ address: a.to, abi: sliceAccountAbi, functionName: 'asset' });
+    if (!await o.publicClient.readContract({ address: o.factory, abi: bondrailFactoryAbi, functionName: 'isAccount', args: [a.to] }))
+      throw new Error('pay_to_not_bondrail_account');
+    const asset = await o.publicClient.readContract({ address: a.to, abi: bondrailAccountAbi, functionName: 'asset' });
     if (!same(asset, o.asset)) throw new Error('account_asset_mismatch');
     if (await o.publicClient.readContract({ address: o.asset, abi: tokenAbi, functionName: 'authorizationState', args: [a.from, a.nonce] }))
       throw new Error('authorization_used');
@@ -127,7 +127,7 @@ export async function createFacilitator(o: FacilitatorOptions) {
     const { r, s, yParity } = parseSignature(signature);
     // Also rejects old account implementations, paused/blocked tokens and wrong on-chain domains.
     await o.publicClient.simulateContract({
-      account: walletClient.account, address: a.to, abi: sliceAccountAbi, functionName: 'settle',
+      account: walletClient.account, address: a.to, abi: bondrailAccountAbi, functionName: 'settle',
       args: [a.from, BigInt(a.value), BigInt(a.validAfter), BigInt(a.validBefore), a.nonce, 27 + yParity, r, s],
     });
     return payment;

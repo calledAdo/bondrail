@@ -1,6 +1,6 @@
 testnet:
   user-workflow:
-    workflow-name: slice-covenant-testnet
+    workflow-name: bondrail-covenant-testnet
   workflow-artifacts:
     workflow-path: ./src/main.ts
     config-path: ./config.json

@@ -1,7 +1,7 @@
 // Sets up the three demo businesses on a deployment (run scripts/deploy.ts first). Resumable: every
 // created piece is saved to docs/deployments/<chain>.json before the next step.
 //
-//   pumplab  Native  : account -> issuer deploys PumpLab (a SliceEarner) -> binds it -> reviewer approves -> bond
+//   pumplab  Native  : account -> issuer deploys PumpLab (a BondrailEarner) -> binds it -> reviewer approves -> bond
 //   curvelab Native  : a second issuer on the same reviewed template; its raise stays open (judges can fund)
 //   agent    Watched : account (the x402 payTo) -> bond with stake; activation waits for a CRE report
 //
@@ -59,9 +59,9 @@ const erc20 = parseAbi([
   'function balanceOf(address) view returns (uint256)',
   'function mint(address,uint256)',
 ]);
-const factoryAbi = artifact('SliceFactory').abi;
-const bondAbi = artifact('SliceBond').abi;
-const accountAbi = artifact('SliceAccount').abi;
+const factoryAbi = artifact('BondrailFactory').abi;
+const bondAbi = artifact('BondrailBond').abi;
+const accountAbi = artifact('BondrailAccount').abi;
 
 const deployer = account('deployer', { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') });
 const investor = account('investor', { create: true });
@@ -219,7 +219,7 @@ async function setupLaunchpad(id: string, name: string, tokenName: string, token
   const issuer = account(`${id}-issuer`);
   if (!rec.source) {
     // The disclosed reviewer approves the PumpLab template once (its creation code: every fee goes
-    // through SliceEarner). Any issuer then deploys it through the factory, pointed at and bound to its
+    // through BondrailEarner). Any issuer then deploys it through the factory, pointed at and bound to its
     // own account in one transaction, with no per-project review.
     const { bytecode } = artifact('PumpLab');
     const templateHash = keccak256(bytecode);
@@ -256,7 +256,7 @@ async function setupLaunchpad(id: string, name: string, tokenName: string, token
   }
   const created = await createBond(
     id,
-    { adapter: 0, source: rec.source, policyHash: keccak256(stringToHex(`slice-native-${id}-v1`)) },
+    { adapter: 0, source: rec.source, policyHash: keccak256(stringToHex(`bondrail-native-${id}-v1`)) },
     `${name} Revenue Claim`,
     symbol,
     0,
@@ -284,12 +284,12 @@ async function setupAgent() {
     // Every paid endpoint the agent lists in its manifest is covered; the price is a floor.
     const origin = new URL(agentUrl).origin;
     const policy: WatchPolicy = {
-      id: 'slice-agent',
+      id: 'bondrail-agent',
       chainId: chainId as 10143,
       chainSelector: '2183018362218727504',
       covenant: d.covenant,
       bond,
-      manifestUrl: `${origin}/.well-known/slice.json`,
+      manifestUrl: `${origin}/.well-known/bondrail.json`,
       endpoints: [{ url: agentUrl, minAmount: '10000' }],
       method: 'GET',
       headers: { accept: 'application/json' },

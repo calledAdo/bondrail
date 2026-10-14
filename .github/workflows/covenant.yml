@@ -8,7 +8,7 @@
 name: covenant
 
 # The schedule runs on a server instead (CRE CLI auth in CI needs an API key, which needs CRE deploy
-# access): see the slice-covenant systemd timer. Manual runs stay available once CRE_API_KEY exists.
+# access): see the bondrail-covenant systemd timer. Manual runs stay available once CRE_API_KEY exists.
 on:
   workflow_dispatch:
 
@@ -37,9 +37,9 @@ jobs:
       - name: Start the observer
         working-directory: services/observer
         env:
-          SLICE_ENV: local
-          SLICE_STORE: local
-          SLICE_DATA_DIR: ${{ runner.temp }}/observer
+          BONDRAIL_ENV: local
+          BONDRAIL_STORE: local
+          BONDRAIL_DATA_DIR: ${{ runner.temp }}/observer
           OBSERVER_REGISTRY: ./registry.json
           OBSERVER_PRIVATE_KEY: ${{ secrets.OBSERVER_PRIVATE_KEY }}
           OBSERVER_API_TOKEN: ${{ secrets.OBSERVER_API_TOKEN }}
@@ -54,7 +54,7 @@ jobs:
           CRE_API_KEY: ${{ secrets.CRE_API_KEY }}
           CRE_ETH_PRIVATE_KEY: ${{ secrets.CRE_ETH_PRIVATE_KEY }}
           OBSERVER_API_TOKEN: ${{ secrets.OBSERVER_API_TOKEN }}
-        run: cre workflow simulate slice-covenant --target testnet --non-interactive --trigger-index 0 --broadcast
+        run: cre workflow simulate bondrail-covenant --target testnet --non-interactive --trigger-index 0 --broadcast
 
       - name: Observer log
         if: always()

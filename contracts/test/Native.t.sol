@@ -2,44 +2,44 @@
 pragma solidity 0.8.28;
 
 import {TestBase} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLab} from "@slice-demo/PumpLab.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
+import {PumpLab} from "@bondrail-demo/PumpLab.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 
 /// @notice Native tier: revenue history from day one, proven payers, passthrough -> credit -> passthrough.
 contract NativeTest is TestBase {
     MockUSDC asset;
-    SliceFactory factory;
-    SliceAccount account;
+    BondrailFactory factory;
+    BondrailAccount account;
     PumpLab lab;
-    SliceBond bond;
+    BondrailBond bond;
     address issuer = address(0x111);
     address investor = address(0x222);
     address constant REVIEWER = address(0x777);
     uint256 constant TRADER_PK = 0xA11CE;
     address trader;
-    SliceTypes.Terms t;
+    BondrailTypes.Terms t;
 
     function setUp() public {
         vm.warp(1_800_000);
         vm.chainId(31337);
         trader = vm.addr(TRADER_PK);
         asset = new MockUSDC();
-        SliceCovenant covenant = new SliceCovenant(address(0x444), vm.addr(12345));
-        factory = new SliceFactory(
-            address(covenant), vm.addr(67890), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 0
+        BondrailCovenant covenant = new BondrailCovenant(address(0x444), vm.addr(12345));
+        factory = new BondrailFactory(
+            address(covenant), vm.addr(67890), address(new BondrailBond()), address(new BondrailAccount()), REVIEWER, 0
         );
         covenant.initializeFactory(address(factory));
         asset.mint(issuer, 1_000e6);
         asset.mint(investor, 1_000e6);
         asset.mint(trader, 100_000e6);
         vm.startPrank(issuer);
-        account = SliceAccount(factory.createAccount(address(asset)));
-        // The project deploys itself on top of SliceEarner, pointed at its account, then binds it.
+        account = BondrailAccount(factory.createAccount(address(asset)));
+        // The project deploys itself on top of BondrailEarner, pointed at its account, then binds it.
         lab = new PumpLab(address(account), "Lab", "LAB");
         account.bindProject(address(lab));
         asset.approve(address(factory), type(uint256).max);
@@ -50,7 +50,7 @@ contract NativeTest is TestBase {
         vm.prank(trader);
         asset.approve(address(account), type(uint256).max);
         uint64 now_ = uint64(vm.getBlockTimestamp());
-        t = SliceTypes.Terms(
+        t = BondrailTypes.Terms(
             100e6,
             120e6,
             0,
@@ -62,7 +62,7 @@ contract NativeTest is TestBase {
             60,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Onchain,
+            BondrailTypes.MilestoneMode.Onchain,
             0,
             0,
             0,
@@ -77,11 +77,11 @@ contract NativeTest is TestBase {
 
     function _bond() internal {
         vm.prank(issuer);
-        bond = SliceBond(
+        bond = BondrailBond(
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), keccak256("native")),
+                BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, address(lab), keccak256("native")),
                 "Lab Revenue Claim",
                 "LAB-RC"
             )
@@ -110,10 +110,10 @@ contract NativeTest is TestBase {
 
     function testOnlyTheBoundProjectCanPull() public {
         vm.prank(address(0xBAD));
-        vm.expectRevert(SliceAccount.Unauthorized.selector);
+        vm.expectRevert(BondrailAccount.Unauthorized.selector);
         account.collect(trader, 10e6, 10e6);
         vm.prank(issuer);
-        vm.expectRevert(SliceAccount.InvalidState.selector);
+        vm.expectRevert(BondrailAccount.InvalidState.selector);
         account.bindProject(address(this)); // binding is one-time
     }
 
@@ -169,7 +169,7 @@ contract NativeTest is TestBase {
         _bond();
         vm.warp(t.secondReleaseNotBefore);
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidMilestone.selector);
+        vm.expectRevert(BondrailFactory.InvalidMilestone.selector);
         factory.releaseSecond(address(bond)); // no revenue yet
         for (uint256 i; i < 5; i++) {
             _buy(100e6); // 5 USDC of fees since activation
@@ -181,14 +181,14 @@ contract NativeTest is TestBase {
     }
 
     function testSignedModeRejectsOnchainRelease() public {
-        t.milestoneMode = SliceTypes.MilestoneMode.Signed;
+        t.milestoneMode = BondrailTypes.MilestoneMode.Signed;
         _bond();
         for (uint256 i; i < 6; i++) {
             _buy(100e6);
         }
         vm.warp(t.secondReleaseNotBefore);
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidMilestone.selector);
+        vm.expectRevert(BondrailFactory.InvalidMilestone.selector);
         factory.releaseSecond(address(bond));
     }
 
@@ -198,7 +198,7 @@ contract NativeTest is TestBase {
         _bond();
         vm.prank(trader);
         lab.buy(10_000e6, 0, uint64(vm.getBlockTimestamp() + 60)); // 100 USDC fee
-        eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Closed));
+        eq(uint256(bond.phase()), uint256(BondrailTypes.Phase.Closed));
         eq(account.activeBond(), address(0));
         eq(bond.totalRevenueCollected(), 50e6);
         uint256 credit = account.issuerCredit();
@@ -209,11 +209,11 @@ contract NativeTest is TestBase {
 
     function testNativeBondRequiresTheBoundLaunchpad() public {
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        vm.expectRevert(BondrailFactory.InvalidAdapter.selector);
         factory.createBond(
             address(account),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(0xBEEF), keccak256("x")),
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, address(0xBEEF), keccak256("x")),
             "X",
             "X-RC"
         );
@@ -225,11 +225,11 @@ contract NativeTest is TestBase {
         _buy(100e6);
         eq(account.cumulativeRevenue(), 1e6); // history accrues regardless of review
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        vm.expectRevert(BondrailFactory.InvalidAdapter.selector);
         factory.createBond(
             address(account),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), keccak256("native")),
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, address(lab), keccak256("native")),
             "Lab Revenue Claim",
             "LAB-RC"
         );
@@ -237,15 +237,15 @@ contract NativeTest is TestBase {
 
     function testOnlyTheReviewerApproves() public {
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.Unauthorized.selector);
+        vm.expectRevert(BondrailFactory.Unauthorized.selector);
         factory.setNativeApproval(address(lab), true);
     }
 
     function testAccountRefusesAProjectThatDoesNotPointAtIt() public {
         vm.startPrank(issuer);
-        SliceAccount other = SliceAccount(factory.createAccount(address(asset)));
+        BondrailAccount other = BondrailAccount(factory.createAccount(address(asset)));
         PumpLab stranger = new PumpLab(address(account), "X", "X"); // points at another account
-        vm.expectRevert(SliceAccount.InvalidState.selector);
+        vm.expectRevert(BondrailAccount.InvalidState.selector);
         other.bindProject(address(stranger));
         vm.stopPrank();
     }
@@ -254,11 +254,11 @@ contract NativeTest is TestBase {
 
     function _openBond() internal {
         vm.prank(issuer);
-        bond = SliceBond(
+        bond = BondrailBond(
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, address(lab), keccak256("native")),
+                BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, address(lab), keccak256("native")),
                 "Lab Revenue Claim",
                 "LAB-RC"
             )
@@ -285,7 +285,7 @@ contract NativeTest is TestBase {
         vm.prank(issuer);
         factory.activate(address(bond));
         vm.prank(investor);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.withdraw(1e6, investor); // the raise has closed
     }
 
@@ -295,7 +295,7 @@ contract NativeTest is TestBase {
         bond.deposit(10e6);
         vm.warp(t.fundingDeadline);
         vm.prank(investor);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.withdraw(10e6, investor);
         account.cancelFunding(address(bond));
         vm.prank(investor);
@@ -314,17 +314,17 @@ contract NativeTest is TestBase {
 
     // ---- reviewed templates: one review, any issuer, no per-project approval
 
-    function _template() internal returns (SliceAccount fresh, bytes memory code, bytes memory args) {
+    function _template() internal returns (BondrailAccount fresh, bytes memory code, bytes memory args) {
         code = type(PumpLab).creationCode;
         vm.prank(REVIEWER);
         factory.setNativeTemplate(keccak256(code), true);
         vm.prank(issuer);
-        fresh = SliceAccount(factory.createAccount(address(asset)));
+        fresh = BondrailAccount(factory.createAccount(address(asset)));
         args = abi.encode(address(fresh), "Tpl", "TPL");
     }
 
     function testTemplateDeployBindsAndQualifiesWithoutReview() public {
-        (SliceAccount fresh, bytes memory code, bytes memory args) = _template();
+        (BondrailAccount fresh, bytes memory code, bytes memory args) = _template();
         vm.prank(issuer);
         address project = factory.deployNative(address(fresh), code, args, bytes32(0));
         eq(uint256(uint160(fresh.project())), uint256(uint160(project)));
@@ -333,49 +333,49 @@ contract NativeTest is TestBase {
         factory.createBond(
             address(fresh),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, project, keccak256("native")),
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, project, keccak256("native")),
             "Tpl Revenue Claim",
             "TPL-RC"
         );
     }
 
     function testTemplateRevocationBlocksItsProjects() public {
-        (SliceAccount fresh, bytes memory code, bytes memory args) = _template();
+        (BondrailAccount fresh, bytes memory code, bytes memory args) = _template();
         vm.prank(issuer);
         address project = factory.deployNative(address(fresh), code, args, bytes32(0));
         vm.prank(REVIEWER);
         factory.setNativeTemplate(keccak256(code), false);
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        vm.expectRevert(BondrailFactory.InvalidAdapter.selector);
         factory.createBond(
             address(fresh),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, project, keccak256("native")),
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, project, keccak256("native")),
             "Tpl Revenue Claim",
             "TPL-RC"
         );
     }
 
     function testTemplateRejectsUnreviewedCodeOtherAccountsAndStrangers() public {
-        (SliceAccount fresh, bytes memory code, bytes memory args) = _template();
+        (BondrailAccount fresh, bytes memory code, bytes memory args) = _template();
         vm.startPrank(issuer);
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        vm.expectRevert(BondrailFactory.InvalidAdapter.selector);
         factory.deployNative(address(fresh), bytes.concat(code, hex"00"), args, bytes32(0)); // not reviewed
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        vm.expectRevert(BondrailFactory.InvalidAdapter.selector);
         factory.deployNative(address(fresh), code, abi.encode(address(account), "X", "X"), bytes32(0)); // wrong account
         vm.stopPrank();
         vm.prank(address(0xBAD));
-        vm.expectRevert(SliceFactory.Unauthorized.selector);
+        vm.expectRevert(BondrailFactory.Unauthorized.selector);
         factory.deployNative(address(fresh), code, args, bytes32(0)); // not the issuer
         vm.prank(address(0xBAD));
-        vm.expectRevert(SliceAccount.Unauthorized.selector);
+        vm.expectRevert(BondrailAccount.Unauthorized.selector);
         fresh.bindProjectFromFactory(address(lab));
     }
 
     function testTemplateCannotRebindAnAccount() public {
         (, bytes memory code,) = _template();
         vm.prank(issuer);
-        vm.expectRevert(SliceAccount.InvalidState.selector);
+        vm.expectRevert(BondrailAccount.InvalidState.selector);
         factory.deployNative(address(account), code, abi.encode(address(account), "Y", "Y"), bytes32(0)); // already bound
     }
 

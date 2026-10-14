@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { indexer, createTestIndexer, type TestIndexerProcessConfig } from 'envio';
-import '../src/handlers/slice';
+import '../src/handlers/bondrail';
 
 type Event = NonNullable<NonNullable<TestIndexerProcessConfig['chains'][10143]>['simulate']>[number];
 // Test-only discovery of synthetic registry addresses. Production has no wildcard handler;

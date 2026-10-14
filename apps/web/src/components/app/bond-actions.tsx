@@ -57,7 +57,7 @@ export function BondActions({ b, onDone }: { b: BondView; onDone: () => void }) 
   const now = Date.now() / 1000;
   const ready = !!address && chainId === chain.id && safeNetwork && !busy;
   const value = /^\d+(\.\d+)?$/.test(amount) ? parseUnits(amount, d) : 0n;
-  // What redeem pays, exactly as SliceBond.redeem computes it: tokens × pool / supply.
+  // What redeem pays, exactly as BondrailBond.redeem computes it: tokens × pool / supply.
   const proceeds = pool === undefined || !supply ? 0n : value >= supply ? pool : (value * pool) / supply;
   const early = b.phase !== 'Closed';
 

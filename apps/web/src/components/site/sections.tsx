@@ -181,7 +181,7 @@ export function Tiers() {
             tone: 'border-foreground/15 text-foreground/80',
             tier: 'Native',
             title: 'Built on Bondrail',
-            body: 'Your contract inherits SliceEarner. Every fee moves through your account, which is fixed into the code. There is no other path.',
+            body: 'Your contract inherits BondrailEarner. Every fee moves through your account, which is fixed into the code. There is no other path.',
             facts: ['collect() for money in, settleOut() for money out', 'payer proven by the transfer itself', 'optional fee floor while a bond is live'],
             href: '/docs/guides/native',
           })}
@@ -193,7 +193,7 @@ export function Tiers() {
             tier: 'Watched',
             title: 'Paid APIs over x402',
             body: 'Your API pays its account. Chainlink CRE checks every paid endpoint every 30 minutes; a confirmed diversion defaults the bond and slashes your stake.',
-            facts: ['/.well-known/slice.json manifest', 'every payment option must pay the account', 'guarded buyers verify payTo before paying'],
+            facts: ['/.well-known/bondrail.json manifest', 'every payment option must pay the account', 'guarded buyers verify payTo before paying'],
             href: '/docs/guides/x402',
           })}
         </Reveal>

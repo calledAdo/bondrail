@@ -1,6 +1,6 @@
 // Writes the Watched bond's monitoring config from docs/deployments/<chain>.json (after setup-demo.ts agent):
 //   services/observer/registry.json   the observer's immutable policy list
-//   cre/slice-covenant/config.json    the CRE workflow config (policy + observer endpoint and signer)
+//   cre/bondrail-covenant/config.json    the CRE workflow config (policy + observer endpoint and signer)
 //
 //   OBSERVER_URL=https://<observer>/observe pnpm tsx demo/scripts/write-watch-config.ts
 // Without OBSERVER_URL the CRE config points at a loopback observer (local `cre workflow simulate` only).
@@ -17,7 +17,7 @@ const write = (file: string, value: unknown) => {
   console.log(`  wrote ${file}`);
 };
 write('services/observer/registry.json', [d.watchPolicy]);
-write('cre/slice-covenant/config.json', {
+write('cre/bondrail-covenant/config.json', {
   schedule: '*/30 * * * * *',
   observerURL,
   ...(loopback ? { simulationLoopbackObserver: true } : {}),

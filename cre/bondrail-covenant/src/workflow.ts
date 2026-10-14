@@ -140,13 +140,13 @@ export async function onCron(runtime: Runtime<WorkflowConfig>): Promise<string> 
   if (result.txStatus !== 2 || result.receiverContractExecutionStatus !== 0)
     throw new Error('Report not confirmed by receiver');
   if (!result.txHash?.length || result.txHash.every((b: number) => b === 0)) {
-    runtime.log('SLICE_SIMULATION_ONLY: no broadcast receipt');
+    runtime.log('BONDRAIL_SIMULATION_ONLY: no broadcast receipt');
     return 'simulation_only';
   }
   const tx = bytesToHex(result.txHash);
-  runtime.log(`SLICE_REPORT_TX=${tx}`);
+  runtime.log(`BONDRAIL_REPORT_TX=${tx}`);
   // The reporter reads this: a violation is confirmed by a second report in the next epoch.
-  runtime.log(`SLICE_RESULT=${o.result} SLICE_EPOCH=${o.epoch}`);
+  runtime.log(`BONDRAIL_RESULT=${o.result} BONDRAIL_EPOCH=${o.epoch}`);
   return tx;
 }
 export function initWorkflow(config: WorkflowConfig) {

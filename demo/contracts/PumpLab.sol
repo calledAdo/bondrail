@@ -5,19 +5,19 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceEarner} from "@slice/SliceEarner.sol";
-import {ISliceAccount} from "@slice/SliceTypes.sol";
+import {BondrailEarner} from "@bondrail/BondrailEarner.sol";
+import {IBondrailAccount} from "@bondrail/BondrailTypes.sol";
 import {LaunchToken} from "./LaunchToken.sol";
 
-/// @notice DEMO, Native tier: a launchpad built on Slice from day one (inherits SliceEarner).
+/// @notice DEMO, Native tier: a launchpad built on Bondrail from day one (inherits BondrailEarner).
 ///
-/// Every USDC a trader pays in or is paid out goes through the launchpad's SliceAccount. Buys use `_collect`:
+/// Every USDC a trader pays in or is paid out goes through the launchpad's BondrailAccount. Buys use `_collect`:
 /// the account pulls the payment from the trader, keeps the 1% fee and forwards the rest here. Sells use
 /// `_settleOut`: the proceeds go out through the account, which keeps the 1% fee and pays the trader.
 /// The account is immutable and there is no other fee path, so fees cannot be redirected, and every
 /// fee since launch is in the account's on-chain history with the trader as its proven payer.
 /// Buyers approve (or permit) the account, not this contract, for USDC; sellers approve only the token.
-contract PumpLab is SliceEarner, ReentrancyGuard {
+contract PumpLab is BondrailEarner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error InvalidTrade();
@@ -35,8 +35,8 @@ contract PumpLab is SliceEarner, ReentrancyGuard {
     event Trade(address indexed trader, bool isBuy, uint256 tokenAmount, uint256 grossUSDC, uint256 fee);
 
     /// @dev The quote asset is the account's asset (USDC here: the virtual reserves assume 6 decimals).
-    constructor(address account_, string memory name_, string memory symbol_) SliceEarner(account_) {
-        asset = IERC20(ISliceAccount(account_).asset());
+    constructor(address account_, string memory name_, string memory symbol_) BondrailEarner(account_) {
+        asset = IERC20(IBondrailAccount(account_).asset());
         token = new LaunchToken(name_, symbol_, address(this));
     }
 

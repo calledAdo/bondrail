@@ -2,16 +2,16 @@
 // GraphQL queries by reading factory, account, bond and covenant events and state straight from the chain
 // on every request. Not a GraphQL server: it returns every entity the app asks for, whatever the query.
 //
-//   SLICE_CHAIN_ID=31337 pnpm tsx scripts/dev-indexer.ts        listens on http://127.0.0.1:8546
+//   BONDRAIL_CHAIN_ID=31337 pnpm tsx scripts/dev-indexer.ts        listens on http://127.0.0.1:8546
 import http from 'node:http';
 import { parseAbiItem, type Address } from 'viem';
 import { artifact, chainId, publicClient, readDeployment } from './lib.ts';
 
 if (chainId !== 31337) throw new Error('dev-indexer is for the local chain only');
 const d = readDeployment();
-const factoryAbi = artifact('SliceFactory').abi;
-const accountAbi = artifact('SliceAccount').abi;
-const bondAbi = artifact('SliceBond').abi;
+const factoryAbi = artifact('BondrailFactory').abi;
+const accountAbi = artifact('BondrailAccount').abi;
+const bondAbi = artifact('BondrailBond').abi;
 const low = (a: string) => a.toLowerCase();
 const DAY = 86_400;
 

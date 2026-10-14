@@ -17,7 +17,7 @@
   --color-primary-foreground: var(--primary-foreground);
   --color-ink: var(--ink);
   /* Signals, never decorative: the investor slice, warnings, violations. */
-  --color-slice: var(--color-emerald-500);
+  --color-bondrail: var(--color-emerald-500);
   --color-warn: var(--color-orange-500);
   --color-danger: var(--color-red-500);
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;

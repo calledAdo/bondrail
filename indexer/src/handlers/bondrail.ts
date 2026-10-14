@@ -12,15 +12,15 @@ const x402Id = (e: any, asset: string, payer: string, nonce: string) => `${e.cha
 
 // ---------- dynamic contracts: everything the factory creates gets indexed ----------
 
-indexer.contractRegister({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ event, context }) => {
-  context.chain.SliceAccount.add(event.params.account);
+indexer.contractRegister({ contract: 'BondrailFactory', event: 'AccountCreated' }, async ({ event, context }) => {
+  context.chain.BondrailAccount.add(event.params.account);
 });
-indexer.contractRegister({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
-  context.chain.SliceBond.add(event.params.bond);
+indexer.contractRegister({ contract: 'BondrailFactory', event: 'BondCreated' }, async ({ event, context }) => {
+  context.chain.BondrailBond.add(event.params.bond);
 });
 // ---------- accounts ----------
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailFactory', event: 'AccountCreated' }, async ({ event, context }) => {
   const account = low(event.params.account);
   const issuer = low(event.params.issuer);
   context.Issuer.set({
@@ -45,21 +45,21 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'AccountCreated' }, async ({ 
   context.Treasury.set({ id: issuer, accounts: [...(treasury?.accounts ?? []), account] });
 });
 
-// Native: the account binds a project that inherits SliceEarner (pointed at this account forever).
-indexer.onEvent({ contract: 'SliceAccount', event: 'ProjectBound' }, async ({ event, context }) => {
+// Native: the account binds a project that inherits BondrailEarner (pointed at this account forever).
+indexer.onEvent({ contract: 'BondrailAccount', event: 'ProjectBound' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.srcAddress));
   if (i) context.Issuer.set({ ...i, tier: NATIVE, project: low(event.params.project) });
 });
 
 // The disclosed reviewer approves (or revokes) a Native project.
-indexer.onEvent({ contract: 'SliceFactory', event: 'NativeApproval' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailFactory', event: 'NativeApproval' }, async ({ event, context }) => {
   const project = low(event.params.project);
   for (const i of await context.Issuer.getWhere({ project: { _eq: project } }))
     context.Issuer.set({ ...i, projectApproved: event.params.approved });
 });
 
 // A project deployed from a reviewed template is approved with it; revoking the template revokes it.
-indexer.onEvent({ contract: 'SliceFactory', event: 'NativeDeployed' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailFactory', event: 'NativeDeployed' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.params.account));
   if (i)
     context.Issuer.set({
@@ -71,12 +71,12 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'NativeDeployed' }, async ({ 
     });
 });
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'NativeTemplate' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailFactory', event: 'NativeTemplate' }, async ({ event, context }) => {
   for (const i of await context.Issuer.getWhere({ template: { _eq: event.params.initCodeHash } }))
     context.Issuer.set({ ...i, projectApproved: event.params.approved });
 });
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailFactory', event: 'BondCreated' }, async ({ event, context }) => {
   const account = low(event.params.account);
   const bond = low(event.params.bond);
   const adapter = Number(event.params.adapter);
@@ -107,7 +107,7 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'BondCreated' }, async ({ eve
   log(context, event, bond, 'Created', event.params.issuer, 0n);
 });
 
-indexer.onEvent({ contract: 'SliceFactory', event: 'SecondReleaseApproved' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailFactory', event: 'SecondReleaseApproved' }, async ({ event, context }) => {
   log(
     context,
     event,
@@ -120,7 +120,7 @@ indexer.onEvent({ contract: 'SliceFactory', event: 'SecondReleaseApproved' }, as
 
 // A settlement is a proven x402 payment. The indexed token's Transfer may already have recorded it;
 // the nonce is the shared identity, independent of transaction entrypoint or batching.
-indexer.onEvent({ contract: 'SliceAccount', event: 'Settled' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailAccount', event: 'Settled' }, async ({ event, context }) => {
   const account = low(event.srcAddress);
   const payer = low(event.params.payer);
   const issuer = await context.Issuer.get(account);
@@ -132,7 +132,7 @@ indexer.onEvent({ contract: 'SliceAccount', event: 'Settled' }, async ({ event, 
 });
 
 // Every booked payment: split accounting; Settled already attributes an authorized payment.
-indexer.onEvent({ contract: 'SliceAccount', event: 'Revenue' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailAccount', event: 'Revenue' }, async ({ event, context }) => {
   const account = low(event.srcAddress);
   const payer = low(event.params.payer);
   context.Split.set({
@@ -168,16 +168,16 @@ indexer.onEvent({ contract: 'SliceAccount', event: 'Revenue' }, async ({ event, 
 });
 
 // Native payment, in (payer paid the project) or out (the project paid the payer): adds to volume.
-indexer.onEvent({ contract: 'SliceAccount', event: 'Collected' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailAccount', event: 'Collected' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.srcAddress));
   if (i) context.Issuer.set({ ...i, volume: i.volume + event.params.gross });
 });
 
-indexer.onEvent({ contract: 'SliceAccount', event: 'Attached' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailAccount', event: 'Attached' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.srcAddress));
   if (i) context.Issuer.set({ ...i, activeBond: low(event.params.bond) });
 });
-indexer.onEvent({ contract: 'SliceAccount', event: 'Detached' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailAccount', event: 'Detached' }, async ({ event, context }) => {
   const i = await context.Issuer.get(low(event.srcAddress));
   if (i) context.Issuer.set({ ...i, activeBond: undefined });
 });
@@ -274,9 +274,9 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
 
   // Treasury funding: the issuer's wallet sending USDC to someone else (wash-trading detector input).
   // Transfers made inside Bondrail calls (stake through the factory, deposits into bonds) don't count.
-  const viaSlice = low(event.transaction.to ?? '') === FACTORY || !!(await context.Bond.get(to));
+  const viaBondrail = low(event.transaction.to ?? '') === FACTORY || !!(await context.Bond.get(to));
   const treasury = await context.Treasury.get(from);
-  if (treasury && !viaSlice && !(await context.Issuer.get(to))) {
+  if (treasury && !viaBondrail && !(await context.Issuer.get(to))) {
     // The sender issued each of these accounts, so the recipient is linked to all of them.
     for (const account of treasury.accounts) {
       context.FundingEdge.set({
@@ -302,7 +302,7 @@ indexer.onEvent({ contract: 'USDC', event: 'Transfer' }, async ({ event, context
   //   transfer  anything else: booked on-chain by sweep(), shown as an unclassified inflow and never
   //             counted as verified revenue (anyone, including the issuer, can send USDC to an account)
   const issuer = await context.Issuer.get(to);
-  if (!issuer || issuer.asset !== low(event.srcAddress) || (viaSlice && !authorization)) return;
+  if (!issuer || issuer.asset !== low(event.srcAddress) || (viaBondrail && !authorization)) return;
   const id = rowId(event);
   context.Receipt.set({
     id,
@@ -344,19 +344,19 @@ async function bondOf(context: any, event: any) {
   return context.Bond.get(low(event.srcAddress));
 }
 
-indexer.onEvent({ contract: 'SliceBond', event: 'Deposited' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'Deposited' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, raised: event.params.funded });
   log(context, event, low(event.srcAddress), 'Deposited', event.params.payer, event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'Withdrawn' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'Withdrawn' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, raised: event.params.funded });
   log(context, event, low(event.srcAddress), 'Withdrawn', event.params.holder, event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'Activated' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'Activated' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b)
     context.Bond.set({
@@ -369,7 +369,7 @@ indexer.onEvent({ contract: 'SliceBond', event: 'Activated' }, async ({ event, c
   log(context, event, low(event.srcAddress), 'Activated', event.params.issuer, event.params.released);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'PrincipalReleased' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'PrincipalReleased' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b)
     context.Bond.set({
@@ -381,7 +381,7 @@ indexer.onEvent({ contract: 'SliceBond', event: 'PrincipalReleased' }, async ({ 
   log(context, event, low(event.srcAddress), 'PrincipalReleased', '', event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'UndrawnRecovered' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'UndrawnRecovered' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b)
     context.Bond.set({
@@ -393,19 +393,19 @@ indexer.onEvent({ contract: 'SliceBond', event: 'UndrawnRecovered' }, async ({ e
   log(context, event, low(event.srcAddress), 'UndrawnRecovered', '', event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'RevenueReceived' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'RevenueReceived' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, revenueCollected: event.params.totalRevenue, pool: event.params.pool });
   log(context, event, low(event.srcAddress), 'RevenueReceived', '', event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'TriggerChanged' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'TriggerChanged' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, triggered: event.params.triggered });
   log(context, event, low(event.srcAddress), event.params.triggered ? 'Triggered' : 'TriggerRecovered', '', 0n);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'DefaultRecorded' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'DefaultRecorded' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b)
     context.Bond.set({
@@ -417,36 +417,36 @@ indexer.onEvent({ contract: 'SliceBond', event: 'DefaultRecorded' }, async ({ ev
   log(context, event, low(event.srcAddress), 'Defaulted', '', event.params.stakeRecovered);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'CollectionClosed' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'CollectionClosed' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   // Watched bonds enter Closing (2) for the evidence window; Native bonds close straight away (3).
   if (b) context.Bond.set({ ...b, phase: event.params.settleAfter > 0n ? 2 : 3, pool: event.params.pool });
   log(context, event, low(event.srcAddress), 'CollectionClosed', '', event.params.pool);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'SettlementFinalized' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'SettlementFinalized' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, phase: 3, pool: event.params.pool });
   log(context, event, low(event.srcAddress), 'Settled', '', event.params.pool);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'FundingCancelled' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'FundingCancelled' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, phase: 4 });
   log(context, event, low(event.srcAddress), 'Cancelled', '', event.params.refundable);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'Refunded' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'Refunded' }, async ({ event, context }) => {
   log(context, event, low(event.srcAddress), 'Refunded', event.params.holder, event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'Redeemed' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'Redeemed' }, async ({ event, context }) => {
   const b = await bondOf(context, event);
   if (b) context.Bond.set({ ...b, pool: b.pool - event.params.amount, redeemed: b.redeemed + event.params.amount });
   log(context, event, low(event.srcAddress), 'Redeemed', event.params.holder, event.params.amount);
 });
 
-indexer.onEvent({ contract: 'SliceBond', event: 'Transfer' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailBond', event: 'Transfer' }, async ({ event, context }) => {
   const bond = low(event.srcAddress);
   const from = low(event.params.from);
   const to = low(event.params.to);
@@ -466,7 +466,7 @@ indexer.onEvent({ contract: 'SliceBond', event: 'Transfer' }, async ({ event, co
 
 // ---------- covenant (Watched) ----------
 
-indexer.onEvent({ contract: 'SliceCovenant', event: 'ObservationAccepted' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailCovenant', event: 'ObservationAccepted' }, async ({ event, context }) => {
   context.CovenantCheck.set({
     id: rowId(event),
     chainId: event.chainId,
@@ -480,7 +480,7 @@ indexer.onEvent({ contract: 'SliceCovenant', event: 'ObservationAccepted' }, asy
   });
 });
 
-indexer.onEvent({ contract: 'SliceCovenant', event: 'CovenantDefault' }, async ({ event, context }) => {
+indexer.onEvent({ contract: 'BondrailCovenant', event: 'CovenantDefault' }, async ({ event, context }) => {
   log(context, event, low(event.params.bond), 'CovenantDefault', '', 0n);
 });
 

@@ -1,4 +1,4 @@
-# Free own-voice narration for Slice
+# Free own-voice narration for Bondrail
 
 Research checked October 11, 2026. User explicitly requested cloning their own voice and rejected the previous Kokoro voice. V1 footage and evidence are retained; no new transaction is needed.
 

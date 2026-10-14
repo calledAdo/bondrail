@@ -1,5 +1,5 @@
 [Unit]
-Description=Run the Slice maintenance worker every 10 minutes
+Description=Run the Bondrail maintenance worker every 10 minutes
 [Timer]
 OnCalendar=*:05/10
 Persistent=true

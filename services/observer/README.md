@@ -8,7 +8,7 @@ The private key is a disclosed trusted observer authority. It must match the Cov
 
 Malformed, unsupported, multiple, empty or unavailable offers are Unknown. A valid single v2 exact EIP-3009 offer that changes a committed payment field is a Violation. Only the onchain adjacent-epoch rule can default a bond. The observer itself never sends a transaction.
 
-HTTPS, fixed port, bounded headers/body/time, public DNS validation and a pinned connection address prevent local-network requests and DNS rebinding. Redirects are returned as Unknown without following them. The sole HTTP fixture exception is explicit local mode, chain31337 and `http://127.0.0.1:3001`. Registry headers allow only `accept` and `x-slice-probe`.
+HTTPS, fixed port, bounded headers/body/time, public DNS validation and a pinned connection address prevent local-network requests and DNS rebinding. Redirects are returned as Unknown without following them. The sole HTTP fixture exception is explicit local mode, chain31337 and `http://127.0.0.1:3001`. Registry headers allow only `accept` and `x-bondrail-probe`.
 
 Run from this directory with Node environment loading, e.g. `node --env-file=.env --import tsx src/server.ts`. Copy `.env.example` and `registry.example.json`; all zero addresses/placeholders must be replaced. Production needs HTTPS ingress, `OBSERVER_HOST=0.0.0.0` behind that ingress, shared Redis REST and durable backups. Local files are single-host development storage; an interrupted filesystem CAS leaves a lock directory intentionally requiring operator inspection instead of unsafe lock stealing.
 

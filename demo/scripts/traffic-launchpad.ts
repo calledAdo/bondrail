@@ -2,7 +2,7 @@
 //   organic  funded by the deployer, unrelated to the business's treasury -> verified revenue
 //   wash     funded by the business's own issuer wallet                   -> the scorer must exclude it
 //
-//   pnpm tsx scripts/traffic-launchpad.ts pumplab organic 2     Native PumpLab (traders approve the SliceAccount)
+//   pnpm tsx scripts/traffic-launchpad.ts pumplab organic 2     Native PumpLab (traders approve the BondrailAccount)
 //   pnpm tsx scripts/traffic-launchpad.ts pumplab wash 1
 import os from 'node:os';
 import path from 'node:path';
@@ -70,7 +70,7 @@ async function main() {
     await write(deployer, d.asset, erc20, 'mint', [treasury.address, PER_WALLET * BigInt(WALLETS)]);
   const traders = Array.from({ length: WALLETS }, (_, i) => account(`${issuerId}-${mode}-${i}`, { create: true }));
   const token = (await publicClient.readContract({ address: rec.source, abi: lab, functionName: 'token' })) as Address;
-  // The SliceAccount pulls every USDC payment (and the sell fee), so traders approve it, not the launchpad.
+  // The BondrailAccount pulls every USDC payment (and the sell fee), so traders approve it, not the launchpad.
   const usdcSpender = rec.account;
   for (const t of traders) {
     await topUp(funder, t.address, d.asset);

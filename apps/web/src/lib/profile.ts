@@ -1,5 +1,5 @@
-// A business profile, signed with EIP-712 by the SliceAccount's issuer. Stored off-chain (/api/registry);
-// anyone can re-verify the signature against `account.issuer()`. The website's /.well-known/slice.json
+// A business profile, signed with EIP-712 by the BondrailAccount's issuer. Stored off-chain (/api/registry);
+// anyone can re-verify the signature against `account.issuer()`. The website's /.well-known/bondrail.json
 // naming the account is the domain proof.
 import type { Address } from 'viem';
 
@@ -13,7 +13,7 @@ export type Profile = {
   updatedAt: bigint;
 };
 
-export const profileDomain = (chainId: number) => ({ name: 'Slice Profile', version: '1', chainId });
+export const profileDomain = (chainId: number) => ({ name: 'Bondrail Profile', version: '1', chainId });
 
 export const profileTypes = {
   Profile: [

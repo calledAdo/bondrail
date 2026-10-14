@@ -1,6 +1,6 @@
 # Account payment contention benchmark
 
-`scripts/bench/parallel.ts` sends EIP-3009 `SliceAccount.settle` payments from N independent funded wallets to one account, then sends the same workload to N different accounts (one per wallet). Defaults: **20 wallets × 5 payments = 100 transactions per arm**. Both arms use the same asset, amount, wallets, contract implementation and bond mode. No facilitator or shared gas wallet serializes submission.
+`scripts/bench/parallel.ts` sends EIP-3009 `BondrailAccount.settle` payments from N independent funded wallets to one account, then sends the same workload to N different accounts (one per wallet). Defaults: **20 wallets × 5 payments = 100 transactions per arm**. Both arms use the same asset, amount, wallets, contract implementation and bond mode. No facilitator or shared gas wallet serializes submission.
 
 **Anvil only validates the harness; it does not execute transactions in parallel. Its timings cannot establish a Monad speedup.** No Monad run is included here. `DESIGN.md` records the decision about contract changes.
 

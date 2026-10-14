@@ -1,6 +1,6 @@
 import { keccak256, stringToHex, encodeAbiParameters, type Address, type Hex } from 'viem';
 
-export const PARSER_VERSION = 'slice-x402-v2-exact-eip3009/2';
+export const PARSER_VERSION = 'bondrail-x402-v2-exact-eip3009/2';
 export const observationTypes = {
   Observation: [
     { name: 'bond', type: 'address' },
@@ -23,7 +23,7 @@ export interface PaidEndpoint {
 }
 /**
  * What one Watched bond commits to, fixed at creation (its hash is the bond's policyHash). The business
- * publishes a manifest at `https://<its host>/.well-known/slice.json` listing its account and every paid
+ * publishes a manifest at `https://<its host>/.well-known/bondrail.json` listing its account and every paid
  * endpoint; the policy covers all of them, and each check reads the manifest and every endpoint.
  */
 export interface WatchPolicy {
@@ -44,8 +44,8 @@ export interface WatchPolicy {
   epochSeconds: 30;
   freshnessSeconds: 90;
 }
-/** Served by the business at /.well-known/slice.json (also its domain proof for the marketplace). */
-export interface SliceManifest {
+/** Served by the business at /.well-known/bondrail.json (also its domain proof for the marketplace). */
+export interface BondrailManifest {
   version: 1;
   chainId: number;
   account: Address;
@@ -131,7 +131,7 @@ const violation = (reason: string, observedPayTo: unknown, offerHash: Hex): Pars
 /**
  * Classifies one endpoint's unpaid response.
  *   Unknown   : no readable 402 offer (outage, error, malformed document). Never a default on its own;
- *               a long unbroken run of Unknowns is (see SliceCovenant.DARK_DEFAULT).
+ *               a long unbroken run of Unknowns is (see BondrailCovenant.DARK_DEFAULT).
  *   Violation : any payment option a client could pick does not pay the account the committed way:
  *               another payTo, another network, asset or scheme, or a price below the floor.
  *   Compliant : every option pays the account, in the committed asset, at or above the floor.
@@ -266,7 +266,7 @@ export function typedObservation(o: Observation) {
 }
 export function observationDomain(p: WatchPolicy) {
   return {
-    name: 'SliceCovenant',
+    name: 'BondrailCovenant',
     version: '1',
     chainId: p.chainId,
     verifyingContract: p.covenant,

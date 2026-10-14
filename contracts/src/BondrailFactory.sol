@@ -9,14 +9,14 @@ import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {SliceTypes, ISliceCovenant, ISliceEarner} from "./SliceTypes.sol";
-import {SliceBond} from "./SliceBond.sol";
-import {SliceAccount} from "./SliceAccount.sol";
+import {BondrailTypes, IBondrailCovenant, IBondrailEarner} from "./BondrailTypes.sol";
+import {BondrailBond} from "./BondrailBond.sol";
+import {BondrailAccount} from "./BondrailAccount.sol";
 
 /// @notice Creates accounts and bonds; gates issuance, deposits, activation and the second release.
-/// Projects deploy their own contracts: a Native project inherits SliceEarner and binds itself to its
+/// Projects deploy their own contracts: a Native project inherits BondrailEarner and binds itself to its
 /// account. A Watched business (an x402 API) only sets its payTo to the account.
-contract SliceFactory is EIP712, ReentrancyGuard {
+contract BondrailFactory is EIP712, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error Unauthorized();
@@ -60,11 +60,11 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         address indexed issuer,
         address indexed account,
         address indexed bond,
-        SliceTypes.Adapter adapter,
+        BondrailTypes.Adapter adapter,
         bytes32 policyHash,
         bytes32 termsHash
     );
-    event SecondReleaseApproved(address indexed bond, SliceTypes.MilestoneMode mode, uint256 eligibleRevenue);
+    event SecondReleaseApproved(address indexed bond, BondrailTypes.MilestoneMode mode, uint256 eligibleRevenue);
 
     constructor(
         address covenant_,
@@ -73,7 +73,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         address accountImplementation_,
         address reviewer_,
         uint256 minHistory_
-    ) EIP712("SliceFactory", "1") {
+    ) EIP712("BondrailFactory", "1") {
         if (
             covenant_.code.length == 0 || milestoneSigner_ == address(0) || bondImplementation_.code.length == 0
                 || accountImplementation_.code.length == 0 || reviewer_ == address(0)
@@ -90,13 +90,13 @@ contract SliceFactory is EIP712, ReentrancyGuard {
 
     /// @notice A business's revenue account in one asset: the token it charges fees in, any ERC-20.
     /// Create it on day one: history starts at the first payment. Its bonds raise, repay and take stake
-    /// in the same asset. Slice does not vet assets; the marketplace shows which asset a bond repays in.
+    /// in the same asset. Bondrail does not vet assets; the marketplace shows which asset a bond repays in.
     function createAccount(address asset_) external nonReentrant returns (address account) {
         if (asset_.code.length == 0) revert UnsupportedAsset();
         IERC20Metadata(asset_).decimals(); // claims mint 1:1 and share its decimals
         account = Clones.clone(accountImplementation);
         isAccount[account] = true;
-        SliceAccount(account).initialize(asset_, msg.sender);
+        BondrailAccount(account).initialize(asset_, msg.sender);
         emit AccountCreated(msg.sender, account, asset_);
     }
 
@@ -134,7 +134,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         }
         if (project == address(0)) revert InvalidAdapter();
         templateOf[project] = codeHash;
-        SliceAccount(account).bindProjectFromFactory(project); // also checks it points at the account
+        BondrailAccount(account).bindProjectFromFactory(project); // also checks it points at the account
         emit NativeDeployed(account, project, codeHash);
     }
 
@@ -142,41 +142,41 @@ contract SliceFactory is EIP712, ReentrancyGuard {
 
     function createBond(
         address account,
-        SliceTypes.Terms calldata terms_,
-        SliceTypes.AdapterConfig calldata config,
+        BondrailTypes.Terms calldata terms_,
+        BondrailTypes.AdapterConfig calldata config,
         string calldata name_,
         string calldata symbol_
     ) external nonReentrant returns (address bond) {
         _issuerAccount(account);
-        uint256 first = SliceAccount(account).firstRevenueAt();
+        uint256 first = BondrailAccount(account).firstRevenueAt();
         if (minHistory != 0 && (first == 0 || block.timestamp < first + minHistory)) revert InsufficientHistory();
         _validateTerms(terms_);
         if (bytes(name_).length == 0 || bytes(symbol_).length == 0 || bytes(symbol_).length > 16) {
             revert InvalidTerms();
         }
-        if (SliceAccount(account).activeBond() != address(0) || config.policyHash == bytes32(0)) {
+        if (BondrailAccount(account).activeBond() != address(0) || config.policyHash == bytes32(0)) {
             revert InvalidAdapter();
         }
-        if (config.adapter == SliceTypes.Adapter.Native) {
+        if (config.adapter == BondrailTypes.Adapter.Native) {
             if (!_nativeOk(config.source, account)) revert InvalidAdapter();
         } else if (config.source != address(0) || terms_.stake == 0 || terms_.minFeeBps != 0) {
             // Watched: nothing on-chain enforces the route, so a slashable stake is mandatory (and there
             // is no collect call for a fee floor to apply to).
             revert InvalidAdapter();
         }
-        IERC20 asset = SliceAccount(account).asset();
+        IERC20 asset = BondrailAccount(account).asset();
         bond = Clones.clone(bondImplementation);
         isBond[bond] = true;
-        SliceBond(bond)
+        BondrailBond(bond)
             .initialize(address(asset), msg.sender, account, covenant, msg.sender, terms_, config, name_, symbol_);
         if (terms_.stake != 0) {
             uint256 beforeBalance = asset.balanceOf(bond);
             asset.safeTransferFrom(msg.sender, bond, terms_.stake);
             if (asset.balanceOf(bond) - beforeBalance != terms_.stake) revert InvalidTerms();
         }
-        SliceAccount(account).attach(bond);
-        if (config.adapter == SliceTypes.Adapter.Watched) {
-            ISliceCovenant(covenant).registerBond(bond, config.policyHash);
+        BondrailAccount(account).attach(bond);
+        if (config.adapter == BondrailTypes.Adapter.Watched) {
+            IBondrailCovenant(covenant).registerBond(bond, config.policyHash);
         }
         ++bondsCreated[account];
         emit BondCreated(msg.sender, account, bond, config.adapter, config.policyHash, keccak256(abi.encode(terms_)));
@@ -184,28 +184,28 @@ contract SliceFactory is EIP712, ReentrancyGuard {
 
     /// @notice Issuer activates a fully funded bond: first release; revenue sharing starts now.
     function activate(address bond) external nonReentrant {
-        SliceBond b = _issuerBond(bond);
+        BondrailBond b = _issuerBond(bond);
         _healthy(b);
-        SliceAccount account = SliceAccount(b.account());
+        BondrailAccount account = BondrailAccount(b.account());
         account.settleBeforeActivation(bond);
         b.activateFactoryOnly(account.cumulativeRevenue());
     }
 
     /// @notice Second release, on-chain mode: the account's own revenue counter since activation.
     function releaseSecond(address bond) external nonReentrant {
-        SliceBond b = _issuerBond(bond);
-        SliceTypes.Terms memory t = b.terms();
-        if (t.milestoneMode != SliceTypes.MilestoneMode.Onchain) revert InvalidMilestone();
-        uint256 earned = SliceAccount(b.account()).cumulativeRevenue() - b.revenueSnapshot();
+        BondrailBond b = _issuerBond(bond);
+        BondrailTypes.Terms memory t = b.terms();
+        if (t.milestoneMode != BondrailTypes.MilestoneMode.Onchain) revert InvalidMilestone();
+        uint256 earned = BondrailAccount(b.account()).cumulativeRevenue() - b.revenueSnapshot();
         if (earned < t.minRevenue || block.timestamp < uint256(b.activationTime()) + t.minOperatingPeriod) {
             revert InvalidMilestone();
         }
         _healthy(b);
         b.releaseSecondFactoryOnly(keccak256(abi.encode("onchain", earned)));
-        emit SecondReleaseApproved(bond, SliceTypes.MilestoneMode.Onchain, earned);
+        emit SecondReleaseApproved(bond, BondrailTypes.MilestoneMode.Onchain, earned);
     }
 
-    function hashMilestone(SliceTypes.Milestone memory m) public view returns (bytes32) {
+    function hashMilestone(BondrailTypes.Milestone memory m) public view returns (bytes32) {
         return _hashTypedDataV4(
             keccak256(
                 abi.encode(
@@ -224,14 +224,14 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     }
 
     /// @notice Second release, signed mode: a wash-adjusted attestation from the disclosed milestone signer.
-    function releaseSecondSigned(address bond, SliceTypes.Milestone calldata m, bytes calldata signature)
+    function releaseSecondSigned(address bond, BondrailTypes.Milestone calldata m, bytes calldata signature)
         external
         nonReentrant
     {
-        SliceBond b = _issuerBond(bond);
-        SliceTypes.Terms memory t = b.terms();
+        BondrailBond b = _issuerBond(bond);
+        BondrailTypes.Terms memory t = b.terms();
         if (
-            t.milestoneMode != SliceTypes.MilestoneMode.Signed || m.bond != bond || m.policyHash != b.policyHash()
+            t.milestoneMode != BondrailTypes.MilestoneMode.Signed || m.bond != bond || m.policyHash != b.policyHash()
                 || m.nonce != b.releaseNonce() || m.evidenceHash == bytes32(0) || m.periodStart < b.activationTime()
                 || m.periodEnd > block.timestamp || m.periodEnd < m.periodStart
                 || m.periodEnd - m.periodStart < t.minOperatingPeriod || m.eligibleRevenue < t.minRevenue
@@ -240,7 +240,7 @@ contract SliceFactory is EIP712, ReentrancyGuard {
         if (ECDSA.recover(hashMilestone(m), signature) != milestoneSigner) revert Unauthorized();
         _healthy(b);
         b.releaseSecondFactoryOnly(m.evidenceHash);
-        emit SecondReleaseApproved(bond, SliceTypes.MilestoneMode.Signed, m.eligibleRevenue);
+        emit SecondReleaseApproved(bond, BondrailTypes.MilestoneMode.Signed, m.eligibleRevenue);
     }
 
     // ---------------------------------------------------------------- checks
@@ -249,37 +249,37 @@ contract SliceFactory is EIP712, ReentrancyGuard {
     /// bond whose latest CRE observation is not a Violation. Called by the bond on every deposit.
     function depositAllowed(address bond) external view returns (bool) {
         if (!isBond[bond]) return false;
-        SliceBond b = SliceBond(bond);
-        if (b.adapter() == SliceTypes.Adapter.Native) return _nativeOk(b.source(), b.account());
-        return !ISliceCovenant(covenant).inViolation(bond);
+        BondrailBond b = BondrailBond(bond);
+        if (b.adapter() == BondrailTypes.Adapter.Native) return _nativeOk(b.source(), b.account());
+        return !IBondrailCovenant(covenant).inViolation(bond);
     }
 
     /// @dev Activation and the second release need more than deposits: a Watched bond needs a fresh
     /// Compliant observation.
-    function _healthy(SliceBond b) private view {
-        bool ok = b.adapter() == SliceTypes.Adapter.Native
+    function _healthy(BondrailBond b) private view {
+        bool ok = b.adapter() == BondrailTypes.Adapter.Native
             ? _nativeOk(b.source(), b.account())
-            : ISliceCovenant(covenant).isHealthy(address(b));
+            : IBondrailCovenant(covenant).isHealthy(address(b));
         if (!ok) revert Unhealthy();
     }
 
     function _nativeOk(address source, address account) private view returns (bool) {
         bytes32 template = templateOf[source];
         bool reviewed = nativeApproved[source] || (template != bytes32(0) && nativeTemplate[template]);
-        return reviewed && SliceAccount(account).project() == source && ISliceEarner(source).sliceAccount() == account;
+        return reviewed && BondrailAccount(account).project() == source && IBondrailEarner(source).bondrailAccount() == account;
     }
 
     function _issuerAccount(address account) private view {
-        if (!isAccount[account] || SliceAccount(account).issuer() != msg.sender) revert Unauthorized();
+        if (!isAccount[account] || BondrailAccount(account).issuer() != msg.sender) revert Unauthorized();
     }
 
-    function _issuerBond(address bond) private view returns (SliceBond b) {
+    function _issuerBond(address bond) private view returns (BondrailBond b) {
         if (!isBond[bond]) revert Unauthorized();
-        b = SliceBond(bond);
+        b = BondrailBond(bond);
         if (b.issuer() != msg.sender) revert Unauthorized();
     }
 
-    function _validateTerms(SliceTypes.Terms calldata t) private view {
+    function _validateTerms(BondrailTypes.Terms calldata t) private view {
         if (t.triggerRevenue != 0 || t.triggerWindowDays != 0 || t.stepUpBps != 0) {
             if (
                 t.triggerRevenue == 0 || t.triggerWindowDays == 0 || t.triggerWindowDays > 30

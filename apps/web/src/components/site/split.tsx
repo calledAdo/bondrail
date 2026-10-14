@@ -1,5 +1,5 @@
 'use client';
-// The brand visual: payments arrive at a SliceAccount and a slice peels off to investors.
+// The brand visual: payments arrive at a BondrailAccount and a slice peels off to investors.
 import { useRef, type ReactNode, type RefObject } from 'react';
 import { ArrowDownLeft, ArrowUpRight, Bot, Building2, Landmark } from 'lucide-react';
 import { LogoMark } from '@/components/logo';
@@ -36,7 +36,7 @@ export function Split() {
   const account = useRef<HTMLDivElement>(null);
   const business = useRef<HTMLDivElement>(null);
   const bond = useRef<HTMLDivElement>(null);
-  const slice = 'var(--color-emerald-500)';
+  const bondrail = 'var(--color-emerald-500)';
   return (
     <figure className="w-full">
       <div ref={box} className="relative grid grid-cols-[1fr_auto_1fr] items-center gap-3 py-6 sm:gap-16">
@@ -61,14 +61,14 @@ export function Split() {
             <Building2 className="size-3.5 text-foreground/70" /> <span className="hidden sm:inline">Business</span> <span className="font-mono text-foreground/60">75%</span>
           </Node>
           <Node nodeRef={bond} className="border-emerald-500/30">
-            <Landmark className="size-3.5 text-slice" /> <span className="hidden sm:inline">Investors</span> <span className="font-mono text-slice">25%</span>
+            <Landmark className="size-3.5 text-bondrail" /> <span className="hidden sm:inline">Investors</span> <span className="font-mono text-bondrail">25%</span>
           </Node>
         </div>
         <Beam container={box} from={buy} to={account} curvature={-20} delay={0} />
         <Beam container={box} from={agent} to={account} delay={0.9} />
         <Beam container={box} from={sell} to={account} curvature={20} delay={1.8} />
         <Beam container={box} from={account} to={business} curvature={-10} delay={0.6} />
-        <Beam container={box} from={account} to={bond} curvature={10} delay={0.6} color={slice} width={3} />
+        <Beam container={box} from={account} to={bond} curvature={10} delay={0.6} color={bondrail} width={3} />
       </div>
       <figcaption className="mx-auto max-w-xl text-center text-sm text-foreground/60">
         Revenue is recorded onchain. Native payments route the bond’s share in the same transaction;

@@ -18,10 +18,10 @@ export function Panel({ title, aside, children, className }: { title?: ReactNode
   );
 }
 
-export function Badge({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'slice' | 'warn' | 'danger'; className?: string }) {
+export function Badge({ children, tone = 'neutral', className }: { children: ReactNode; tone?: 'neutral' | 'bondrail' | 'warn' | 'danger'; className?: string }) {
   const tones = {
     neutral: 'border-foreground/15 text-foreground/70',
-    slice: 'border-emerald-500/30 text-emerald-500',
+    bondrail: 'border-emerald-500/30 text-emerald-500',
     warn: 'border-orange-500/30 text-orange-500',
     danger: 'border-red-500/30 text-red-500',
   };
@@ -38,7 +38,7 @@ export function TierBadge({ tier }: { tier: Tier }) {
 
 export function PhaseBadge({ phase, defaulted }: { phase: Phase; defaulted?: boolean }) {
   if (defaulted) return <Badge tone="danger">Defaulted</Badge>;
-  return <Badge tone={phase === 'Closed' ? 'slice' : 'neutral'}>{phase === 'Active' ? 'Live' : phase}</Badge>;
+  return <Badge tone={phase === 'Closed' ? 'bondrail' : 'neutral'}>{phase === 'Active' ? 'Live' : phase}</Badge>;
 }
 
 /** A labelled figure: mono, bracketed for live on-chain numbers. */

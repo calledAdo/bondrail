@@ -16,7 +16,7 @@
     "duration": 22,
     "sentences": [
       "PumpLab's account records revenue before it raises.",
-      "Here, Slice excludes payments linked to issuer funding.",
+      "Here, Bondrail excludes payments linked to issuer funding.",
       "Envio turns those events into a payer history.",
       "The credit estimate discounts short history and concentration.",
       "These are controlled test wallets, not customer traction."
@@ -87,10 +87,10 @@
   {
     "id": "08-close",
     "title": "Revenue-based credit. Built on Monad.",
-    "eyebrow": "SLICE / METROPOLIS \u00b7 TRACK 1",
+    "eyebrow": "BONDRAIL / METROPOLIS \u00b7 TRACK 1",
     "duration": 11,
     "sentences": [
-      "Slice turns revenue history into staged funding and tradable claims.",
+      "Bondrail turns revenue history into staged funding and tradable claims.",
       "Explore the working testnet app and its deployment documentation."
     ]
   }

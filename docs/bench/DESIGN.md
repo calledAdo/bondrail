@@ -6,7 +6,7 @@ Baseline: `51f6a8d`, solc 0.8.28, optimizer 200, via IR, Cancun. The [passthroug
 
 ## Slot audit and possible lanes
 
-Slot numbers below are from `forge inspect --root contracts SliceAccount storageLayout --json`. “Per payment” means a nonzero booked fee/revenue: zero-fee Native calls update volume but do not book history; `sweep` without unbooked funds does not book anything. `collectWithPermit` follows `collect` after permit handling.
+Slot numbers below are from `forge inspect --root contracts BondrailAccount storageLayout --json`. “Per payment” means a nonzero booked fee/revenue: zero-fee Native calls update volume but do not book history; `sweep` without unbooked funds does not book anything. `collectWithPermit` follows `collect` after permit handling.
 
 | State / slot | Current use | Candidate treatment |
 |---|---|---|
@@ -47,4 +47,4 @@ Keeping the bond pool shared is an acceptable correctness tradeoff: investors re
 
 Lanes multiply cold storage initialization and make summed getters O(LANES). For example, a 32-lane getter reading one distinct cold slot per lane incurs roughly 67,200 gas in cold SLOAD charges alone under the configured EVM gas schedule, versus 2,100 for one cold slot; loops and hashing are extra. On-chain factory calls and sweep/withdraw would pay these costs. This is an analytical cost, **not a measured candidate gas result**. [Validation and baseline gas](./validation.md) distinguish successful-payment receipts from Foundry's mixed call distribution; no after measurement exists because no candidate was implemented.
 
-A later design would need separate token custody destinations as well as history lanes, and a solution for the bond's pool and cap (for example, preallocated lane cap budgets with aggregate redemption and audited reallocation). That changes signed payment destinations, authorization, redemption and lifecycle accounting; it is broader than replacing `SliceAccount` counters. Obtain the owner-run Monad baseline first, and evaluate that architecture separately without relaxing atomic investor payment.
+A later design would need separate token custody destinations as well as history lanes, and a solution for the bond's pool and cap (for example, preallocated lane cap budgets with aggregate redemption and audited reallocation). That changes signed payment destinations, authorization, redemption and lifecycle accounting; it is broader than replacing `BondrailAccount` counters. Obtain the owner-run Monad baseline first, and evaluate that architecture separately without relaxing atomic investor payment.

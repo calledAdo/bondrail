@@ -10,7 +10,7 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / 'output'
 VOICE = OUT / 'voice'
 VOICE.mkdir(parents=True, exist_ok=True)
-MODELS = Path(os.environ.get('SLICE_VOICE_MODELS', '/tmp/slice-video-models'))
+MODELS = Path(os.environ.get('BONDRAIL_VOICE_MODELS', '/tmp/slice-video-models'))
 engine = Kokoro(str(MODELS / 'kokoro-v1.0.int8.onnx'), str(MODELS / 'voices-v1.0.bin'))
 scenes = json.loads((HERE / 'scenes.json').read_text())
 manifest = []

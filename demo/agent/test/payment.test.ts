@@ -67,7 +67,7 @@ const backend = (
   },
 });
 async function withStore(fn: (s: LocalStore) => Promise<void>) {
-  const dir = await mkdtemp(join(tmpdir(), 'slice-payment-'));
+  const dir = await mkdtemp(join(tmpdir(), 'bondrail-payment-'));
   try {
     await fn(new LocalStore(dir));
   } finally {

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.28;
 
-library SliceTypes {
+library BondrailTypes {
     enum Phase {
         Funding,
         Active,
@@ -81,12 +81,12 @@ library SliceTypes {
     }
 }
 
-/// @notice Implemented by Native projects (see SliceEarner): the account they pay every fee through.
-interface ISliceEarner {
-    function sliceAccount() external view returns (address);
+/// @notice Implemented by Native projects (see BondrailEarner): the account they pay every fee through.
+interface IBondrailEarner {
+    function bondrailAccount() external view returns (address);
 }
 
-interface ISliceAccount {
+interface IBondrailAccount {
     function issuer() external view returns (address);
     function asset() external view returns (address);
     function project() external view returns (address);
@@ -120,14 +120,14 @@ interface ISliceAccount {
     function bindProject(address project) external;
 }
 
-interface ISliceBond {
-    function phase() external view returns (SliceTypes.Phase);
+interface IBondrailBond {
+    function phase() external view returns (BondrailTypes.Phase);
     function revenueBps() external view returns (uint16);
     function minFeeBps() external view returns (uint16);
     function maturity() external view returns (uint64);
     function remainingRevenueCap() external view returns (uint256);
     function onRepayment(uint256 amount) external;
-    function finalizeCollection(SliceTypes.CloseReason reason) external;
+    function finalizeCollection(BondrailTypes.CloseReason reason) external;
     function cancelFundingFromAccount() external;
     function activationTime() external view returns (uint64);
     function collectionClosedAt() external view returns (uint64);
@@ -138,13 +138,13 @@ interface ISliceBond {
     function markDefault(bytes32 evidenceHash) external;
 }
 
-interface ISliceCovenant {
+interface IBondrailCovenant {
     function registerBond(address bond, bytes32 policyHash) external;
     function isHealthy(address bond) external view returns (bool);
     function inViolation(address bond) external view returns (bool);
 }
 
-interface ISliceFactory {
+interface IBondrailFactory {
     function depositAllowed(address bond) external view returns (bool);
 }
 

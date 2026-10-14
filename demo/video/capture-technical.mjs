@@ -15,11 +15,11 @@ const scenarioPath=path.join(OUT,'scenario.json');
 const scenario=JSON.parse(fs.readFileSync(scenarioPath));
 const mode=process.argv.find(x=>x.startsWith('--scene='))?.slice(8) ?? 'inspect';
 const issuerMode=['issue','activate','inspect'].includes(mode);
-const factoryAbi=JSON.parse(fs.readFileSync(path.join(HERE,'../../contracts/out/SliceFactory.sol/SliceFactory.json'))).abi;
+const factoryAbi=JSON.parse(fs.readFileSync(path.join(HERE,'../../contracts/out/BondrailFactory.sol/BondrailFactory.json'))).abi;
 fs.mkdirSync(path.join(OUT, 'raw'), { recursive: true });
 const d = JSON.parse(fs.readFileSync(path.join(HERE, '../../docs/deployments/10143.json')));
-const LIVE = process.env.SLICE_VIDEO_APP ?? 'https://bondrail.vercel.app';
-const RPC = process.env.SLICE_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
+const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://bondrail.vercel.app';
+const RPC = process.env.BONDRAIL_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
 const keyText = fs.readFileSync(path.join(os.homedir(), `.slice/${issuerMode?scenario.issuerKey:scenario.payerKey}.key`), 'utf8').trim();
 const account = privateKeyToAccount(keyText.startsWith('0x') ? keyText : `0x${keyText}`);
 const publicClient = createPublicClient({ chain: monadTestnet, transport: http(RPC, { timeout: 10000, retryCount: 2 }) });
@@ -103,7 +103,7 @@ async function send(to, data, value = 0n) {
 }
 
 if (await publicClient.getChainId() !== 10143) throw new Error('Monad testnet required');
-const browser = await chromium.launch({ executablePath: process.env.SLICE_CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
+const browser = await chromium.launch({ executablePath: process.env.BONDRAIL_CHROME ?? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', headless: true });
 const context = await browser.newContext({ viewport: { width: 1600, height: 900 }, deviceScaleFactor: 1, colorScheme: 'dark', recordVideo: { dir: path.join(OUT, 'raw'), size: { width: 1600, height: 900 } } });
 // Same real chain, alternate public read transport when the default RPC is unavailable.
 // No response bodies or balances are fabricated or edited.
@@ -111,8 +111,8 @@ await context.route('https://testnet-rpc.monad.xyz/**', async route => {
   const response = await route.fetch({ url: RPC, timeout: 20000 });
   await route.fulfill({ response });
 });
-await context.exposeBinding('__sliceWalletRequest', async ({ frame }, { method, params = [] }) => {
-  if (new URL(frame.url()).origin !== LIVE) throw new Error('Wallet restricted to Slice app');
+await context.exposeBinding('__bondrailWalletRequest', async ({ frame }, { method, params = [] }) => {
+  if (new URL(frame.url()).origin !== LIVE) throw new Error('Wallet restricted to Bondrail app');
   if (method === 'eth_accounts' || method === 'eth_requestAccounts') return [account.address];
   if (method === 'eth_chainId') return '0x279f';
   if (method === 'net_version') return '10143';
@@ -133,8 +133,8 @@ await context.exposeBinding('__sliceWalletRequest', async ({ frame }, { method, 
 await context.addInitScript(() => {
   const listeners = new Map();
   window.ethereum = {
-    isSliceDemo: true,
-    request: args => window.__sliceWalletRequest(args),
+    isBondrailDemo: true,
+    request: args => window.__bondrailWalletRequest(args),
     on: (name, cb) => { const a = listeners.get(name) ?? []; a.push(cb); listeners.set(name, a); },
     removeListener: (name, cb) => listeners.set(name, (listeners.get(name) ?? []).filter(x => x !== cb)),
   };

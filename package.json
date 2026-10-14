@@ -11,7 +11,7 @@
     "test": "pnpm -r --if-present test",
     "contracts:test": "forge test --root contracts",
     "contracts:build": "forge build --root contracts",
-    "abi": "tsx scripts/generate-abis.ts",
+    "abi": "pnpm --filter @bondrail/sdk generate",
     "readiness": "tsx scripts/readiness.ts",
     "local:deploy": "tsx scripts/deploy-local.ts",
     "test:e2e": "playwright test",

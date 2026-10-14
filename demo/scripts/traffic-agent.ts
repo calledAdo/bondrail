@@ -2,7 +2,7 @@
 // Payers only sign EIP-3009 USDC authorizations; the x402 facilitator settles on-chain and pays the
 // gas, so these wallets need test USDC but no MON. Every payer here is team-controlled.
 // Payers are guarded buyers (@bondrail/sdk/x402-guard): they refuse any offer whose payTo is not the
-// SliceAccount the agent publishes in /.well-known/slice.json and the factory confirms on-chain.
+// BondrailAccount the agent publishes in /.well-known/bondrail.json and the factory confirms on-chain.
 //
 //   AGENT_URL=https://<agent>/api/oracle pnpm tsx scripts/traffic-agent.ts [calls=20] [payers=5]
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
@@ -11,7 +11,7 @@ import { parseAbi, parseUnits } from 'viem';
 import os from 'node:os';
 import path from 'node:path';
 import { account, publicClient, readDeployment, write } from '../../scripts/lib.ts';
-import { isSliceAccount, pinFromBond, sliceGuard } from '../../packages/sdk/src/x402-guard.ts';
+import { isBondrailAccount, pinFromBond, bondrailGuard } from '../../packages/sdk/src/x402-guard.ts';
 
 const [callsArg = '20', payersArg = '5'] = process.argv.slice(2);
 const AGENT_URL = process.env.AGENT_URL ?? readDeployment().issuers.agent?.endpoint?.split('?')[0];
@@ -54,7 +54,7 @@ async function main() {
     const client = new x402Client();
     registerExactEvmScheme(client, { signer: p });
     return wrapFetchWithPayment(
-      sliceGuard(fetch, { verifyAccount: isSliceAccount(publicClient, d.factory), pin: pins }),
+      bondrailGuard(fetch, { verifyAccount: isBondrailAccount(publicClient, d.factory), pin: pins }),
       client,
     );
   });

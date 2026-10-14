@@ -6,7 +6,7 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceTypes, ISliceBond, ISliceEarner, IERC3009} from "./SliceTypes.sol";
+import {BondrailTypes, IBondrailBond, IBondrailEarner, IERC3009} from "./BondrailTypes.sol";
 
 /// @notice A business's revenue address and payment entrypoint, from day one.
 ///
@@ -21,7 +21,7 @@ import {SliceTypes, ISliceBond, ISliceEarner, IERC3009} from "./SliceTypes.sol";
 ///
 /// Every booked payment adds to an on-chain credit history. With no active bond (passthrough) all
 /// revenue is credited to the issuer; while a bond is Active the bond's share is split off first.
-contract SliceAccount is ReentrancyGuard {
+contract BondrailAccount is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     error Unauthorized();
@@ -78,7 +78,7 @@ contract SliceAccount is ReentrancyGuard {
     }
 
     /// @notice One-time binding of the Native project that may pull payments through this account.
-    /// The project must already point at this account (ISliceEarner), which it cannot change later.
+    /// The project must already point at this account (IBondrailEarner), which it cannot change later.
     function bindProject(address project_) external {
         if (msg.sender != issuer) revert Unauthorized();
         _bind(project_);
@@ -92,7 +92,7 @@ contract SliceAccount is ReentrancyGuard {
 
     function _bind(address project_) private {
         if (project != address(0) || project_.code.length == 0) revert InvalidState();
-        if (ISliceEarner(project_).sliceAccount() != address(this)) revert InvalidState();
+        if (IBondrailEarner(project_).bondrailAccount() != address(this)) revert InvalidState();
         project = project_;
         emit ProjectBound(project_);
     }
@@ -173,8 +173,8 @@ contract SliceAccount is ReentrancyGuard {
         if (msg.sender != project || project == address(0)) revert Unauthorized();
         if (payer == address(0) || payer == address(this) || fee > gross || gross == 0) revert InvalidAmount();
         address bond = activeBond;
-        if (bond != address(0) && ISliceBond(bond).phase() == SliceTypes.Phase.Active) {
-            if (fee * 10_000 < gross * ISliceBond(bond).minFeeBps()) revert FeeBelowFloor();
+        if (bond != address(0) && IBondrailBond(bond).phase() == BondrailTypes.Phase.Active) {
+            if (fee * 10_000 < gross * IBondrailBond(bond).minFeeBps()) revert FeeBelowFloor();
         }
     }
 
@@ -213,20 +213,20 @@ contract SliceAccount is ReentrancyGuard {
         lastRevenueAt = uint64(block.timestamp);
 
         address bond = activeBond;
-        if (bond == address(0) || ISliceBond(bond).phase() != SliceTypes.Phase.Active) {
+        if (bond == address(0) || IBondrailBond(bond).phase() != BondrailTypes.Phase.Active) {
             // Passthrough: no bond, or investors are still funding and are owed nothing yet.
             issuerCredit += amount;
             emit Revenue(bond, payer, amount, 0, amount, collected);
             return;
         }
-        (uint256 toBond, bool capReached) = _split(ISliceBond(bond), amount);
+        (uint256 toBond, bool capReached) = _split(IBondrailBond(bond), amount);
         issuerCredit += amount - toBond;
         emit Revenue(bond, payer, amount, toBond, amount - toBond, collected);
-        if (capReached) _close(bond, SliceTypes.CloseReason.RevenueCap);
+        if (capReached) _close(bond, BondrailTypes.CloseReason.RevenueCap);
     }
 
     /// @dev Investor share with a rounding carry, capped at what the bond may still collect.
-    function _split(ISliceBond b, uint256 amount) private returns (uint256 toBond, bool capReached) {
+    function _split(IBondrailBond b, uint256 amount) private returns (uint256 toBond, bool capReached) {
         uint256 bps = b.revenueBps();
         uint256 carry = mulmod(amount, bps, 10_000) + splitRemainder;
         uint256 candidate = Math.mulDiv(amount, bps, 10_000) + carry / 10_000;
@@ -258,7 +258,7 @@ contract SliceAccount is ReentrancyGuard {
     function settleBeforeActivation(address expectedBond) external nonReentrant {
         if (msg.sender != factory) revert Unauthorized();
         _expected(expectedBond);
-        if (ISliceBond(expectedBond).phase() != SliceTypes.Phase.Funding) revert InvalidState();
+        if (IBondrailBond(expectedBond).phase() != BondrailTypes.Phase.Funding) revert InvalidState();
         uint256 amount = _unbooked();
         if (amount != 0) _book(address(0), amount, false);
         splitRemainder = 0;
@@ -266,29 +266,29 @@ contract SliceAccount is ReentrancyGuard {
 
     /// @notice Anyone, at or after maturity: books pending receipts, then closes collection and detaches.
     function closeBondAtMaturity(address expectedBond) external nonReentrant {
-        SliceTypes.Phase p = ISliceBond(expectedBond).phase();
-        if (p == SliceTypes.Phase.Closing || p == SliceTypes.Phase.Closed) return;
+        BondrailTypes.Phase p = IBondrailBond(expectedBond).phase();
+        if (p == BondrailTypes.Phase.Closing || p == BondrailTypes.Phase.Closed) return;
         _expected(expectedBond);
-        if (p != SliceTypes.Phase.Active || block.timestamp < ISliceBond(expectedBond).maturity()) {
+        if (p != BondrailTypes.Phase.Active || block.timestamp < IBondrailBond(expectedBond).maturity()) {
             revert InvalidState();
         }
         uint256 amount = _unbooked();
         if (amount != 0) _book(address(0), amount, false); // may itself close on the cap
-        if (activeBond == expectedBond) _close(expectedBond, SliceTypes.CloseReason.Maturity);
+        if (activeBond == expectedBond) _close(expectedBond, BondrailTypes.CloseReason.Maturity);
     }
 
     /// @notice Anyone, after an unfilled funding deadline: cancels the raise and detaches.
     function cancelFunding(address expectedBond) external nonReentrant {
-        if (ISliceBond(expectedBond).phase() == SliceTypes.Phase.Cancelled) return;
+        if (IBondrailBond(expectedBond).phase() == BondrailTypes.Phase.Cancelled) return;
         _expected(expectedBond);
         uint256 amount = _unbooked();
         if (amount != 0) _book(address(0), amount, false);
-        ISliceBond(expectedBond).cancelFundingFromAccount();
+        IBondrailBond(expectedBond).cancelFundingFromAccount();
         _detach(expectedBond);
     }
 
-    function _close(address bond, SliceTypes.CloseReason reason) private {
-        ISliceBond(bond).finalizeCollection(reason);
+    function _close(address bond, BondrailTypes.CloseReason reason) private {
+        IBondrailBond(bond).finalizeCollection(reason);
         _detach(bond);
     }
 

@@ -6,7 +6,7 @@
 
 **Latest founder pitch:** `output/founder-pitch/bondrail-founder-pitch.mp4` — 1:48, 1080p30, original founder voice, background blur, circular face overlay, supporting slides and actual testnet footage. Matching SRT included. See [FOUNDER-PITCH.md](FOUNDER-PITCH.md).
 
-**Latest technical demo:** `output/technical/bondrail-technical-demo.mp4` — 2:40, 1080p30, male Michael narration, captions, and fresh Bondrail footage. Shows actual issuance, funding, activation, repayment and a separate Kuru trade. See [TECHNICAL-DEMO.md](TECHNICAL-DEMO.md) for evidence and reproduction. Original Slice-branded videos are preserved.
+**Latest technical demo:** `output/technical/bondrail-technical-demo.mp4` — 2:40, 1080p30, male Michael narration, captions, and fresh Bondrail footage. Shows actual issuance, funding, activation, repayment and a separate Kuru trade. See [TECHNICAL-DEMO.md](TECHNICAL-DEMO.md) for evidence and reproduction. Original Bondrail-branded videos are preserved.
 
 This directory builds a narrated, captioned 2:31 presentation video without a paid editor, paid speech service or API key. The user does not need to speak or operate the browser.
 
@@ -83,11 +83,11 @@ curl -L --fail https://github.com/thewh1teagle/kokoro-onnx/releases/download/mod
 /tmp/slice-video-venv/bin/python demo/video/narrate.py
 ```
 
-`SLICE_VOICE_MODELS` overrides the model directory. Downloads and synthesis need no account. Tools under `/tmp` may need recreation after cleanup. The narration script reuses existing per-sentence WAVs; delete only the changed line's generated WAV when revising its text.
+`BONDRAIL_VOICE_MODELS` overrides the model directory. Downloads and synthesis need no account. Tools under `/tmp` may need recreation after cleanup. The narration script reuses existing per-sentence WAVs; delete only the changed line's generated WAV when revising its text.
 
 ## Recording
 
-Run `node demo/video/preflight.mjs` for read-only balances. `node demo/video/capture.mjs` checks the app and wallet connection without signing. `SLICE_CHROME` overrides the existing Chromium binary path; `SLICE_VIDEO_RPC` selects a real Monad testnet RPC; `SLICE_VIDEO_APP` can select a correctly configured local instance of the same app.
+Run `node demo/video/preflight.mjs` for read-only balances. `node demo/video/capture.mjs` checks the app and wallet connection without signing. `BONDRAIL_CHROME` overrides the existing Chromium binary path; `BONDRAIL_VIDEO_RPC` selects a real Monad testnet RPC; `BONDRAIL_VIDEO_APP` can select a correctly configured local instance of the same app.
 
 For a **new** capture, only after the read-only connection check succeeds (the completed actions in this session must not be repeated):
 

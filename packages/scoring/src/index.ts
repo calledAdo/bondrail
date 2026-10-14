@@ -30,7 +30,7 @@ export interface ScorePolicy {
   minDayAmount: bigint;
 }
 export const scorePolicy: ScorePolicy = {
-  version: 'slice-v1',
+  version: 'bondrail-v1',
   minPayerAmount: 10_000n,
   minDayAmount: 10_000n,
 };

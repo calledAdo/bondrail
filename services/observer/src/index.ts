@@ -51,14 +51,14 @@ export async function loadRegistry(path: string, local = false): Promise<WatchPo
     // The manifest and every endpoint live on one origin: the business's own domain.
     const local_ = local && p.chainId === 31337;
     const manifest = validateURL(p.manifestUrl, local_);
-    if (manifest.pathname !== '/.well-known/slice.json') throw new Error('Manifest must be /.well-known/slice.json');
+    if (manifest.pathname !== '/.well-known/bondrail.json') throw new Error('Manifest must be /.well-known/bondrail.json');
     for (const e of p.endpoints)
       if (validateURL(e.url, local_).origin !== manifest.origin) throw new Error('Endpoints must share the manifest origin');
     if (
       !p.headers ||
       Object.entries(p.headers).some(
         ([k, v]) =>
-          !['accept', 'x-slice-probe'].includes(k.toLowerCase()) ||
+          !['accept', 'x-bondrail-probe'].includes(k.toLowerCase()) ||
           typeof v !== 'string' ||
           v.length > 256 ||
           /[\r\n]/.test(v),

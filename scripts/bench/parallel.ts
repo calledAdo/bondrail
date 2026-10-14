@@ -103,21 +103,21 @@ async function localFixture(payers: LocalAccount[], admin: LocalAccount): Promis
   await anvil('evm_setAutomine', [true]);
   for (const p of [admin, ...payers]) await anvil('anvil_setBalance', [p.address, toHex(parseEther('100'))]);
   const asset = await deploy('MockERC3009');
-  const accountImpl = await deploy('SliceAccount');
-  const bondImpl = await deploy('SliceBond');
-  const covenant = await deploy('SliceCovenant', [admin.address, admin.address]);
-  const factory = await deploy('SliceFactory', [covenant, admin.address, bondImpl, accountImpl, admin.address, 0n]);
-  await write(covenant, 'SliceCovenant', 'initializeFactory', [factory]);
+  const accountImpl = await deploy('BondrailAccount');
+  const bondImpl = await deploy('BondrailBond');
+  const covenant = await deploy('BondrailCovenant', [admin.address, admin.address]);
+  const factory = await deploy('BondrailFactory', [covenant, admin.address, bondImpl, accountImpl, admin.address, 0n]);
+  await write(covenant, 'BondrailCovenant', 'initializeFactory', [factory]);
   const accounts: Address[] = [];
   for (let i = 0; i <= n; i++) {
-    const r = await write(factory, 'SliceFactory', 'createAccount', [asset]);
-    const logs = parseEventLogs({ abi: artifact('SliceFactory').abi, logs: r.logs, eventName: 'AccountCreated' });
+    const r = await write(factory, 'BondrailFactory', 'createAccount', [asset]);
+    const logs = parseEventLogs({ abi: artifact('BondrailFactory').abi, logs: r.logs, eventName: 'AccountCreated' });
     const account = (logs[0].args as unknown as { account: Address }).account;
     accounts.push(account);
     if (bondMode === 'active') {
       const project = await deploy('MockEarner', [account]);
-      await write(account, 'SliceAccount', 'bindProject', [project]);
-      await write(factory, 'SliceFactory', 'setNativeApproval', [project, true]);
+      await write(account, 'BondrailAccount', 'bindProject', [project]);
+      await write(factory, 'BondrailFactory', 'setNativeApproval', [project, true]);
       const now = (await client.getBlock()).timestamp;
       // Cap comfortably exceeds the entire run; all measured payments stay Active.
       const raise = value * BigInt(n * (m + warmups) * 10);
@@ -128,13 +128,13 @@ async function localFixture(payers: LocalAccount[], admin: LocalAccount): Promis
         minOperatingPeriod: 30, revenueBps: 2000, firstReleaseBps: 5000, milestoneMode: 0, minFeeBps: 0,
         triggerWindowDays: 0, stepUpBps: 0, triggerRevenue: 0n,
       };
-      await write(factory, 'SliceFactory', 'createBond', [account, terms,
+      await write(factory, 'BondrailFactory', 'createBond', [account, terms,
         { adapter: 0, source: project, policyHash: keccak256(toHex('local parallel benchmark')) }, 'Bench Claim', 'BENCH']);
       const bond = await client.readContract({ address: account, abi: accountAbi, functionName: 'activeBond' });
       await write(asset, 'MockERC3009', 'mint', [admin.address, raise]);
       await write(asset, 'MockERC3009', 'approve', [bond, raise]);
-      await write(bond, 'SliceBond', 'deposit', [raise]);
-      await write(factory, 'SliceFactory', 'activate', [bond]);
+      await write(bond, 'BondrailBond', 'deposit', [raise]);
+      await write(factory, 'BondrailFactory', 'activate', [bond]);
     }
   }
   for (const p of payers) await write(asset, 'MockERC3009', 'mint', [p.address, value * BigInt(2 * (m + warmups))]);

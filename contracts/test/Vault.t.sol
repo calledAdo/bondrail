@@ -3,11 +3,11 @@ pragma solidity 0.8.28;
 
 import {TestBase} from "./TestBase.sol";
 import {BondrailVault} from "../src/BondrailVault.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 import {MockEarner} from "./mocks/MockEarner.sol";
 
@@ -48,8 +48,8 @@ contract CallbackAsset is MockUSDC {
 
 contract VaultTest is TestBase {
     MockUSDC asset;
-    SliceFactory factory;
-    SliceCovenant covenant;
+    BondrailFactory factory;
+    BondrailCovenant covenant;
     BondrailVault vault;
     address constant CURATOR = address(0xC);
     address constant ALICE = address(0xA);
@@ -64,9 +64,9 @@ contract VaultTest is TestBase {
     function setUp() public {
         vm.warp(100 days);
         asset = new MockUSDC();
-        covenant = new SliceCovenant(FORWARDER, vm.addr(OBSERVER_PK));
-        factory = new SliceFactory(
-            address(covenant), address(this), address(new SliceBond()), address(new SliceAccount()), address(this), 0
+        covenant = new BondrailCovenant(FORWARDER, vm.addr(OBSERVER_PK));
+        factory = new BondrailFactory(
+            address(covenant), address(this), address(new BondrailBond()), address(new BondrailAccount()), address(this), 0
         );
         covenant.initializeFactory(address(factory));
         vault = new BondrailVault(asset, factory, address(this), CURATOR);
@@ -78,12 +78,12 @@ contract VaultTest is TestBase {
         asset.approve(address(vault), type(uint256).max);
     }
 
-    function _new(MockUSDC token, bool watched, uint256 raise) internal returns (SliceBond b) {
-        SliceAccount account = SliceAccount(factory.createAccount(address(token)));
+    function _new(MockUSDC token, bool watched, uint256 raise) internal returns (BondrailBond b) {
+        BondrailAccount account = BondrailAccount(factory.createAccount(address(token)));
         MockEarner source = new MockEarner(address(account));
         account.bindProject(address(source));
         factory.setNativeApproval(address(source), true);
-        SliceTypes.Terms memory t;
+        BondrailTypes.Terms memory t;
         t.raiseAmount = raise;
         t.repayCap = raise * 12 / 10;
         t.stake = watched ? 20e6 : 0;
@@ -100,12 +100,12 @@ contract VaultTest is TestBase {
         t.stepUpBps = 4000;
         token.mint(address(this), t.stake);
         token.approve(address(factory), t.stake);
-        b = SliceBond(
+        b = BondrailBond(
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(
-                    watched ? SliceTypes.Adapter.Watched : SliceTypes.Adapter.Native,
+                BondrailTypes.AdapterConfig(
+                    watched ? BondrailTypes.Adapter.Watched : BondrailTypes.Adapter.Native,
                     watched ? address(0) : address(source),
                     keccak256("vault-policy")
                 ),
@@ -120,19 +120,19 @@ contract VaultTest is TestBase {
         vault.deposit(amount, ALICE);
     }
 
-    function _allocate(SliceBond b, uint256 amount) internal {
+    function _allocate(BondrailBond b, uint256 amount) internal {
         vm.prank(CURATOR);
         vault.allocate(address(b), amount);
     }
 
-    function _collect(SliceBond b) internal returns (uint256) {
+    function _collect(BondrailBond b) internal returns (uint256) {
         vm.prank(CURATOR);
         return vault.collect(address(b));
     }
 
-    function _observe(SliceBond b, uint8 result) internal {
+    function _observe(BondrailBond b, uint8 result) internal {
         uint64 at = uint64(vm.getBlockTimestamp());
-        SliceTypes.Observation memory o = SliceTypes.Observation(
+        BondrailTypes.Observation memory o = BondrailTypes.Observation(
             address(b),
             b.policyHash(),
             at / 30,
@@ -148,26 +148,26 @@ contract VaultTest is TestBase {
         covenant.onReport("", abi.encode(o, sig));
     }
 
-    function _activate(SliceBond b) internal {
+    function _activate(BondrailBond b) internal {
         uint256 gap = b.terms().raiseAmount - b.fundingEscrow();
         if (gap != 0) {
             asset.mint(address(this), gap);
             asset.approve(address(b), gap);
             b.deposit(gap);
         }
-        if (b.adapter() == SliceTypes.Adapter.Watched) _observe(b, 1);
+        if (b.adapter() == BondrailTypes.Adapter.Watched) _observe(b, 1);
         factory.activate(address(b));
     }
 
-    function _revenue(SliceBond b, uint256 amount) internal {
+    function _revenue(BondrailBond b, uint256 amount) internal {
         asset.mint(b.account(), amount);
-        SliceAccount(b.account()).sweep();
+        BondrailAccount(b.account()).sweep();
     }
 
-    function _close(SliceBond b) internal {
+    function _close(BondrailBond b) internal {
         vm.warp(b.terms().maturity);
-        SliceAccount(b.account()).closeBondAtMaturity(address(b));
-        if (b.phase() == SliceTypes.Phase.Closing) {
+        BondrailAccount(b.account()).closeBondAtMaturity(address(b));
+        if (b.phase() == BondrailTypes.Phase.Closing) {
             vm.warp(b.settleAfter());
             b.finalizeSettlement();
         }
@@ -210,7 +210,7 @@ contract VaultTest is TestBase {
         vm.expectRevert(BondrailVault.InvalidBond.selector);
         vault.allocate(address(asset), 1e6);
         MockUSDC other = new MockUSDC();
-        SliceBond b = _new(other, false, 100e6);
+        BondrailBond b = _new(other, false, 100e6);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.WrongAsset.selector);
         vault.allocate(address(b), 10e6);
@@ -218,7 +218,7 @@ contract VaultTest is TestBase {
 
     function testAllocationRejectsRevokedNativeAndWatchedViolation() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         factory.setNativeApproval(b.source(), false);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.Unhealthy.selector);
@@ -232,7 +232,7 @@ contract VaultTest is TestBase {
 
     function testConcentrationLimitIncludesExistingClaims() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 500e6);
+        BondrailBond b = _new(asset, false, 500e6);
         _allocate(b, 100e6);
         _allocate(b, 150e6);
         vm.prank(CURATOR);
@@ -244,14 +244,14 @@ contract VaultTest is TestBase {
 
     function testAllocationUsesExitNAVAfterTriggerImpairment() public {
         _deposit(1000e6);
-        SliceBond a = _new(asset, false, 250e6);
+        BondrailBond a = _new(asset, false, 250e6);
         _allocate(a, 250e6);
         _activate(a);
         vm.warp(vm.getBlockTimestamp() + 2 days);
         a.checkTrigger();
         eq(vault.totalAssets(), 875e6);
         eq(vault.entryAssets(), 1000e6);
-        SliceBond b = _new(asset, false, 250e6);
+        BondrailBond b = _new(asset, false, 250e6);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.ConcentrationLimit.selector);
         vault.allocate(address(b), 218.75e6 + 1);
@@ -260,10 +260,10 @@ contract VaultTest is TestBase {
 
     function testFundingDeadlineRollsBackTrackingAndApproval() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 250e6);
+        BondrailBond b = _new(asset, false, 250e6);
         vm.warp(b.terms().fundingDeadline);
         vm.prank(CURATOR);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         vault.allocate(address(b), 100e6);
         eq(vault.holdings().length, 0);
         eq(asset.allowance(address(vault), address(b)), 0);
@@ -275,7 +275,7 @@ contract VaultTest is TestBase {
         for (uint256 i; i < 3; ++i) {
             _allocate(_new(asset, false, 1000), 250);
         }
-        SliceBond b = _new(asset, false, 1000);
+        BondrailBond b = _new(asset, false, 1000);
         _allocate(b, 50);
         eq(vault.idleAssets(), 201);
         vm.prank(CURATOR);
@@ -289,7 +289,7 @@ contract VaultTest is TestBase {
         vm.expectRevert(BondrailVault.InvalidConfiguration.selector);
         new BondrailVault(asset, factory, address(this), address(0));
         vm.expectRevert(BondrailVault.InvalidConfiguration.selector);
-        new BondrailVault(asset, SliceFactory(address(0)), address(this), CURATOR);
+        new BondrailVault(asset, BondrailFactory(address(0)), address(this), CURATOR);
         ShortVaultAsset token = new ShortVaultAsset();
         BondrailVault other = new BondrailVault(token, factory, address(this), CURATOR);
         token.mint(address(this), 100e6);
@@ -305,7 +305,7 @@ contract VaultTest is TestBase {
         for (uint256 i; i < 3; ++i) {
             _allocate(_new(asset, false, 250e6), 250e6);
         }
-        SliceBond b = _new(asset, false, 250e6);
+        BondrailBond b = _new(asset, false, 250e6);
         _allocate(b, 50e6);
         eq(vault.idleAssets(), 200e6);
         vm.prank(CURATOR);
@@ -323,7 +323,7 @@ contract VaultTest is TestBase {
         for (uint256 i; i < 16; ++i) {
             _allocate(_new(asset, false, 100e6), 1e6);
         }
-        SliceBond extra = _new(asset, false, 100e6);
+        BondrailBond extra = _new(asset, false, 100e6);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.BondLimit.selector);
         vault.allocate(address(extra), 1e6);
@@ -341,7 +341,7 @@ contract VaultTest is TestBase {
 
     function testFundingWithdrawalAndEvents() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         vm.expectEmit(true, false, false, true, address(vault));
         emit Allocated(address(b), 100e6);
         _allocate(b, 100e6);
@@ -363,7 +363,7 @@ contract VaultTest is TestBase {
 
     function testNAVFundingActiveRevenueClosedCollect() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         _allocate(b, 100e6);
         eq(vault.totalAssets(), 1000e6);
         _activate(b);
@@ -375,7 +375,7 @@ contract VaultTest is TestBase {
         eq(vault.totalAssets(), 1000e6);
         eq(vault.holdingRecovered(address(b)), 20e6);
         _revenue(b, 200e6); // cap closes Native immediately, recovers undrawn 50
-        eq(uint256(b.phase()), uint256(SliceTypes.Phase.Closed));
+        eq(uint256(b.phase()), uint256(BondrailTypes.Phase.Closed));
         eq(vault.totalAssets(), 1000e6); // ten of profit remains unvested
         vault.checkpointIncome();
         vm.expectEmit(true, false, false, true, address(vault));
@@ -390,7 +390,7 @@ contract VaultTest is TestBase {
 
     function testDepositsAndMintsStayOpenAcrossActivationAndClosing() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 100e6);
+        BondrailBond b = _new(asset, true, 100e6);
         _allocate(b, 100e6);
         _activate(b);
         eq(vault.totalAssets(), 1000e6);
@@ -405,7 +405,7 @@ contract VaultTest is TestBase {
         vm.prank(BOB);
         eq(vault.mint(100e12, BOB), 100e6);
         _revenue(b, 300e6);
-        eq(uint256(b.phase()), uint256(SliceTypes.Phase.Closing));
+        eq(uint256(b.phase()), uint256(BondrailTypes.Phase.Closing));
         vm.prank(BOB);
         eq(vault.deposit(1e6, BOB), 1e12);
         vm.warp(b.settleAfter());
@@ -417,7 +417,7 @@ contract VaultTest is TestBase {
 
     function testNeverRedeemActiveOrClosingEvenAfterGrace() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 200e6);
+        BondrailBond b = _new(asset, true, 200e6);
         _allocate(b, 100e6); // not the last holder: the bond itself WOULD allow early redemption
         _activate(b);
         _revenue(b, 100e6);
@@ -428,7 +428,7 @@ contract VaultTest is TestBase {
         vm.expectRevert(BondrailVault.InvalidState.selector);
         vault.withdrawFromRaise(address(b), 1e6);
         vm.warp(b.terms().maturity);
-        SliceAccount(b.account()).closeBondAtMaturity(address(b));
+        BondrailAccount(b.account()).closeBondAtMaturity(address(b));
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.InvalidState.selector);
         vault.collect(address(b));
@@ -443,14 +443,14 @@ contract VaultTest is TestBase {
 
     function testCancelledRefundAndDeadlineBoundary() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 100e6);
+        BondrailBond b = _new(asset, true, 100e6);
         _allocate(b, 40e6);
         vm.warp(b.terms().fundingDeadline);
         vm.prank(CURATOR);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         vault.withdrawFromRaise(address(b), 40e6);
         eq(vault.totalAssets(), 1000e6);
-        SliceAccount(b.account()).cancelFunding(address(b));
+        BondrailAccount(b.account()).cancelFunding(address(b));
         eq(b.stakeReturnCredit(), 20e6);
         eq(vault.holdingValue(address(b)), 40e6);
         eq(vault.maxDeposit(BOB), type(uint256).max);
@@ -461,7 +461,7 @@ contract VaultTest is TestBase {
 
     function testDefaultKeepsRealizedRecoveryRevenueAndSlashedStake() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 200e6);
+        BondrailBond b = _new(asset, true, 200e6);
         _allocate(b, 100e6);
         _activate(b);
         _revenue(b, 100e6);
@@ -488,7 +488,7 @@ contract VaultTest is TestBase {
 
     function testWithdrawalsUseOnlyIdleWithoutBurningClaims() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 250e6);
+        BondrailBond b = _new(asset, false, 250e6);
         _allocate(b, 250e6);
         eq(vault.maxWithdraw(ALICE), 750e6);
         eq(vault.maxRedeem(ALICE), 750e12);
@@ -510,7 +510,7 @@ contract VaultTest is TestBase {
 
     function testUnauthorizedAndNoArbitraryDestinationOrSweep() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         vm.expectRevert(BondrailVault.Unauthorized.selector);
         vault.allocate(address(b), 10e6); // owner is not curator
         vm.prank(BOB);
@@ -560,7 +560,7 @@ contract VaultTest is TestBase {
         vm.expectRevert(BondrailVault.InvalidState.selector);
         vault.acceptCurator();
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         vm.prank(CURATOR);
         vm.expectRevert(BondrailVault.Unauthorized.selector);
         vault.allocate(address(b), 10e6);
@@ -570,7 +570,7 @@ contract VaultTest is TestBase {
 
     function testInvalidAmountsStatesAndUntrackedBonds() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         vm.startPrank(CURATOR);
         vm.expectRevert(BondrailVault.InvalidBond.selector);
         vault.collect(address(b));
@@ -591,13 +591,13 @@ contract VaultTest is TestBase {
 
     function testClaimGiftsCannotAddUnboundedHoldings() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 200e6);
+        BondrailBond b = _new(asset, false, 200e6);
         _activate(b);
         b.transfer(address(vault), 1e6);
         eq(vault.holdingValue(address(b)), 0);
         eq(vault.holdings().length, 0);
         eq(vault.totalAssets(), 1000e6);
-        SliceBond tracked = _new(asset, false, 200e6);
+        BondrailBond tracked = _new(asset, false, 200e6);
         _allocate(tracked, 50e6);
         _activate(tracked);
         tracked.transfer(address(vault), 50e6);
@@ -610,7 +610,7 @@ contract VaultTest is TestBase {
 
     function testTotalLossCollectRemovesHoldingWithoutEarlyBurn() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         _allocate(b, 100e6);
         _activate(b);
         vm.warp(b.terms().secondReleaseNotBefore);
@@ -625,7 +625,7 @@ contract VaultTest is TestBase {
 
     function testSettledSubUnitDustIsZeroNAVAndDoesNotBlockEntry() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         _allocate(b, 1);
         _activate(b);
         vm.warp(b.terms().secondReleaseNotBefore);
@@ -636,7 +636,7 @@ contract VaultTest is TestBase {
         eq(vault.holdingValue(address(b)), 0);
         eq(vault.maxDeposit(BOB), type(uint256).max);
         vm.prank(CURATOR);
-        vm.expectRevert(SliceBond.InvalidAmount.selector);
+        vm.expectRevert(BondrailBond.InvalidAmount.selector);
         vault.collect(address(b));
         // Other holders can consolidate dust with a transfer, after settlement.
         b.transfer(address(vault), b.balanceOf(address(this)));
@@ -677,7 +677,7 @@ contract VaultTest is TestBase {
         yes(token.attempted());
         yes(!token.succeeded());
         yes(bytes4(token.result()) == bytes4(keccak256("ReentrancyGuardReentrantCall()")));
-        SliceBond b = _new(token, false, 100e6);
+        BondrailBond b = _new(token, false, 100e6);
         token.arm(address(guarded), abi.encodeCall(guarded.allocate, (address(b), 1e6)));
         guarded.withdraw(1e6, address(this), address(this));
         yes(token.attempted());
@@ -696,7 +696,7 @@ contract VaultTest is TestBase {
         yes(!token.succeeded());
         yes(bytes4(token.result()) == bytes4(keccak256("ReentrancyGuardReentrantCall()")));
         vm.warp(b.terms().fundingDeadline);
-        SliceAccount(b.account()).cancelFunding(address(b));
+        BondrailAccount(b.account()).cancelFunding(address(b));
         token.arm(address(guarded), abi.encodeCall(guarded.collect, (address(b))));
         vm.prank(address(token));
         guarded.collect(address(b));
@@ -705,7 +705,7 @@ contract VaultTest is TestBase {
         yes(bytes4(token.result()) == bytes4(keccak256("ReentrancyGuardReentrantCall()")));
     }
 
-    function _default(SliceBond b) internal {
+    function _default(BondrailBond b) internal {
         vm.warp(vm.getBlockTimestamp() + 31);
         _observe(b, 2);
         vm.warp(vm.getBlockTimestamp() + 30);
@@ -715,7 +715,7 @@ contract VaultTest is TestBase {
 
     function testTriggerSeparatesEntryAndExitPricesAndReverses() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 200e6);
+        BondrailBond b = _new(asset, false, 200e6);
         _allocate(b, 200e6);
         _activate(b);
         vm.warp(vm.getBlockTimestamp() + 2 days);
@@ -746,7 +746,7 @@ contract VaultTest is TestBase {
 
     function testDefaultLinearWritedownAndRecoveryReversesLoss() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 200e6);
+        BondrailBond b = _new(asset, true, 200e6);
         _allocate(b, 100e6);
         _activate(b);
         _default(b);
@@ -777,7 +777,7 @@ contract VaultTest is TestBase {
 
     function testMaturityWritedownWithoutSettlementAndLateDefaultDoesNotRestart() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 200e6);
+        BondrailBond b = _new(asset, true, 200e6);
         _allocate(b, 100e6);
         _activate(b);
         uint256 maturity = b.maturity();
@@ -792,14 +792,14 @@ contract VaultTest is TestBase {
         eq(vault.holdingValue(address(b)), 80e6);
         vm.warp(maturity + 30 days);
         eq(vault.holdingValue(address(b)), 60e6);
-        SliceAccount(b.account()).closeBondAtMaturity(address(b));
+        BondrailAccount(b.account()).closeBondAtMaturity(address(b));
         eq(vault.holdingEntryValue(address(b)), 60e6);
         eq(vault.holdingValue(address(b)), 60e6);
     }
 
     function testProfitVestsLinearlyAndCollectDoesNotUnlockIt() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         _allocate(b, 100e6);
         _activate(b);
         _revenue(b, 100e6);
@@ -829,7 +829,7 @@ contract VaultTest is TestBase {
 
     function testFrontRunningRepaymentCannotCaptureImmediateIncome() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 250e6);
+        BondrailBond b = _new(asset, false, 250e6);
         _allocate(b, 250e6);
         _activate(b);
         vm.prank(BOB);
@@ -847,8 +847,8 @@ contract VaultTest is TestBase {
 
     function testNewProfitMergesOnlyUnvestedRemainderAndSlotsCanBeReused() public {
         _deposit(1000e6);
-        SliceBond a = _new(asset, false, 100e6);
-        SliceBond b = _new(asset, false, 100e6);
+        BondrailBond a = _new(asset, false, 100e6);
+        BondrailBond b = _new(asset, false, 100e6);
         _allocate(a, 100e6);
         _allocate(b, 100e6);
         _activate(a);
@@ -873,7 +873,7 @@ contract VaultTest is TestBase {
 
     function testCapSubtractsPriorRedemptionsAndIncludesStagedPrincipal() public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 200e6);
+        BondrailBond b = _new(asset, false, 200e6);
         _allocate(b, 100e6);
         _activate(b);
         eq(vault.holdingEntryValue(address(b)), 100e6);
@@ -894,7 +894,7 @@ contract VaultTest is TestBase {
 
     function testFuzzExitNAVNeverExceedsEntryNAV(uint128 seed, uint32 elapsed, uint8 stage) public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, true, 300e6);
+        BondrailBond b = _new(asset, true, 300e6);
         _allocate(b, uint256(seed) % 250e6 + 1);
         _activate(b);
         _revenue(b, uint256(seed) % 800e6);
@@ -946,13 +946,13 @@ contract VaultTest is TestBase {
         uint256 snapshot = SnapshotVm(address(vm)).snapshotState();
         address[] memory held = vault.holdings();
         for (uint256 i; i < held.length; ++i) {
-            SliceBond b = SliceBond(held[i]);
+            BondrailBond b = BondrailBond(held[i]);
             uint256 claims = b.balanceOf(address(vault));
-            SliceTypes.Phase p = b.phase();
-            if (p == SliceTypes.Phase.Funding) {
+            BondrailTypes.Phase p = b.phase();
+            if (p == BondrailTypes.Phase.Funding) {
                 vm.prank(address(vault));
                 b.withdraw(claims, address(vault));
-            } else if (p == SliceTypes.Phase.Cancelled) {
+            } else if (p == BondrailTypes.Phase.Cancelled) {
                 vm.prank(address(vault));
                 b.refund(claims, address(vault));
             } else if (b.pool() != 0 && claims * b.pool() / b.totalSupply() == 0) {
@@ -968,9 +968,9 @@ contract VaultTest is TestBase {
 
     function testFuzzRealizedBackingMatchesReceiptsAndSettlementNAV(uint128 seed, bool defaulted) public {
         _deposit(1000e6);
-        SliceBond a = _new(asset, false, 300e6);
-        SliceBond b = _new(asset, true, 300e6);
-        SliceBond c = _new(asset, true, 300e6);
+        BondrailBond a = _new(asset, false, 300e6);
+        BondrailBond b = _new(asset, true, 300e6);
+        BondrailBond c = _new(asset, true, 300e6);
         _allocate(a, uint256(seed) % 200e6 + 1);
         _allocate(b, uint256(keccak256(abi.encode(seed))) % 200e6 + 1);
         _allocate(c, uint256(keccak256(abi.encode(seed, "c"))) % 200e6 + 1);
@@ -989,11 +989,11 @@ contract VaultTest is TestBase {
         }
         _assertRealizable();
         vm.warp(c.terms().fundingDeadline);
-        SliceAccount(c.account()).cancelFunding(address(c));
+        BondrailAccount(c.account()).cancelFunding(address(c));
         _assertRealizable();
         vm.warp(a.terms().maturity);
-        SliceAccount(a.account()).closeBondAtMaturity(address(a));
-        SliceAccount(b.account()).closeBondAtMaturity(address(b));
+        BondrailAccount(a.account()).closeBondAtMaturity(address(a));
+        BondrailAccount(b.account()).closeBondAtMaturity(address(b));
         _assertRealizable();
         vm.warp(b.settleAfter());
         b.finalizeSettlement();
@@ -1008,7 +1008,7 @@ contract VaultTest is TestBase {
 
     function testFuzzMaximaAreExecutable(uint128 seed, uint64 rawExit) public {
         _deposit(1000e6);
-        SliceBond b = _new(asset, false, 300e6);
+        BondrailBond b = _new(asset, false, 300e6);
         _allocate(b, uint256(seed) % 250e6 + 1);
         _activate(b);
         _revenue(b, uint256(seed) % 100e6);

@@ -1,4 +1,4 @@
-// @bondrail/sdk: revenue accounts and bonds on Monad; x402 payments into a SliceAccount; revenue data.
+// @bondrail/sdk: revenue accounts and bonds on Monad; x402 payments into a BondrailAccount; revenue data.
 export * from './abis';
 export * from './client';
 export * from './trigger';

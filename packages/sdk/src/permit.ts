@@ -1,5 +1,5 @@
-// EIP-2612 permit for a Native payment: the payer signs once, the project's SliceAccount pulls exactly
-// `value` in the same transaction (via SliceEarner._collectWithPermit). No standing approval is left.
+// EIP-2612 permit for a Native payment: the payer signs once, the project's BondrailAccount pulls exactly
+// `value` in the same transaction (via BondrailEarner._collectWithPermit). No standing approval is left.
 import { parseSignature, type Account, type Address, type Chain, type PublicClient, type Transport, type WalletClient } from 'viem';
 
 const erc20PermitAbi = [
@@ -13,7 +13,7 @@ export async function signAccountPermit(o: {
   walletClient: WalletClient<Transport, Chain, Account>;
   /** The payment token (e.g. USDC). */
   asset: Address;
-  /** The project's SliceAccount: the spender that will pull the payment. */
+  /** The project's BondrailAccount: the spender that will pull the payment. */
   account: Address;
   value: bigint;
   deadline: bigint;

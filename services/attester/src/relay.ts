@@ -1,5 +1,5 @@
 import type { Account, Address, Chain, Hex, PublicClient, Transport, WalletClient } from 'viem';
-import { bondrailCreditRegistryAbi, sliceFactoryAbi } from '@bondrail/sdk/abis';
+import { bondrailCreditRegistryAbi, bondrailFactoryAbi } from '@bondrail/sdk/abis';
 import type { CreditAttestation } from '@bondrail/sdk/credit';
 
 type Reader = Pick<PublicClient, 'getBlockNumber' | 'readContract' | 'getContractEvents' | 'simulateContract' | 'waitForTransactionReceipt'>;
@@ -25,7 +25,7 @@ export async function relayAttestation(client: Reader, wallet: Writer, registry:
     const bonds = new Set<Address>();
     for (let fromBlock = factoryStartBlock; fromBlock <= blockNumber; fromBlock += 10_000n) {
       const toBlock = fromBlock + 9_999n < blockNumber ? fromBlock + 9_999n : blockNumber;
-      const logs = await client.getContractEvents({ address: factory, abi: sliceFactoryAbi,
+      const logs = await client.getContractEvents({ address: factory, abi: bondrailFactoryAbi,
         eventName: 'BondCreated', args: { account: attestation.account }, fromBlock, toBlock, strict: true });
       for (const log of logs) bonds.add(log.args.bond.toLowerCase() as Address);
     }

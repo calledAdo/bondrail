@@ -24,7 +24,7 @@ docs/deployments/31337.json
 .vercel
 .env*
 **/.cre_build_tmp.js
-cre/slice-covenant/dist/
+cre/bondrail-covenant/dist/
 apps/web/.source/
 
 # Internal working notes (kept locally, not published)

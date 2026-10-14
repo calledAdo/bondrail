@@ -9,8 +9,8 @@ optimizer_runs = 200
 via_ir = true
 remappings = [
   "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-  "@slice/=src/",
-  "@slice-demo/=../demo/contracts/",
+  "@bondrail/=src/",
+  "@bondrail-demo/=../demo/contracts/",
 ]
 # The demo contracts (../demo/contracts) are built against the protocol for tests and demo deploys.
 allow_paths = ["../demo"]

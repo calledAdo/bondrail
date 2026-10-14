@@ -5,7 +5,7 @@ description: From the first payment to a repaid bond.
 
 ## 1. The account builds history
 
-A business creates its SliceAccount in the token it charges fees in (USDC, WETH, any ERC-20). From then on
+A business creates its BondrailAccount in the token it charges fees in (USDC, WETH, any ERC-20). From then on
 every payment is booked on-chain: `cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `uniquePayers`,
 `firstRevenueAt`, `revenueByDay`. With no bond, 100% of revenue is credited to the business (**passthrough**).
 

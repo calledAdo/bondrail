@@ -1,6 +1,6 @@
 // Off-chain records the protocol has no field for, each verifiable by anyone:
 //   profile  an EIP-712 profile signed by account.issuer() (checked on-chain), plus a domain check:
-//            the website's /.well-known/slice.json must name the account
+//            the website's /.well-known/bondrail.json must name the account
 //   kuru     a Kuru market for a bond, proven by its MarketRegistered receipt (base asset = a Bondrail bond)
 // Storage: Upstash Redis REST (KV_REST_API_URL / KV_REST_API_TOKEN), else in-memory for local dev.
 import { NextResponse } from 'next/server';
@@ -19,14 +19,14 @@ const marketRegistered = parseAbi([
 
 // ---- storage
 // Dev fallback; kept on globalThis so hot reloads don't wipe it (production uses Upstash KV).
-const memory: Map<string, string> = ((globalThis as { __sliceRegistry?: Map<string, string> }).__sliceRegistry ??= new Map());
+const memory: Map<string, string> = ((globalThis as { __bondrailRegistry?: Map<string, string> }).__bondrailRegistry ??= new Map());
 const kv = process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN
   ? { url: process.env.KV_REST_API_URL, token: process.env.KV_REST_API_TOKEN }
   : null;
 async function put(key: string, value: unknown) {
   const raw = JSON.stringify(value);
   if (!kv) return void memory.set(key, raw);
-  await fetch(`${kv.url}/set/${encodeURIComponent(`slice:registry:${key}`)}`, {
+  await fetch(`${kv.url}/set/${encodeURIComponent(`bondrail:registry:${key}`)}`, {
     method: 'POST',
     headers: { Authorization: `Bearer ${kv.token}` },
     body: raw,
@@ -34,7 +34,7 @@ async function put(key: string, value: unknown) {
 }
 async function get<T>(key: string): Promise<T | null> {
   if (!kv) return memory.has(key) ? (JSON.parse(memory.get(key)!) as T) : null;
-  const r = await fetch(`${kv.url}/get/${encodeURIComponent(`slice:registry:${key}`)}`, {
+  const r = await fetch(`${kv.url}/get/${encodeURIComponent(`bondrail:registry:${key}`)}`, {
     headers: { Authorization: `Bearer ${kv.token}` },
     cache: 'no-store',
   });
@@ -48,7 +48,7 @@ async function domainNames(website: string, account: string) {
     const local = chainId === 31337 && u.hostname === '127.0.0.1';
     // Public HTTPS hostnames only (no IP literals or localhost): the server fetches this URL.
     if (!local && (u.protocol !== 'https:' || u.port || /^[\d.]+$|^\[|localhost$/i.test(u.hostname))) return false;
-    const r = await fetch(`${u.origin}/.well-known/slice.json`, { signal: AbortSignal.timeout(5000), cache: 'no-store' });
+    const r = await fetch(`${u.origin}/.well-known/bondrail.json`, { signal: AbortSignal.timeout(5000), cache: 'no-store' });
     const m = (await r.json()) as { account?: string };
     return typeof m.account === 'string' && m.account.toLowerCase() === account.toLowerCase();
   } catch {

@@ -18,7 +18,7 @@ export interface AgentEnvironment {
   apiKey?: string;
 }
 export function environment(env: NodeJS.ProcessEnv = process.env): AgentEnvironment {
-  const chainId = Number(env.SLICE_CHAIN_ID ?? 10143);
+  const chainId = Number(env.BONDRAIL_CHAIN_ID ?? 10143);
   if (chainId !== 10143 && chainId !== 31337) throw new Error('Agent writes support testnet/local only');
   const asset =
     env.AGENT_USDC_ADDRESS ?? (chainId === 10143 ? '0x534b2f3A21130d7a60830c2Df862319e593943A3' : '');
@@ -30,11 +30,11 @@ export function environment(env: NodeJS.ProcessEnv = process.env): AgentEnvironm
     u.username ||
     u.password ||
     (u.protocol !== 'https:' &&
-      !(env.SLICE_ENV === 'local' && ['127.0.0.1', 'localhost'].includes(u.hostname)))
+      !(env.BONDRAIL_ENV === 'local' && ['127.0.0.1', 'localhost'].includes(u.hostname)))
   )
     throw new Error('Invalid public URL');
   const facilitatorURL = env.X402_FACILITATOR_URL ?? 'https://x402-facilitator.molandak.org';
-  if (new URL(facilitatorURL).protocol !== 'https:' && env.SLICE_ENV !== 'local')
+  if (new URL(facilitatorURL).protocol !== 'https:' && env.BONDRAIL_ENV !== 'local')
     throw new Error('Facilitator requires HTTPS');
   return {
     chainId,

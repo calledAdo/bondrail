@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from '@playwright/test';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const out = path.join(here, 'output');
-const browser = await chromium.launch({headless:true, executablePath:process.env.SLICE_CHROME ?? path.join(os.homedir(),'Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing')});
+const browser = await chromium.launch({headless:true, executablePath:process.env.BONDRAIL_CHROME ?? path.join(os.homedir(),'Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing')});
 const context = await browser.newContext({viewport:{width:1600,height:900},colorScheme:'dark',recordVideo:{dir:path.join(out,'raw'),size:{width:1600,height:900}}});
 try {
  const page = await context.newPage(); const started = Date.now(); const marks=[];

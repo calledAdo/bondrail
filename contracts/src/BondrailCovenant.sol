@@ -3,12 +3,12 @@ pragma solidity 0.8.28;
 import {EIP712} from "@openzeppelin/contracts/utils/cryptography/EIP712.sol";
 import {ECDSA} from "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {SliceTypes, ISliceBond} from "./SliceTypes.sol";
+import {BondrailTypes, IBondrailBond} from "./BondrailTypes.sol";
 
 /// @notice Watched-adapter covenant. Observations arrive only through Chainlink CRE reports (`onReport`
 /// from the pinned forwarder), and each must also carry the pinned observer's EIP-712 signature, because
 /// the simulation forwarder alone does not authenticate who produced a report.
-contract SliceCovenant is EIP712, ReentrancyGuard {
+contract BondrailCovenant is EIP712, ReentrancyGuard {
     error Unauthorized();
     error InvalidObservation();
     error DuplicateEpoch();
@@ -60,7 +60,7 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
     event CovenantDefault(address indexed bond, uint64 firstEpoch, uint64 secondEpoch, bytes32 evidenceHash);
     event DarkDefault(address indexed bond, uint64 darkSince, uint64 darkLast, bytes32 evidenceHash);
 
-    constructor(address forwarder_, address signer_) EIP712("SliceCovenant", "1") {
+    constructor(address forwarder_, address signer_) EIP712("BondrailCovenant", "1") {
         if (forwarder_ == address(0) || signer_ == address(0)) revert Unauthorized();
         forwarder = forwarder_;
         observationSigner = signer_;
@@ -81,7 +81,7 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
         emit WatchRegistered(bond, policyHash);
     }
 
-    function hashObservation(SliceTypes.Observation memory o) public view returns (bytes32) {
+    function hashObservation(BondrailTypes.Observation memory o) public view returns (bytes32) {
         return _hashTypedDataV4(
             keccak256(
                 abi.encode(
@@ -102,11 +102,11 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
 
     function onReport(bytes calldata, bytes calldata report) external nonReentrant {
         if (msg.sender != forwarder) revert Unauthorized();
-        (SliceTypes.Observation memory o, bytes memory signature) = abi.decode(report, (SliceTypes.Observation, bytes));
+        (BondrailTypes.Observation memory o, bytes memory signature) = abi.decode(report, (BondrailTypes.Observation, bytes));
         _submit(o, signature);
     }
 
-    function _submit(SliceTypes.Observation memory o, bytes memory signature) private {
+    function _submit(BondrailTypes.Observation memory o, bytes memory signature) private {
         if (
             o.policyHash == bytes32(0) || policyHashes[o.bond] != o.policyHash || o.result > 2 || o.observedAt == 0
                 || o.epoch != o.observedAt / EPOCH_SECONDS || o.observedAt > block.timestamp + MAX_CLOCK_SKEW
@@ -115,11 +115,11 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
         ) revert InvalidObservation();
         bytes32 digest = hashObservation(o);
         if (ECDSA.recover(digest, signature) != observationSigner) revert Unauthorized();
-        ISliceBond b = ISliceBond(o.bond);
-        SliceTypes.Phase p = b.phase();
-        if (p == SliceTypes.Phase.Cancelled || p == SliceTypes.Phase.Closed) revert InvalidObservation();
+        IBondrailBond b = IBondrailBond(o.bond);
+        BondrailTypes.Phase p = b.phase();
+        if (p == BondrailTypes.Phase.Cancelled || p == BondrailTypes.Phase.Closed) revert InvalidObservation();
         if (
-            p == SliceTypes.Phase.Closing
+            p == BondrailTypes.Phase.Closing
                 && (block.timestamp >= b.settleAfter() || o.observedAt >= b.collectionClosedAt())
         ) revert InvalidObservation();
         if (o.result == 1 && o.observedPayTo != b.account()) revert InvalidObservation();
@@ -145,12 +145,12 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
             darkSince[o.bond] = 0;
             darkLast[o.bond] = 0;
         }
-        if (o.result != 2 || p == SliceTypes.Phase.Funding || b.defaultedAt() != 0) return;
+        if (o.result != 2 || p == BondrailTypes.Phase.Funding || b.defaultedAt() != 0) return;
         if (o.epoch > 0) _checkPair(b, o.bond, o.epoch - 1, o.epoch);
         if (b.defaultedAt() == 0) _checkPair(b, o.bond, o.epoch, o.epoch + 1);
     }
 
-    function _checkPair(ISliceBond b, address bond, uint64 first, uint64 second) private {
+    function _checkPair(IBondrailBond b, address bond, uint64 first, uint64 second) private {
         Slot storage a = slots[bond][uint8(first % 8)];
         Slot storage c = slots[bond][uint8(second % 8)];
         uint64 activated = b.activationTime();
@@ -164,7 +164,7 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
         emit CovenantDefault(bond, first, second, evidence);
     }
 
-    function _trackDark(ISliceBond b, address bond, uint64 at, SliceTypes.Phase p) private {
+    function _trackDark(IBondrailBond b, address bond, uint64 at, BondrailTypes.Phase p) private {
         if (at <= lastDecisiveAt[bond]) return; // an older Unknown than the latest decisive result
         uint64 since = darkSince[bond];
         uint64 last = darkLast[bond];
@@ -175,7 +175,7 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
             if (at > last) last = at;
         }
         (darkSince[bond], darkLast[bond]) = (since, last);
-        if (p != SliceTypes.Phase.Active || b.defaultedAt() != 0) return;
+        if (p != BondrailTypes.Phase.Active || b.defaultedAt() != 0) return;
         uint64 start = since > b.activationTime() ? since : b.activationTime();
         if (last < start + DARK_DEFAULT) return;
         bytes32 evidence = keccak256(abi.encode("dark", bond, since, last));
@@ -195,14 +195,14 @@ contract SliceCovenant is EIP712, ReentrancyGuard {
         if (!hasObservation[bond]) return false;
         Slot storage s = slots[bond][uint8(latestEpoch[bond] % 8)];
         return s.result == 1 && s.expiresAt >= block.timestamp && uint256(s.observedAt) + MAX_AGE >= block.timestamp
-            && s.observedAt <= block.timestamp + MAX_CLOCK_SKEW && ISliceBond(bond).defaultedAt() == 0;
+            && s.observedAt <= block.timestamp + MAX_CLOCK_SKEW && IBondrailBond(bond).defaultedAt() == 0;
     }
 
     /// @notice True when the bond defaulted, its latest observation is a Violation, or it has been dark for
     /// DARK_WARN. Deposits check this: unlike `isHealthy` it needs no fresh report, so a bond can raise
     /// between CRE runs.
     function inViolation(address bond) external view returns (bool) {
-        if (ISliceBond(bond).defaultedAt() != 0 || darkFor(bond) >= DARK_WARN) return true;
+        if (IBondrailBond(bond).defaultedAt() != 0 || darkFor(bond) >= DARK_WARN) return true;
         return hasObservation[bond] && slots[bond][uint8(latestEpoch[bond] % 8)].result == 2;
     }
 

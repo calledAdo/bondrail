@@ -1,6 +1,6 @@
 ---
 title: Build a Native project
-description: Inherit SliceEarner and move every fee through your SliceAccount.
+description: Inherit BondrailEarner and move every fee through your BondrailAccount.
 ---
 
 ## 1. Create the account
@@ -8,17 +8,17 @@ description: Inherit SliceEarner and move every fee through your SliceAccount.
 Create it on day one, in the token you charge fees in. History starts at the first payment.
 
 ```ts
-import { sliceClient } from '@bondrail/sdk/client';
-const slice = sliceClient({ publicClient, walletClient, factory });
-const account = await slice.createAccount(USDC);
+import { bondrailClient } from '@bondrail/sdk/client';
+const bondrail = bondrailClient({ publicClient, walletClient, factory });
+const account = await bondrail.createAccount(USDC);
 ```
 
-## 2. Inherit SliceEarner
+## 2. Inherit BondrailEarner
 
-`SliceEarner` fixes the account at deploy and gives you two calls, both in the account's asset:
+`BondrailEarner` fixes the account at deploy and gives you two calls, both in the account's asset:
 
-<Source file="contracts/src/SliceEarner.sol" from="function _collect(" />
-<Source file="contracts/src/SliceEarner.sol" from="function _settleOut(" />
+<Source file="contracts/src/BondrailEarner.sol" from="function _collect(" />
+<Source file="contracts/src/BondrailEarner.sol" from="function _settleOut(" />
 
 Use `_collect` when the fee comes off what the payer sends (a buy), and `_settleOut` when it comes off what
 the payer receives (a sell): the payout goes through the account, so the seller approves nothing. This is the
@@ -35,7 +35,7 @@ revenue; LP fees and liquidity deposits do not go through the account.
 ## 3. Bind and get reviewed
 
 ```ts
-await slice.bindProject(account, project); // issuer only, once; the project must point at the account
+await bondrail.bindProject(account, project); // issuer only, once; the project must point at the account
 ```
 
 The disclosed reviewer then calls `factory.setNativeApproval(project, true)`. History accrues before review;

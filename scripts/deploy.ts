@@ -1,7 +1,7 @@
-// Deploys the Bondrail core: bond + account implementations, SliceCovenant (CRE receiver), SliceFactory.
-//   SLICE_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts     local anvil (deploys MockUSDC too)
+// Deploys the Bondrail core: bond + account implementations, BondrailCovenant (CRE receiver), BondrailFactory.
+//   BONDRAIL_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts     local anvil (deploys MockUSDC too)
 //   pnpm tsx scripts/deploy.ts                          Monad testnet (Circle test USDC, CRE mock forwarder)
-//   SLICE_MIN_HISTORY=<seconds>                         history an account needs before issuing (default:
+//   BONDRAIL_MIN_HISTORY=<seconds>                         history an account needs before issuing (default:
 //                                                       60 local, 600 testnet; use days on mainnet)
 // Writes docs/deployments/<chainId>.json. Demo businesses are set up separately by demo/scripts/setup-demo.ts.
 import os from 'node:os';
@@ -24,7 +24,7 @@ const milestone = account('milestone', { create: true });
 // Disclosed reviewer: approves Native projects whose code pays every fee through their account.
 const reviewer = account('reviewer', { create: true });
 
-const minHistory = BigInt(process.env.SLICE_MIN_HISTORY ?? (chainId === 31337 ? 60 : 600));
+const minHistory = BigInt(process.env.BONDRAIL_MIN_HISTORY ?? (chainId === 31337 ? 60 : 600));
 
 async function main() {
   console.log(`Deploying Bondrail to ${chain.name} (${chainId}) from ${deployer.address}`);
@@ -46,11 +46,11 @@ async function main() {
       if (!(await publicClient.getCode({ address: a }))) throw new Error(`No code at ${a} on ${chain.name}`);
   }
 
-  const bondImplementation = await deploy(deployer, 'SliceBond');
-  const accountImplementation = await deploy(deployer, 'SliceAccount');
-  const covenant = await deploy(deployer, 'SliceCovenant', [forwarder, observer.address]);
+  const bondImplementation = await deploy(deployer, 'BondrailBond');
+  const accountImplementation = await deploy(deployer, 'BondrailAccount');
+  const covenant = await deploy(deployer, 'BondrailCovenant', [forwarder, observer.address]);
   // Accounts choose their own asset; `asset` here is the demo's default (USDC on testnet).
-  const factory = await deploy(deployer, 'SliceFactory', [
+  const factory = await deploy(deployer, 'BondrailFactory', [
     covenant,
     milestone.address,
     bondImplementation,

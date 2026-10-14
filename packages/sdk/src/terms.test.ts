@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { encodeAbiParameters, encodeFunctionResult, parseAbiParameters, type PublicClient } from 'viem';
-import { sliceBondAbi } from './abis';
+import { bondrailBondAbi } from './abis';
 import { readBondTerms } from './client';
 
 const address = '0x1111111111111111111111111111111111111111';
@@ -17,7 +17,7 @@ test('reads both immutable bond term versions without losing original listings',
   assert.deepEqual(await readBondTerms(mock(legacy), address),
     { ...base, triggerWindowDays: 0, stepUpBps: 0, triggerRevenue: 0n });
   const terms = { ...base, triggerWindowDays: 2, stepUpBps: 4000, triggerRevenue: 10n };
-  const data = encodeFunctionResult({ abi: sliceBondAbi, functionName: 'terms', result: terms });
+  const data = encodeFunctionResult({ abi: bondrailBondAbi, functionName: 'terms', result: terms });
   assert.deepEqual(await readBondTerms(mock(data), address), terms);
 });
 

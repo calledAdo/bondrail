@@ -8,9 +8,9 @@ import {ERC4626} from "@openzeppelin/contracts/token/ERC20/extensions/ERC4626.so
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {SliceBond} from "./SliceBond.sol";
-import {SliceFactory} from "./SliceFactory.sol";
-import {SliceTypes} from "./SliceTypes.sol";
+import {BondrailBond} from "./BondrailBond.sol";
+import {BondrailFactory} from "./BondrailFactory.sol";
+import {BondrailTypes} from "./BondrailTypes.sol";
 
 /// @notice Carried-cost credit vault with separate entry/exit NAV and seven-day income vesting.
 /// @dev Requires an exact-transfer, non-rebasing asset. Limits apply at allocation time, not to exits.
@@ -36,7 +36,7 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
     uint256 public constant WRITEDOWN_PERIOD = 30 days;
     uint256 public constant INCOME_VESTING_PERIOD = 7 days;
 
-    SliceFactory public immutable factory;
+    BondrailFactory public immutable factory;
     address public immutable owner;
     address public curator;
     address public pendingCurator;
@@ -55,7 +55,7 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
     event CuratorChanged(address indexed previousCurator, address indexed curator);
     event IncomeCheckpointed(uint256 newIncome, uint256 lockedIncome);
 
-    constructor(IERC20 asset_, SliceFactory factory_, address owner_, address curator_)
+    constructor(IERC20 asset_, BondrailFactory factory_, address owner_, address curator_)
         ERC20("Bondrail Credit", "brCREDIT")
         ERC4626(asset_)
     {
@@ -109,11 +109,11 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
     /// @notice Untracked token gifts are excluded. Pool value is backing, not immediately available cash.
     function holdingRealizedValue(address bond) public view returns (uint256) {
         if (_indexPlusOne[bond] == 0) return 0;
-        SliceBond b = SliceBond(bond);
+        BondrailBond b = BondrailBond(bond);
         uint256 claims = b.balanceOf(address(this));
         if (claims == 0) return 0;
-        SliceTypes.Phase p = b.phase();
-        if (p == SliceTypes.Phase.Funding || p == SliceTypes.Phase.Cancelled) return claims;
+        BondrailTypes.Phase p = b.phase();
+        if (p == BondrailTypes.Phase.Funding || p == BondrailTypes.Phase.Cancelled) return claims;
         return Math.mulDiv(claims, b.pool(), b.totalSupply());
     }
 
@@ -132,7 +132,7 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
     /// @notice Current claims' pro-rata cumulative pool inflows, including principal and stake recovery.
     function holdingRecovered(address bond) public view returns (uint256) {
         if (_indexPlusOne[bond] == 0) return 0;
-        SliceBond b = SliceBond(bond);
+        BondrailBond b = BondrailBond(bond);
         uint256 claims = b.balanceOf(address(this));
         if (claims == 0) return 0;
         return
@@ -142,8 +142,8 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
     function _holdingValues(address bond) private view returns (uint256 entryValue, uint256 exitValue) {
         uint256 realized = holdingRealizedValue(bond);
         if (_indexPlusOne[bond] == 0) return (0, 0);
-        SliceBond b = SliceBond(bond);
-        if (b.phase() != SliceTypes.Phase.Active) return (realized, realized);
+        BondrailBond b = BondrailBond(bond);
+        if (b.phase() != BondrailTypes.Phase.Active) return (realized, realized);
         uint256 claims = b.balanceOf(address(this));
         if (claims == 0) return (0, 0);
         uint256 unrecovered = costBasis[bond] - Math.min(costBasis[bond], holdingRecovered(bond));
@@ -248,9 +248,9 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
 
     function allocate(address bond, uint256 amount) external onlyCurator nonReentrant {
         if (!factory.isBond(bond)) revert InvalidBond();
-        SliceBond b = SliceBond(bond);
+        BondrailBond b = BondrailBond(bond);
         if (address(b.asset()) != asset()) revert WrongAsset();
-        if (b.phase() != SliceTypes.Phase.Funding) revert InvalidState();
+        if (b.phase() != BondrailTypes.Phase.Funding) revert InvalidState();
         if (!factory.depositAllowed(bond)) revert Unhealthy();
         if (amount == 0) revert InvalidAmount();
         _checkpointIncome();
@@ -276,8 +276,8 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
 
     function withdrawFromRaise(address bond, uint256 amount) external onlyCurator nonReentrant {
         if (_indexPlusOne[bond] == 0) revert InvalidBond();
-        SliceBond b = SliceBond(bond);
-        if (b.phase() != SliceTypes.Phase.Funding) revert InvalidState();
+        BondrailBond b = BondrailBond(bond);
+        if (b.phase() != BondrailTypes.Phase.Funding) revert InvalidState();
         _checkpointIncome();
         costBasis[bond] -= Math.mulDiv(costBasis[bond], amount, b.balanceOf(address(this)));
         b.withdraw(amount, address(this));
@@ -289,13 +289,13 @@ contract BondrailVault is ERC4626, ReentrancyGuard {
     function collect(address bond) external onlyCurator nonReentrant returns (uint256 assets) {
         if (_indexPlusOne[bond] == 0) revert InvalidBond();
         _checkpointIncome();
-        SliceBond b = SliceBond(bond);
+        BondrailBond b = BondrailBond(bond);
         uint256 claims = b.balanceOf(address(this));
-        SliceTypes.Phase p = b.phase();
-        if (p == SliceTypes.Phase.Cancelled) {
+        BondrailTypes.Phase p = b.phase();
+        if (p == BondrailTypes.Phase.Cancelled) {
             assets = claims;
             b.refund(claims, address(this));
-        } else if (p == SliceTypes.Phase.Closed) {
+        } else if (p == BondrailTypes.Phase.Closed) {
             assets = b.redeem(claims, address(this));
         } else {
             revert InvalidState();

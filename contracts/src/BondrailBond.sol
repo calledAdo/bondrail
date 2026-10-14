@@ -7,10 +7,10 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
-import {SliceTypes, ISliceFactory, ISliceAccount} from "./SliceTypes.sol";
+import {BondrailTypes, IBondrailFactory, IBondrailAccount} from "./BondrailTypes.sol";
 
 /// @notice One fungible class: fund, stage principal, collect revenue, then redeem once collection and evidence close.
-contract SliceBond is ERC20, ReentrancyGuard {
+contract BondrailBond is ERC20, ReentrancyGuard {
     using SafeERC20 for IERC20;
     error Unauthorized();
     error InvalidState();
@@ -29,13 +29,13 @@ contract SliceBond is ERC20, ReentrancyGuard {
     address public raiseRecipient;
     address public source;
     bytes32 public policyHash;
-    SliceTypes.Adapter public adapter;
-    SliceTypes.Phase public phase;
-    SliceTypes.CloseReason public closeReason;
+    BondrailTypes.Adapter public adapter;
+    BondrailTypes.Phase public phase;
+    BondrailTypes.CloseReason public closeReason;
     // Packed with phase, which the account already reads on every active payment.
     bool public triggered;
     uint64 public lastTriggerCheckDay;
-    SliceTypes.Terms private _terms;
+    BondrailTypes.Terms private _terms;
     uint64 public activationTime;
     uint64 public collectionClosedAt;
     uint64 public settleAfter;
@@ -62,7 +62,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     event UndrawnRecovered(uint256 amount, uint256 recoveryTotal);
     event RevenueReceived(uint256 amount, uint256 totalRevenue, uint256 pool);
     event DefaultRecorded(bytes32 indexed evidenceHash, uint256 stakeRecovered);
-    event CollectionClosed(SliceTypes.CloseReason reason, uint64 closedAt, uint64 settleAfter, uint256 pool);
+    event CollectionClosed(BondrailTypes.CloseReason reason, uint64 closedAt, uint64 settleAfter, uint256 pool);
     event SettlementFinalized(uint256 pool, uint256 supply, uint256 issuerStakeCredit);
     event FundingCancelled(uint256 refundable, uint256 issuerStakeCredit);
     event Refunded(address indexed holder, address indexed receiver, uint256 amount);
@@ -111,8 +111,8 @@ contract SliceBond is ERC20, ReentrancyGuard {
         address account_,
         address covenant_,
         address recipient_,
-        SliceTypes.Terms calldata terms_,
-        SliceTypes.AdapterConfig calldata config,
+        BondrailTypes.Terms calldata terms_,
+        BondrailTypes.AdapterConfig calldata config,
         string calldata name_,
         string calldata symbol_
     ) external {
@@ -137,7 +137,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
         stakeHeld = terms_.stake;
     }
 
-    function terms() external view returns (SliceTypes.Terms memory) {
+    function terms() external view returns (BondrailTypes.Terms memory) {
         return _terms;
     }
 
@@ -157,13 +157,13 @@ contract SliceBond is ERC20, ReentrancyGuard {
     /// costs the issuer real money (the investor share is paid), but is possible; this is not wash-adjusted.
     function checkTrigger() external {
         uint256 window = _terms.triggerWindowDays;
-        if (phase != SliceTypes.Phase.Active || defaultedAt != 0 || window == 0) revert InvalidState();
+        if (phase != BondrailTypes.Phase.Active || defaultedAt != 0 || window == 0) revert InvalidState();
         uint256 today = block.timestamp / 1 days;
         if (today < uint256(activationTime) / 1 days + 1 + window) revert TooEarly();
         if (lastTriggerCheckDay == today) revert AlreadyCheckedToday();
         uint256 windowRevenue;
         for (uint256 day = today - window; day < today; ++day) {
-            windowRevenue += ISliceAccount(account).revenueByDay(day);
+            windowRevenue += IBondrailAccount(account).revenueByDay(day);
         }
         bool next = windowRevenue < _terms.triggerRevenue;
         lastTriggerCheckDay = uint64(today);
@@ -195,8 +195,8 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function deposit(uint256 amount) external nonReentrant {
-        if (phase != SliceTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
-        if (!ISliceFactory(factory).depositAllowed(address(this))) revert Unhealthy();
+        if (phase != BondrailTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
+        if (!IBondrailFactory(factory).depositAllowed(address(this))) revert Unhealthy();
         if (amount == 0 || amount > _terms.raiseAmount - fundingEscrow) revert InvalidAmount();
         uint256 beforeBalance = asset.balanceOf(address(this));
         asset.safeTransferFrom(msg.sender, address(this), amount);
@@ -209,7 +209,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     /// @notice While the raise is open, an investor can take a deposit back: claims are burned 1:1 for the
     /// escrowed asset. Activation needs the full raise, so a withdrawal only reopens the gap to fill.
     function withdraw(uint256 amount, address to) external nonReentrant {
-        if (phase != SliceTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
+        if (phase != BondrailTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
         _validPayment(amount, to);
         _burn(msg.sender, amount);
         fundingEscrow -= amount;
@@ -222,12 +222,12 @@ contract SliceBond is ERC20, ReentrancyGuard {
 
     function activateFactoryOnly(uint256 accountRevenueAtActivation) external onlyFactory nonReentrant {
         if (
-            phase != SliceTypes.Phase.Funding || fundingEscrow != _terms.raiseAmount
+            phase != BondrailTypes.Phase.Funding || fundingEscrow != _terms.raiseAmount
                 || block.timestamp >= _terms.fundingDeadline
         ) revert InvalidState();
         uint256 first = Math.mulDiv(_terms.raiseAmount, _terms.firstReleaseBps, 10_000);
         if (first == 0) revert InvalidAmount();
-        phase = SliceTypes.Phase.Active;
+        phase = BondrailTypes.Phase.Active;
         revenueSnapshot = accountRevenueAtActivation;
         activationTime = uint64(block.timestamp);
         fundingEscrow = 0;
@@ -239,7 +239,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
 
     function releaseSecondFactoryOnly(bytes32 evidenceHash) external onlyFactory nonReentrant {
         if (
-            phase != SliceTypes.Phase.Active || defaultedAt != 0 || undrawnPrincipal == 0
+            phase != BondrailTypes.Phase.Active || defaultedAt != 0 || undrawnPrincipal == 0
                 || block.timestamp < _terms.secondReleaseNotBefore || block.timestamp >= _terms.secondReleaseDeadline
         ) revert InvalidState();
         uint256 amount = undrawnPrincipal;
@@ -251,7 +251,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function expireUndrawn() external nonReentrant {
-        if (phase != SliceTypes.Phase.Active || block.timestamp < _terms.secondReleaseDeadline) revert TooEarly();
+        if (phase != BondrailTypes.Phase.Active || block.timestamp < _terms.secondReleaseDeadline) revert TooEarly();
         _recoverUndrawn();
     }
 
@@ -265,15 +265,15 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function cancelFundingFromAccount() external onlyAccount nonReentrant {
-        if (phase != SliceTypes.Phase.Funding || block.timestamp < _terms.fundingDeadline) revert InvalidState();
-        phase = SliceTypes.Phase.Cancelled;
+        if (phase != BondrailTypes.Phase.Funding || block.timestamp < _terms.fundingDeadline) revert InvalidState();
+        phase = BondrailTypes.Phase.Cancelled;
         stakeReturnCredit += stakeHeld;
         stakeHeld = 0;
         emit FundingCancelled(fundingEscrow, stakeReturnCredit);
     }
 
     function refund(uint256 amount, address to) external nonReentrant {
-        if (phase != SliceTypes.Phase.Cancelled) revert InvalidState();
+        if (phase != BondrailTypes.Phase.Cancelled) revert InvalidState();
         _validPayment(amount, to);
         _burn(msg.sender, amount);
         fundingEscrow -= amount;
@@ -282,7 +282,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function onRepayment(uint256 amount) external onlyAccount nonReentrant {
-        if (phase != SliceTypes.Phase.Active || amount == 0 || amount > remainingRevenueCap()) revert InvalidState();
+        if (phase != BondrailTypes.Phase.Active || amount == 0 || amount > remainingRevenueCap()) revert InvalidState();
         // Direct donations are surplus; this authenticated callback is the only revenue-credit entry.
         if (asset.balanceOf(address(this)) < accountedBalance() + amount) revert InvalidAmount();
         totalRevenueCollected += amount;
@@ -290,16 +290,16 @@ contract SliceBond is ERC20, ReentrancyGuard {
         emit RevenueReceived(amount, totalRevenueCollected, pool);
     }
 
-    function finalizeCollection(SliceTypes.CloseReason reason) external onlyAccount nonReentrant {
-        if (phase != SliceTypes.Phase.Active || reason == SliceTypes.CloseReason.None) revert InvalidState();
-        if (reason == SliceTypes.CloseReason.RevenueCap && remainingRevenueCap() != 0) revert InvalidState();
-        if (reason == SliceTypes.CloseReason.Maturity && block.timestamp < _terms.maturity) revert TooEarly();
+    function finalizeCollection(BondrailTypes.CloseReason reason) external onlyAccount nonReentrant {
+        if (phase != BondrailTypes.Phase.Active || reason == BondrailTypes.CloseReason.None) revert InvalidState();
+        if (reason == BondrailTypes.CloseReason.RevenueCap && remainingRevenueCap() != 0) revert InvalidState();
+        if (reason == BondrailTypes.CloseReason.Maturity && block.timestamp < _terms.maturity) revert TooEarly();
         _recoverUndrawn();
         closeReason = reason;
         collectionClosedAt = uint64(block.timestamp);
         collectionClosedBlock = block.number;
-        if (adapter == SliceTypes.Adapter.Watched) {
-            phase = SliceTypes.Phase.Closing;
+        if (adapter == BondrailTypes.Adapter.Watched) {
+            phase = BondrailTypes.Phase.Closing;
             settleAfter = uint64(block.timestamp) + REPORT_GRACE;
         } else {
             _finishSettlement();
@@ -308,9 +308,9 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function markDefault(bytes32 evidenceHash) external nonReentrant {
-        if (msg.sender != covenant || adapter != SliceTypes.Adapter.Watched) revert Unauthorized();
+        if (msg.sender != covenant || adapter != BondrailTypes.Adapter.Watched) revert Unauthorized();
         if (defaultedAt != 0) return;
-        if (phase != SliceTypes.Phase.Active && !(phase == SliceTypes.Phase.Closing && block.timestamp < settleAfter)) {
+        if (phase != BondrailTypes.Phase.Active && !(phase == BondrailTypes.Phase.Closing && block.timestamp < settleAfter)) {
             revert InvalidState();
         }
         defaultedAt = uint64(block.timestamp);
@@ -324,13 +324,13 @@ contract SliceBond is ERC20, ReentrancyGuard {
     }
 
     function finalizeSettlement() external nonReentrant {
-        if (phase == SliceTypes.Phase.Closed) return;
-        if (phase != SliceTypes.Phase.Closing || block.timestamp < settleAfter) revert TooEarly();
+        if (phase == BondrailTypes.Phase.Closed) return;
+        if (phase != BondrailTypes.Phase.Closing || block.timestamp < settleAfter) revert TooEarly();
         _finishSettlement();
     }
 
     function _finishSettlement() private {
-        phase = SliceTypes.Phase.Closed;
+        phase = BondrailTypes.Phase.Closed;
         stakeReturnCredit += stakeHeld;
         stakeHeld = 0;
         emit SettlementFinalized(pool, totalSupply(), stakeReturnCredit);
@@ -341,13 +341,13 @@ contract SliceBond is ERC20, ReentrancyGuard {
     /// proportional claim on later revenue, recovered principal and any slashed stake. The last claim
     /// cannot be burned before the bond is Closed, so no inflow can land in a pool nobody owns.
     function redeem(uint256 tokens, address to) external nonReentrant returns (uint256 amount) {
-        SliceTypes.Phase p = phase;
-        if (p != SliceTypes.Phase.Active && p != SliceTypes.Phase.Closing && p != SliceTypes.Phase.Closed) {
+        BondrailTypes.Phase p = phase;
+        if (p != BondrailTypes.Phase.Active && p != BondrailTypes.Phase.Closing && p != BondrailTypes.Phase.Closed) {
             revert InvalidState();
         }
         _validPayment(tokens, to);
         uint256 supply = totalSupply();
-        if (tokens == supply && p != SliceTypes.Phase.Closed) revert LastHolderWaitsForClose();
+        if (tokens == supply && p != BondrailTypes.Phase.Closed) revert LastHolderWaitsForClose();
         amount = tokens == supply ? pool : Math.mulDiv(tokens, pool, supply);
         if (pool != 0 && amount == 0) revert InvalidAmount();
         _burn(msg.sender, tokens);
@@ -379,7 +379,7 @@ contract SliceBond is ERC20, ReentrancyGuard {
     function _update(address from, address to, uint256 amount) internal override {
         if (
             from != address(0) && to != address(0)
-                && (phase == SliceTypes.Phase.Funding || phase == SliceTypes.Phase.Cancelled)
+                && (phase == BondrailTypes.Phase.Funding || phase == BondrailTypes.Phase.Cancelled)
         ) revert TransferLocked();
         super._update(from, to, amount);
     }

@@ -1,8 +1,8 @@
 // DEMO: the Oracle Agent's paid Q&A, built on @bondrail/sdk/x402. The SDK does the x402 work (offer,
-// verification, journal, settlement into the SliceAccount); this file only says what is sold and how.
+// verification, journal, settlement into the BondrailAccount); this file only says what is sold and how.
 import {
   exactUsdcRequirements,
-  handlePaidRequest as sliceHandlePaidRequest,
+  handlePaidRequest as bondrailHandlePaidRequest,
   httpFacilitator,
   type Facilitator,
   type PaymentRecord,
@@ -15,7 +15,7 @@ export interface PaymentBackend extends Facilitator {
   answer(question: string): Promise<string>;
 }
 
-/** $0.01 test USDC per question, paid to the agent's current payTo (its SliceAccount). */
+/** $0.01 test USDC per question, paid to the agent's current payTo (its BondrailAccount). */
 export function requirements(env: AgentEnvironment, config: AgentConfig) {
   return exactUsdcRequirements({ chainId: env.chainId, asset: env.asset, amount: '10000', payTo: config.payTo });
 }
@@ -34,7 +34,7 @@ export function handlePaidRequest(
   store: DurableStore,
   backend: PaymentBackend,
 ): Promise<Response> {
-  return sliceHandlePaidRequest({
+  return bondrailHandlePaidRequest({
     header,
     resource: resourceURL(env, question),
     description: 'Oracle Agent answer',

@@ -47,7 +47,7 @@ export class RedisStore implements DurableStore {
   constructor(
     private url: string,
     private token: string,
-    private namespace = 'slice',
+    private namespace = 'bondrail',
   ) {
     if (new URL(url).protocol !== 'https:') throw new Error('Redis REST requires HTTPS');
   }
@@ -86,13 +86,13 @@ export class RedisStore implements DurableStore {
   }
 }
 export function storeFromEnv(env: NodeJS.ProcessEnv = process.env): DurableStore {
-  if (env.SLICE_STORE === 'local' && env.SLICE_ENV === 'local' && env.SLICE_DATA_DIR)
-    return new LocalStore(env.SLICE_DATA_DIR);
+  if (env.BONDRAIL_STORE === 'local' && env.BONDRAIL_ENV === 'local' && env.BONDRAIL_DATA_DIR)
+    return new LocalStore(env.BONDRAIL_DATA_DIR);
   // Upstash via the Vercel Marketplace exposes KV_REST_API_URL / KV_REST_API_TOKEN.
   const url = env.REDIS_REST_URL ?? env.KV_REST_API_URL;
   const token = env.REDIS_REST_TOKEN ?? env.KV_REST_API_TOKEN;
-  if (url && token) return new RedisStore(url, token, env.SLICE_STORE_NAMESPACE ?? 'slice');
+  if (url && token) return new RedisStore(url, token, env.BONDRAIL_STORE_NAMESPACE ?? 'bondrail');
   throw new Error(
-    'Configure shared Redis REST, or explicit SLICE_ENV=local/SLICE_STORE=local/SLICE_DATA_DIR',
+    'Configure shared Redis REST, or explicit BONDRAIL_ENV=local/BONDRAIL_STORE=local/BONDRAIL_DATA_DIR',
   );
 }

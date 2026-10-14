@@ -2,12 +2,12 @@
 pragma solidity 0.8.28;
 
 import {TestBase} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
-import {PumpLab} from "@slice-demo/PumpLab.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
+import {PumpLab} from "@bondrail-demo/PumpLab.sol";
 import {MockUSDC} from "./mocks/MockUSDC.sol";
 import {MockToken18} from "./mocks/MockToken18.sol";
 import {MockEarner} from "./mocks/MockEarner.sol";
@@ -16,7 +16,7 @@ import {MockEarner} from "./mocks/MockEarner.sol";
 contract AssetsAndFeesTest is TestBase {
     MockUSDC usdc;
     MockToken18 weth;
-    SliceFactory factory;
+    BondrailFactory factory;
     address issuer = address(0x111);
     address investor = address(0x222);
     address payer = address(0x333);
@@ -26,16 +26,16 @@ contract AssetsAndFeesTest is TestBase {
         vm.warp(1_800_000);
         usdc = new MockUSDC();
         weth = new MockToken18();
-        SliceCovenant covenant = new SliceCovenant(address(0x444), vm.addr(12345));
-        factory = new SliceFactory(
-            address(covenant), vm.addr(67890), address(new SliceBond()), address(new SliceAccount()), REVIEWER, 0
+        BondrailCovenant covenant = new BondrailCovenant(address(0x444), vm.addr(12345));
+        factory = new BondrailFactory(
+            address(covenant), vm.addr(67890), address(new BondrailBond()), address(new BondrailAccount()), REVIEWER, 0
         );
         covenant.initializeFactory(address(factory));
     }
 
-    function _terms(uint256 unit, uint16 minFeeBps) internal view returns (SliceTypes.Terms memory) {
+    function _terms(uint256 unit, uint16 minFeeBps) internal view returns (BondrailTypes.Terms memory) {
         uint64 n = uint64(vm.getBlockTimestamp());
-        return SliceTypes.Terms(
+        return BondrailTypes.Terms(
             100 * unit,
             120 * unit,
             0,
@@ -47,7 +47,7 @@ contract AssetsAndFeesTest is TestBase {
             60,
             2000,
             5000,
-            SliceTypes.MilestoneMode.Onchain,
+            BondrailTypes.MilestoneMode.Onchain,
             minFeeBps,
             0,
             0,
@@ -56,9 +56,9 @@ contract AssetsAndFeesTest is TestBase {
     }
 
     /// Account + bound, reviewed MockEarner in `asset`.
-    function _native(address asset) internal returns (SliceAccount account, MockEarner earner) {
+    function _native(address asset) internal returns (BondrailAccount account, MockEarner earner) {
         vm.startPrank(issuer);
-        account = SliceAccount(factory.createAccount(asset));
+        account = BondrailAccount(factory.createAccount(asset));
         earner = new MockEarner(address(account));
         account.bindProject(address(earner));
         vm.stopPrank();
@@ -66,20 +66,20 @@ contract AssetsAndFeesTest is TestBase {
         factory.setNativeApproval(address(earner), true);
     }
 
-    function _bond(SliceAccount account, address source, SliceTypes.Terms memory t) internal returns (SliceBond b) {
+    function _bond(BondrailAccount account, address source, BondrailTypes.Terms memory t) internal returns (BondrailBond b) {
         vm.prank(issuer);
-        b = SliceBond(
+        b = BondrailBond(
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(SliceTypes.Adapter.Native, source, keccak256("p")),
+                BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Native, source, keccak256("p")),
                 "Claim",
                 "CLM"
             )
         );
     }
 
-    function _fundAndActivate(SliceBond b, MockToken18 token, uint256 amount) internal {
+    function _fundAndActivate(BondrailBond b, MockToken18 token, uint256 amount) internal {
         token.mint(investor, amount);
         vm.startPrank(investor);
         token.approve(address(b), amount);
@@ -91,9 +91,9 @@ contract AssetsAndFeesTest is TestBase {
 
     function testAnyTokenContractCanBeAnAccountsAsset() public {
         vm.startPrank(issuer);
-        eq(address(SliceAccount(factory.createAccount(address(weth))).asset()), address(weth));
-        eq(address(SliceAccount(factory.createAccount(address(usdc))).asset()), address(usdc));
-        vm.expectRevert(SliceFactory.UnsupportedAsset.selector);
+        eq(address(BondrailAccount(factory.createAccount(address(weth))).asset()), address(weth));
+        eq(address(BondrailAccount(factory.createAccount(address(usdc))).asset()), address(usdc));
+        vm.expectRevert(BondrailFactory.UnsupportedAsset.selector);
         factory.createAccount(address(0xdead)); // not a contract
         vm.expectRevert();
         factory.createAccount(address(this)); // a contract that is not an ERC-20
@@ -102,7 +102,7 @@ contract AssetsAndFeesTest is TestBase {
 
     function testSellerIsPaidThroughTheAccountWithoutAnyApproval() public {
         vm.startPrank(issuer);
-        SliceAccount account = SliceAccount(factory.createAccount(address(usdc)));
+        BondrailAccount account = BondrailAccount(factory.createAccount(address(usdc)));
         PumpLab lab = new PumpLab(address(account), "Lab", "LAB");
         account.bindProject(address(lab));
         vm.stopPrank();
@@ -128,21 +128,21 @@ contract AssetsAndFeesTest is TestBase {
     }
 
     function testFeeFloorBindsOnlyWhileTheBondIsActive() public {
-        (SliceAccount account, MockEarner earner) = _native(address(weth));
+        (BondrailAccount account, MockEarner earner) = _native(address(weth));
         weth.mint(payer, 1000e18);
         weth.mint(address(earner), 1000e18);
         vm.prank(payer);
         weth.approve(address(account), type(uint256).max);
         vm.prank(payer);
         earner.payIn(10e18, 0); // passthrough: a zero-fee promo is fine, it is just recorded
-        SliceBond b = _bond(account, address(earner), _terms(1e18, 100)); // floor: 1%
+        BondrailBond b = _bond(account, address(earner), _terms(1e18, 100)); // floor: 1%
         vm.prank(payer);
         earner.payIn(10e18, 0); // still Funding: no floor yet
         _fundAndActivate(b, weth, 100e18);
         vm.prank(payer);
-        vm.expectRevert(SliceAccount.FeeBelowFloor.selector);
+        vm.expectRevert(BondrailAccount.FeeBelowFloor.selector);
         earner.payIn(10e18, 0.09e18); // 0.9% < 1%
-        vm.expectRevert(SliceAccount.FeeBelowFloor.selector);
+        vm.expectRevert(BondrailAccount.FeeBelowFloor.selector);
         earner.payOut(payer, 10e18, 0.09e18);
         vm.prank(payer);
         earner.payIn(10e18, 0.1e18); // exactly 1%
@@ -152,8 +152,8 @@ contract AssetsAndFeesTest is TestBase {
     }
 
     function testAccountInAnEighteenDecimalAssetRaisesAndRepaysInIt() public {
-        (SliceAccount account, MockEarner earner) = _native(address(weth));
-        SliceBond b = _bond(account, address(earner), _terms(1e18, 0));
+        (BondrailAccount account, MockEarner earner) = _native(address(weth));
+        BondrailBond b = _bond(account, address(earner), _terms(1e18, 0));
         eq(b.decimals(), 18);
         eq(address(b.asset()), address(weth));
         _fundAndActivate(b, weth, 100e18);
@@ -167,25 +167,25 @@ contract AssetsAndFeesTest is TestBase {
 
     function testWatchedBondsTakeNoFeeFloor() public {
         vm.startPrank(issuer);
-        SliceAccount account = SliceAccount(factory.createAccount(address(usdc)));
+        BondrailAccount account = BondrailAccount(factory.createAccount(address(usdc)));
         usdc.approve(address(factory), type(uint256).max);
         vm.stopPrank();
         usdc.mint(issuer, 10e6);
-        SliceTypes.Terms memory t = _terms(1e6, 100);
+        BondrailTypes.Terms memory t = _terms(1e6, 100);
         t.stake = 1e6;
         vm.prank(issuer);
-        vm.expectRevert(SliceFactory.InvalidAdapter.selector);
+        vm.expectRevert(BondrailFactory.InvalidAdapter.selector);
         factory.createBond(
             address(account),
             t,
-            SliceTypes.AdapterConfig(SliceTypes.Adapter.Watched, address(0), keccak256("p")),
+            BondrailTypes.AdapterConfig(BondrailTypes.Adapter.Watched, address(0), keccak256("p")),
             "C",
             "C"
         );
     }
 
     function testDownwardRebaseNeverBricksTheAccount() public {
-        (SliceAccount account, MockEarner earner) = _native(address(weth));
+        (BondrailAccount account, MockEarner earner) = _native(address(weth));
         weth.mint(address(earner), 10e18);
         earner.payOut(payer, 10e18, 1e18); // 1 WETH of fee credited to the issuer
         weth.rebaseDown(address(account), 0.4e18); // balance 0.6 < credit 1.0

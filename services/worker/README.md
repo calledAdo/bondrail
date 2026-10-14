@@ -1,6 +1,6 @@
 # Bondrail supervised worker
 
-Run this as a dedicated supervised Node process, never a Vercel request loop. `node --env-file=.env --import tsx src/main.ts --check` verifies configuration and RPC chain without sending writes. Writes require `SLICE_ENABLE_TESTNET_WRITES=1` plus a funded local/testnet key. Mainnet143 is always rejected. Targets are a fixed bounded file; there is no remote arbitrary-contract or shell endpoint.
+Run this as a dedicated supervised Node process, never a Vercel request loop. `node --env-file=.env --import tsx src/main.ts --check` verifies configuration and RPC chain without sending writes. Writes require `BONDRAIL_ENABLE_TESTNET_WRITES=1` plus a funded local/testnet key. Mainnet143 is always rejected. Targets are a fixed bounded file; there is no remote arbitrary-contract or shell endpoint.
 
 For each target the worker checks state, then performs one appropriate permissionless maintenance action: funding cancellation at deadline, undrawn expiry, sweep, maturity close, or final settlement after the evidence window. Each bond's asset is read from the bond, so accounts in any token are maintained. Covenant reports for Watched bonds are not sent here: the CRE reporter ([`ops/covenant-server`](../../ops/covenant-server)) owns them, so each job has one writer, and a monitor failure can never block expiry or closure.
 

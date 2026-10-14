@@ -1,4 +1,4 @@
-# Slice contracts
+# Bondrail contracts
 
 Solidity0.8.28, OpenZeppelin5.4.0 (vendored), Foundry. Prototype contracts; passing tests are not a production audit.
 
@@ -9,7 +9,7 @@ forge test --summary
 
 The public schema and integration calls are in `INTERFACE.md`. Generated artifacts under `out/` are the ABI authority. No mainnet deployment path is enabled.
 
-Deploy with `scripts/deploy.ts` at the repo root (`SLICE_CHAIN_ID=31337` for a local anvil). Order:
+Deploy with `scripts/deploy.ts` at the repo root (`BONDRAIL_CHAIN_ID=31337` for a local anvil). Order:
 implementations, Covenant, Factory (with `minHistory`), one-shot `Covenant.initializeFactory`. The local
 deployment token MockUSDC supports EIP-2612 but not EIP-3009; the separate MockERC3009 test token
 exercises real EIP-712 signatures and nonce replay protection in Foundry.
@@ -35,7 +35,7 @@ Not established by these tests: live Kuru market/custody compatibility, Monad te
 ## Account-mediated x402 settlement — not yet deployed
 
 Anyone can relay a payer-signed EIP-3009 `TransferWithAuthorization` through
-`SliceAccount.settle(from, value, validAfter, validBefore, nonce, v, r, s)`. The account supplies itself
+`BondrailAccount.settle(from, value, validAfter, validBefore, nonce, v, r, s)`. The account supplies itself
 as `to`; the token verifies the signature and consumes the nonce. The account requires a nonzero,
 non-self payer, positive value, and an exact balance increase. It emits `Settled(payer, value, nonce)`
 then books only `value` via `Revenue(..., collected=true)`, increments volume and proven-payer history,
@@ -50,7 +50,7 @@ is the fallback and does not restore proven-payer counters. Token replay protect
 delta, and `nonReentrant` protect accounting; a proven signing address still does not prove an
 independent customer or economic demand.
 
-Use the SDK's `settleThroughAccount` or the [Slice-only facilitator](../services/facilitator/README.md).
+Use the SDK's `settleThroughAccount` or the [Bondrail-only facilitator](../services/facilitator/README.md).
 The indexer correlates token and account events by chain/token/payer/nonce so each payment is attributed
 once, including batches. Rebuild the indexer's data when adopting its changed authorization identities
 and schema. CRE/manifest checks remain required for Watched businesses. Existing accounts are immutable
@@ -64,7 +64,7 @@ At issuance, optionally set `triggerRevenue` (asset units), `triggerWindowDays` 
 be set within these bounds. `terms().revenueBps` and `baseRevenueBps()` always expose the base share;
 `revenueBps()` exposes the effective share used by the account.
 
-Anyone can call `SliceBond.checkTrigger()` while Active and not defaulted. With UTC day number
+Anyone can call `BondrailBond.checkTrigger()` while Active and not defaulted. With UTC day number
 `today = block.timestamp / 1 days`, it sums `account.revenueByDay(day)` for
 `today - triggerWindowDays <= day < today`. It requires
 `today >= activationDay + 1 + triggerWindowDays`, where `activationDay = activationTime / 1 days`,
@@ -82,7 +82,7 @@ the existing revenue collection/default rules.
 Payments never evaluate the window or write trigger state. They use the latest checked share, preserve
 the existing rounding carry across rate changes, and honor the unchanged cap:
 `effectiveRevenueCap = repayCap × releasedPrincipal / raiseAmount`, minus collected revenue for the
-remaining cap. Reaching it still closes and detaches in the payment transaction. `SliceAccount.sol`
+remaining cap. Reaching it still closes and detaches in the payment transaction. `BondrailAccount.sol`
 is unchanged. The daily loop reads at most 30 existing buckets; the new share fields and trigger state
 are packed with existing terms and lifecycle fields. Without a checker, the last effective share persists.
 
@@ -105,7 +105,7 @@ deployment or live worker transactions were performed. See [validation](../docs/
 
 ## Bondrail Credit vault — not yet deployed
 
-`BondrailVault(IERC20 asset, SliceFactory factory, address owner, address curator)` is a standalone,
+`BondrailVault(IERC20 asset, BondrailFactory factory, address owner, address curator)` is a standalone,
 non-upgradeable ERC-4626 vault; existing bond contracts are unchanged. Choose an exact-transfer,
 non-rebasing asset. Shares use asset decimals + 6 (12 for USDC), with OZ virtual shares/assets.
 `holdings()`, `costBasis(bond)`, `holdingRecovered(bond)`, `holdingRealizedValue(bond)`,
@@ -132,4 +132,4 @@ No deployment was performed.
 
 ### BondrailCreditRegistry (not deployed)
 
-Standalone, factory-scoped credit views and EIP-712 attestations. SliceFactory counts each successful issuance once in `bondsCreated(account)`; other issuance behavior is unchanged. Permissionless `recordBond` rejects duplicates/non-bonds and caps each account at 64. `onchainProfile` returns account counters, aggregate repayment counts/amounts, per-bond cap ratios, `bondsCreated` and `complete = (recorded count == bondsCreated)`. Display "Repayment record covers N of M bonds" and an incomplete warning, including when the 64-bond cap prevents full coverage. `attestedProfile` returns the latest payload, original signer and validity requiring the current attester plus unexpired time. Owner rotation of the attester takes two days. See [field semantics and trust](../docs/credit/DESIGN.md); coverage is scoped to this account/factory and does not prove independent customers. Stored attestations by a rotated-out signer remain visible but invalid.
+Standalone, factory-scoped credit views and EIP-712 attestations. BondrailFactory counts each successful issuance once in `bondsCreated(account)`; other issuance behavior is unchanged. Permissionless `recordBond` rejects duplicates/non-bonds and caps each account at 64. `onchainProfile` returns account counters, aggregate repayment counts/amounts, per-bond cap ratios, `bondsCreated` and `complete = (recorded count == bondsCreated)`. Display "Repayment record covers N of M bonds" and an incomplete warning, including when the 64-bond cap prevents full coverage. `attestedProfile` returns the latest payload, original signer and validity requiring the current attester plus unexpired time. Owner rotation of the attester takes two days. See [field semantics and trust](../docs/credit/DESIGN.md); coverage is scoped to this account/factory and does not prove independent customers. Stored attestations by a rotated-out signer remain visible but invalid.

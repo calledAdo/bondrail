@@ -21,10 +21,10 @@ Coverage is what investors look at first: verified daily revenue × `revenueBps`
 ## Create, fund, activate
 
 ```ts
-const bond = await slice.createBond({ account, terms, tier: Tier.Native, source: project, policyHash, name, symbol });
+const bond = await bondrail.createBond({ account, terms, tier: Tier.Native, source: project, policyHash, name, symbol });
 // investors deposit until the raise is full
-await slice.activate(bond); // first release to you; credit mode starts
-await slice.releaseSecond(bond); // later, once the milestone is met (Onchain mode)
+await bondrail.activate(bond); // first release to you; credit mode starts
+await bondrail.releaseSecond(bond); // later, once the milestone is met (Onchain mode)
 ```
 
-Withdraw your share of revenue at any time with `slice.withdraw(account, to, amount)`.
+Withdraw your share of revenue at any time with `bondrail.withdraw(account, to, amount)`.

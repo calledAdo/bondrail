@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       transaction: Hex;
     };
     const env = environment(),
-      rpc = process.env.SLICE_RPC_URL;
+      rpc = process.env.BONDRAIL_RPC_URL;
     if (!rpc) throw new Error('RPC unavailable');
     return Response.json(await reconcile(storeFromEnv(), paymentKey, transaction, rpc, env.chainId));
   } catch {

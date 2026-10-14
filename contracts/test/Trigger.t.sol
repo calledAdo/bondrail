@@ -2,22 +2,22 @@
 pragma solidity 0.8.28;
 
 import {TestBase, Vm} from "./TestBase.sol";
-import {SliceTypes} from "../src/SliceTypes.sol";
-import {SliceBond} from "../src/SliceBond.sol";
-import {SliceAccount} from "../src/SliceAccount.sol";
-import {SliceFactory} from "../src/SliceFactory.sol";
-import {SliceCovenant} from "../src/SliceCovenant.sol";
+import {BondrailTypes} from "../src/BondrailTypes.sol";
+import {BondrailBond} from "../src/BondrailBond.sol";
+import {BondrailAccount} from "../src/BondrailAccount.sol";
+import {BondrailFactory} from "../src/BondrailFactory.sol";
+import {BondrailCovenant} from "../src/BondrailCovenant.sol";
 import {MockERC3009} from "./mocks/MockERC3009.sol";
 import {MockEarner} from "./mocks/MockEarner.sol";
 
 contract TriggerTest is TestBase {
     MockERC3009 asset;
-    SliceFactory factory;
-    SliceCovenant covenant;
-    SliceAccount account;
+    BondrailFactory factory;
+    BondrailCovenant covenant;
+    BondrailAccount account;
     MockEarner earner;
-    SliceBond bond;
-    SliceTypes.Terms t;
+    BondrailBond bond;
+    BondrailTypes.Terms t;
     uint256 constant PAYER_PK = 1234;
     uint256 constant OBSERVER_PK = 5678;
     address constant FORWARDER = address(0x444);
@@ -29,12 +29,12 @@ contract TriggerTest is TestBase {
     function setUp() public {
         vm.warp(100 days + 12 hours);
         asset = new MockERC3009();
-        covenant = new SliceCovenant(FORWARDER, vm.addr(OBSERVER_PK));
-        factory = new SliceFactory(
-            address(covenant), address(this), address(new SliceBond()), address(new SliceAccount()), address(this), 0
+        covenant = new BondrailCovenant(FORWARDER, vm.addr(OBSERVER_PK));
+        factory = new BondrailFactory(
+            address(covenant), address(this), address(new BondrailBond()), address(new BondrailAccount()), address(this), 0
         );
         covenant.initializeFactory(address(factory));
-        account = SliceAccount(factory.createAccount(address(asset)));
+        account = BondrailAccount(factory.createAccount(address(asset)));
         earner = new MockEarner(address(account));
         account.bindProject(address(earner));
         factory.setNativeApproval(address(earner), true);
@@ -57,12 +57,12 @@ contract TriggerTest is TestBase {
     }
 
     function _create(bool watched) internal {
-        bond = SliceBond(
+        bond = BondrailBond(
             factory.createBond(
                 address(account),
                 t,
-                SliceTypes.AdapterConfig(
-                    watched ? SliceTypes.Adapter.Watched : SliceTypes.Adapter.Native,
+                BondrailTypes.AdapterConfig(
+                    watched ? BondrailTypes.Adapter.Watched : BondrailTypes.Adapter.Native,
                     watched ? address(0) : address(earner),
                     keccak256("trigger")
                 ),
@@ -78,7 +78,7 @@ contract TriggerTest is TestBase {
         bond.deposit(t.raiseAmount);
         if (watched) {
             uint64 now_ = uint64(vm.getBlockTimestamp());
-            SliceTypes.Observation memory o = SliceTypes.Observation(
+            BondrailTypes.Observation memory o = BondrailTypes.Observation(
                 address(bond),
                 bond.policyHash(),
                 now_ / 30,
@@ -129,7 +129,7 @@ contract TriggerTest is TestBase {
         t.stepUpBps = 0;
         _activate(false);
         _day(3);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.checkTrigger();
         eq(bond.revenueBps(), 2500);
         _pay(12, 1);
@@ -143,20 +143,20 @@ contract TriggerTest is TestBase {
         bool disabled = t.triggerRevenue == 0 && t.triggerWindowDays == 0 && t.stepUpBps == 0;
         bool valid = t.triggerRevenue > 0 && t.triggerWindowDays >= 1 && t.triggerWindowDays <= 30
             && t.stepUpBps > t.revenueBps && t.stepUpBps <= 5000;
-        if (!disabled && !valid) vm.expectRevert(SliceFactory.InvalidTerms.selector);
+        if (!disabled && !valid) vm.expectRevert(BondrailFactory.InvalidTerms.selector);
         _create(false);
     }
 
     function testValidationExplicitBoundaries() public {
         t.triggerWindowDays = 31;
-        vm.expectRevert(SliceFactory.InvalidTerms.selector);
+        vm.expectRevert(BondrailFactory.InvalidTerms.selector);
         _create(false);
         t.triggerWindowDays = 1;
         t.stepUpBps = 2500;
-        vm.expectRevert(SliceFactory.InvalidTerms.selector);
+        vm.expectRevert(BondrailFactory.InvalidTerms.selector);
         _create(false);
         t.stepUpBps = 5001;
-        vm.expectRevert(SliceFactory.InvalidTerms.selector);
+        vm.expectRevert(BondrailFactory.InvalidTerms.selector);
         _create(false);
         t.stepUpBps = 2501;
         _create(false);
@@ -170,7 +170,7 @@ contract TriggerTest is TestBase {
         _day(1);
         _pay(9, 0);
         _day(30);
-        vm.expectRevert(SliceBond.TooEarly.selector);
+        vm.expectRevert(BondrailBond.TooEarly.selector);
         bond.checkTrigger();
         _day(31);
         vm.expectEmit(false, false, false, true, address(bond));
@@ -188,7 +188,7 @@ contract TriggerTest is TestBase {
         _activate(false);
         _day(3);
         vm.warp(vm.getBlockTimestamp() - 1);
-        vm.expectRevert(SliceBond.TooEarly.selector);
+        vm.expectRevert(BondrailBond.TooEarly.selector);
         bond.checkTrigger();
         eq(bond.lastTriggerCheckDay(), 0);
         _day(3);
@@ -206,12 +206,12 @@ contract TriggerTest is TestBase {
         vm.warp(100 days + uint256(activationSecond) % 1 days);
         _activate(watched);
         _day(t.triggerWindowDays);
-        vm.expectRevert(SliceBond.TooEarly.selector);
+        vm.expectRevert(BondrailBond.TooEarly.selector);
         bond.checkTrigger();
         _day(1 + t.triggerWindowDays);
         uint256 firstCheck = vm.getBlockTimestamp();
         vm.warp(firstCheck - 1);
-        vm.expectRevert(SliceBond.TooEarly.selector);
+        vm.expectRevert(BondrailBond.TooEarly.selector);
         bond.checkTrigger();
         eq(bond.lastTriggerCheckDay(), 0);
         vm.warp(firstCheck);
@@ -286,7 +286,7 @@ contract TriggerTest is TestBase {
         _day(3);
         bond.checkTrigger();
         vm.warp(vm.getBlockTimestamp() + 1 days - 1);
-        vm.expectRevert(SliceBond.AlreadyCheckedToday.selector);
+        vm.expectRevert(BondrailBond.AlreadyCheckedToday.selector);
         bond.checkTrigger();
         _day(4);
         vm.recordLogs();
@@ -322,7 +322,7 @@ contract TriggerTest is TestBase {
         vm.prank(address(covenant));
         bond.markDefault(keccak256("default"));
         _day(4);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.checkTrigger();
         yes(bond.triggered());
         eq(bond.revenueBps(), 4000);
@@ -330,11 +330,11 @@ contract TriggerTest is TestBase {
 
     function testFundingAndCancelledCannotCheck() public {
         _create(false);
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.checkTrigger();
         vm.warp(t.fundingDeadline);
         account.cancelFunding(address(bond));
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.checkTrigger();
     }
 
@@ -342,11 +342,11 @@ contract TriggerTest is TestBase {
         _activate(true);
         vm.warp(t.maturity);
         account.closeBondAtMaturity(address(bond));
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.checkTrigger();
         vm.warp(bond.settleAfter());
         bond.finalizeSettlement();
-        vm.expectRevert(SliceBond.InvalidState.selector);
+        vm.expectRevert(BondrailBond.InvalidState.selector);
         bond.checkTrigger();
     }
 
@@ -358,7 +358,7 @@ contract TriggerTest is TestBase {
         _pay(150e6 - 2, 3); // 59,999,999 with 9500 carry, just below the cap
         eq(bond.totalRevenueCollected(), 60e6 - 1);
         eq(bond.remainingRevenueCap(), 1);
-        eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Active));
+        eq(uint256(bond.phase()), uint256(BondrailTypes.Phase.Active));
         _pay(100, 2); // candidate 40; pay only the final unit
         eq(bond.totalRevenueCollected(), 60e6);
         eq(bond.remainingRevenueCap(), 0);
@@ -366,8 +366,8 @@ contract TriggerTest is TestBase {
         eq(account.issuerCredit(), 90e6 + 101);
         eq(account.activeBond(), address(0));
         eq(account.splitRemainder(), 0);
-        eq(uint256(bond.phase()), uint256(SliceTypes.Phase.Closed));
-        eq(uint256(bond.closeReason()), uint256(SliceTypes.CloseReason.RevenueCap));
+        eq(uint256(bond.phase()), uint256(BondrailTypes.Phase.Closed));
+        eq(uint256(bond.closeReason()), uint256(BondrailTypes.CloseReason.RevenueCap));
         _pay(5, 0);
         eq(account.issuerCredit(), 90e6 + 106);
     }

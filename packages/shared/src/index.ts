@@ -8,7 +8,7 @@ export const monadTestnet = defineChain({
   blockExplorers: { default: { name: 'Monadscan', url: 'https://testnet.monadscan.com' } },
   testnet: true,
 });
-export const sliceLocal = defineChain({
+export const bondrailLocal = defineChain({
   id: 31337,
   name: 'Bondrail Local',
   nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },

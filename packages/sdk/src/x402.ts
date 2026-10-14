@@ -1,4 +1,4 @@
-// x402 payments into a SliceAccount: make any paid HTTP endpoint pay its SliceAccount, so its revenue
+// x402 payments into a BondrailAccount: make any paid HTTP endpoint pay its BondrailAccount, so its revenue
 // builds on-chain history and, while a bond is active, pays investors automatically.
 //
 // Flow per request:
@@ -12,12 +12,12 @@
 import { HTTPFacilitatorClient, x402ResourceServer } from '@x402/core/server';
 import type { PaymentPayload, PaymentRequirements, SettleResponse } from '@x402/core/types';
 import { ExactEvmScheme } from '@x402/evm/exact/server';
-import { address, canonical, decodeBase64Json, digest, isRecord, type SliceManifest } from '@bondrail/observer/protocol';
+import { address, canonical, decodeBase64Json, digest, isRecord, type BondrailManifest } from '@bondrail/observer/protocol';
 import type { DurableStore } from '@bondrail/observer/store';
 import { decodeEventLog, parseAbi, parseSignature, type Account, type Address, type Chain, type Hex, type Transport, type WalletClient } from 'viem';
-import { sliceAccountAbi } from './abis';
+import { bondrailAccountAbi } from './abis';
 
-export type { DurableStore, SliceManifest };
+export type { DurableStore, BondrailManifest };
 
 /** EIP-3009 wire authorization; all integer fields are atomic-unit decimal strings. */
 export interface TransferAuthorization {
@@ -37,12 +37,12 @@ export async function settleThroughAccount(
   signature: Hex,
 ): Promise<Hex> {
   if (authorization.to.toLowerCase() !== account.toLowerCase())
-    throw new Error('Authorization recipient must be the SliceAccount');
+    throw new Error('Authorization recipient must be the BondrailAccount');
   if (!/^0x[0-9a-fA-F]{130}$/.test(signature)) throw new Error('Expected a 65-byte EIP-3009 signature');
   const { r, s, yParity } = parseSignature(signature);
   return walletClient.writeContract({
     address: account,
-    abi: sliceAccountAbi,
+    abi: bondrailAccountAbi,
     functionName: 'settle',
     args: [authorization.from, BigInt(authorization.value), BigInt(authorization.validAfter),
       BigInt(authorization.validBefore), authorization.nonce, 27 + yParity, r, s],
@@ -88,15 +88,15 @@ export function exactUsdcRequirements(o: {
 }
 
 /**
- * The manifest a Bondrail x402 business serves at `/.well-known/slice.json`: its account and every paid
+ * The manifest a Bondrail x402 business serves at `/.well-known/bondrail.json`: its account and every paid
  * endpoint (each an unpaid GET returning the 402 offer). The covenant check, the marketplace's domain proof
- * and guarded buyers (`sliceGuard`) all read it.
+ * and guarded buyers (`bondrailGuard`) all read it.
  */
-export function sliceManifest(o: { chainId: number; account: Address; endpoints: string[] }): SliceManifest {
+export function bondrailManifest(o: { chainId: number; account: Address; endpoints: string[] }): BondrailManifest {
   return { version: 1, chainId: o.chainId, account: o.account, endpoints: o.endpoints };
 }
 
-export function manifestResponse(manifest: SliceManifest): Response {
+export function manifestResponse(manifest: BondrailManifest): Response {
   return Response.json(manifest, {
     headers: { 'Cache-Control': 'public, max-age=60', 'Access-Control-Allow-Origin': '*' },
   });
