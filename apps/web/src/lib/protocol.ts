@@ -8,6 +8,7 @@ import { erc20Abi, type Address } from 'viem';
 import { accountAbi, bondAbi, factoryAbi } from './abi';
 import { deployment } from './wallet';
 import type { KuruRecord, ProfileRecord } from './profile';
+import { indexedCreditMetrics } from '@bondrail/sdk/credit';
 import { readBondTerms } from '@bondrail/sdk/client';
 
 export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || '';
@@ -161,19 +162,20 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       .filter((p) => p.account === i.id)
       .map((p) => ({ payer: p.payer, amount: unit(p.amount, asset), payments: p.payments, related: p.related, reasons: p.reasons, source: p.source }))
       .sort((a, b) => b.amount - a.amount);
-    const verifiedPayers = payers.filter((p) => !p.related);
-    const verified = verifiedPayers.reduce((s, p) => s + p.amount, 0);
     const daily = (d.DailyRevenue as any[])
       .filter((x) => x.account === i.id)
       .map((x) => ({ day: Number(x.day), raw: unit(x.gross, asset), verified: unit(x.verified, asset) }));
     const today = Math.floor(now / DAY);
-    const verified7 = daily.filter((x) => x.day > today - 7).reduce((s, x) => s + x.verified, 0);
     // A business could show the monitor its account and unguarded customers another wallet: the monitor
     // stays green while attributed x402 revenue falls. Compare yesterday with the 7 days before it.
     const x402Day = (day: number) => unit((d.DailyRevenue as any[]).find((x) => x.account === i.id && Number(x.day) === day)?.x402 ?? '0', asset);
     const dailyAverage = Array.from({ length: 7 }, (_, k) => x402Day(today - 2 - k)).reduce((s, v) => s + v, 0) / 7;
     const revenueDrop = dailyAverage > 0 ? { last24h: x402Day(today - 1), dailyAverage } : null;
     const first = i.firstRevenueAt ? Number(i.firstRevenueAt) : undefined;
+    const credit = indexedCreditMetrics({ now, firstRevenueAt: first,
+      payers: (d.PayerTotal as any[]).filter(p => p.account === i.id).map(p => ({ amount: BigInt(p.amount), related: p.related })),
+      daily: (d.DailyRevenue as any[]).filter(r => r.account === i.id).map(r => ({ day: Number(r.day), verified: BigInt(r.verified) })),
+    });
     return {
       address: i.id,
       issuer: i.issuer,
@@ -182,15 +184,15 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       reviewed: !!i.projectApproved,
       asset,
       revenue: unit(i.grossRevenue, asset),
-      verified,
+      verified: unit(credit.attributedRevenue, asset),
       volume: i.volume != null ? unit(i.volume, asset) : undefined,
       payments: i.payments,
       payers,
-      uniquePayers: verifiedPayers.length,
-      topPayerShare: verified > 0 ? verifiedPayers[0]!.amount / verified : 0,
+      uniquePayers: credit.distinctPayers,
+      topPayerShare: credit.topPayerShare,
       firstRevenueAt: first,
-      ageDays: first ? (now - first) / DAY : 0,
-      verifiedDaily: verified7 / Math.min(7, Math.max(1, first ? (now - first) / DAY : 1)),
+      ageDays: credit.ageDays,
+      verifiedDaily: unit(credit.recentRevenue, asset) / credit.rateDays,
       daily,
       toInvestors: unit(i.toInvestors, asset),
       bonds: (d.Bond as any[]).filter((b) => b.account === i.id).map((b) => b.id),

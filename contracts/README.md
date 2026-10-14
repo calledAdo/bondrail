@@ -129,3 +129,7 @@ reentrancy, donation inflation, dust and an independent realized-backing receipt
 Carried NAV is not immediately realizable: healthy repayment assumptions and rule-based impairments
 remain risks. See [design](../docs/vault/DESIGN.md) and [validation](../docs/vault/VALIDATION.md).
 No deployment was performed.
+
+### BondrailCreditRegistry (not deployed)
+
+Standalone, factory-scoped credit views and EIP-712 attestations; existing contracts are unchanged. Permissionless `recordBond` rejects duplicates/non-bonds and caps each account at 64. `onchainProfile` returns account counters, aggregate repayment counts/amounts and per-bond cap ratios. `attestedProfile` returns the latest payload, original signer and expiry validity. Owner rotation of the attester takes two days. See [field semantics and trust](../docs/credit/DESIGN.md); a registry record is not a proof of complete issuance or independent customers.

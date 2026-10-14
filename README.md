@@ -352,3 +352,13 @@ inspiration from Kokonut UI. External logo sources are recorded in
 
 Bondrail source is [MIT licensed](LICENSE). Testnet demonstrations are not an investment offer or an
 endorsement by Monad, Metropolis, or an integration provider.
+
+### Portable credit registry (not deployed)
+
+`BondrailCreditRegistry` exposes exact account counters and the current repayment state of up to 64 permissionlessly recorded factory bonds. `@bondrail/sdk/credit.getCreditProfile(client, registry, account)` reads both the on-chain record and latest signed assessment at one block. History covers recorded bonds only; compare factory issuance for completeness. Booked revenue includes self-payments, and default flags inherit covenant observer trust.
+
+The separately disclosed attester signs attributed/excluded revenue, payer count/concentration and the SDK credit line. Readers trust that signer for indexer coverage, attribution and policy; the evidence hash commits to inputs, not their truth. The [design](docs/credit/DESIGN.md) defines each field. [services/attester](services/attester/README.md) defaults to dry-run and writes canonical evidence under `docs/credit/evidence/`. No registry is deployed/configured; the account credit page explicitly marks this. Set `NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS` only after deployment.
+
+For Envio, set optional `CREDIT_REGISTRY_ADDRESS` when running `node indexer/gen-config.mjs 10143`, then run `npx -y pnpm@10.32.0 --dir indexer codegen`. The checked-in config has no registry address. `BondRecorded` membership and complete `Attested` history/latest pointers are scoped by chain and registry; expiry is evaluated at read time. Start indexing before registry issuance to capture every event.
+
+`demo/scripts/erc8004.ts repaid` can explicitly publish positive feedback for the registered agent's bond only after final cap settlement with no default. The script checks that the account issuer owns the registered agent; default feedback remains available with `feedback`. It has no automatic watcher or deduplication: check existing reputation feedback before rerunning. These commands send transactions; they have not been run as part of this task.

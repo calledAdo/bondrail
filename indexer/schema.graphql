@@ -186,3 +186,43 @@ type AccountSettlement {
   payer: String!
   amount: BigInt!
 }
+
+# Registry-scoped membership: never infer that this set contains every factory bond.
+type CreditBond {
+  id: ID! # chain:registry:bond
+  chainId: Int!
+  registry: String! @index
+  account: String! @index
+  bond: String!
+  timestamp: BigInt!
+  txHash: String!
+}
+
+# Immutable accepted attestations. Expiry/validity is evaluated by consumers at read time.
+type CreditAttestation {
+  id: ID! # chain:registry:account:nonce
+  chainId: Int!
+  registry: String! @index
+  account: String! @index
+  signer: String!
+  periodStart: BigInt!
+  periodEnd: BigInt!
+  attributedRevenue: BigInt!
+  excludedRevenue: BigInt!
+  distinctPayers: BigInt!
+  topPayerShareBps: Int!
+  creditLine: BigInt!
+  evidenceHash: String!
+  issuedAt: BigInt!
+  expiresAt: BigInt!
+  nonce: BigInt!
+  timestamp: BigInt!
+  txHash: String!
+}
+
+type LatestCreditAttestation {
+  id: ID! # chain:registry:account
+  registry: String! @index
+  account: String! @index
+  attestation: CreditAttestation!
+}

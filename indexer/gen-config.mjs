@@ -17,6 +17,10 @@ const rpc =
     : !process.env.MONAD_RPC // default: HyperSync (Envio Cloud); MONAD_RPC=<url> syncs from an RPC instead
       ? ''
       : `\n    rpc:\n      - url: ${process.env.MONAD_RPC}\n        for: sync\n        # Monad's public RPC caps eth_getLogs at 100 blocks.\n        initial_block_interval: 100\n        interval_ceiling: 100`;
+// Optional explicit address; no deployment manifest is modified or assumed.
+const creditRegistry = process.env.CREDIT_REGISTRY_ADDRESS || dep.creditRegistry;
+if (creditRegistry && (!/^0x[0-9a-fA-F]{40}$/.test(creditRegistry) || /^0x0{40}$/.test(creditRegistry)))
+  throw new Error('Invalid CREDIT_REGISTRY_ADDRESS');
 const tx = '\n        field_selection: { transaction_fields: [hash] }';
 
 fs.writeFileSync(
@@ -62,6 +66,10 @@ contracts:
     events:
       - event: "ObservationAccepted(address indexed bond, uint64 indexed epoch, uint8 result, uint64 observedAt, bytes32 evidenceHash, bytes32 digest)"${tx}
       - event: "CovenantDefault(address indexed bond, uint64 firstEpoch, uint64 secondEpoch, bytes32 evidenceHash)"${tx}
+  - name: BondrailCreditRegistry
+    events:
+      - event: "BondRecorded(address indexed account, address indexed bond)"${tx}
+      - event: "Attested(address indexed account, address indexed signer, uint256 chainId, uint64 periodStart, uint64 periodEnd, uint256 attributedRevenue, uint256 excludedRevenue, uint256 distinctPayers, uint16 topPayerShareBps, uint256 creditLine, bytes32 evidenceHash, uint64 issuedAt, uint64 expiresAt, uint256 nonce)"${tx}
   - name: USDC
     events:
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
@@ -77,6 +85,8 @@ chains:
         address: "${dep.covenant}"
       - name: USDC
         address: "${dep.asset}"
+      # Not deployed unless an explicit registry address is supplied.
+      - name: BondrailCreditRegistry${creditRegistry ? `\n        address: "${creditRegistry}"` : ''}
       - name: SliceAccount
       - name: SliceBond
 `,

@@ -58,6 +58,7 @@ export const deployment = {
   token: address(process.env.NEXT_PUBLIC_USDC_ADDRESS),
   factory: address(process.env.NEXT_PUBLIC_FACTORY_ADDRESS),
   vault: address(process.env.NEXT_PUBLIC_VAULT_ADDRESS),
+  creditRegistry: address(process.env.NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS),
   bonds: {
     pumplab: address(process.env.NEXT_PUBLIC_PUMPLAB_BOND_ADDRESS),
     'oracle-agent': address(process.env.NEXT_PUBLIC_AGENT_BOND_ADDRESS),

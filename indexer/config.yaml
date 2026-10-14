@@ -58,6 +58,12 @@ contracts:
         field_selection: { transaction_fields: [hash] }
       - event: "CovenantDefault(address indexed bond, uint64 firstEpoch, uint64 secondEpoch, bytes32 evidenceHash)"
         field_selection: { transaction_fields: [hash] }
+  - name: BondrailCreditRegistry
+    events:
+      - event: "BondRecorded(address indexed account, address indexed bond)"
+        field_selection: { transaction_fields: [hash] }
+      - event: "Attested(address indexed account, address indexed signer, uint256 chainId, uint64 periodStart, uint64 periodEnd, uint256 attributedRevenue, uint256 excludedRevenue, uint256 distinctPayers, uint16 topPayerShareBps, uint256 creditLine, bytes32 evidenceHash, uint64 issuedAt, uint64 expiresAt, uint256 nonce)"
+        field_selection: { transaction_fields: [hash] }
   - name: USDC
     events:
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
@@ -74,5 +80,7 @@ chains:
         address: "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3"
       - name: USDC
         address: "0x534b2f3A21130d7a60830c2Df862319e593943A3"
+      # Not deployed unless an explicit registry address is supplied.
+      - name: BondrailCreditRegistry
       - name: SliceAccount
       - name: SliceBond

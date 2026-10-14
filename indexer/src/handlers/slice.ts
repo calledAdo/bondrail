@@ -483,3 +483,26 @@ indexer.onEvent({ contract: 'SliceCovenant', event: 'ObservationAccepted' }, asy
 indexer.onEvent({ contract: 'SliceCovenant', event: 'CovenantDefault' }, async ({ event, context }) => {
   log(context, event, low(event.params.bond), 'CovenantDefault', '', 0n);
 });
+
+// ---------- portable credit registry (optional deployment) ----------
+indexer.onEvent({ contract: 'BondrailCreditRegistry', event: 'BondRecorded' }, async ({ event, context }) => {
+  const registry = low(event.srcAddress);
+  context.CreditBond.set({ id: `${event.chainId}:${registry}:${low(event.params.bond)}`,
+    chainId: event.chainId, registry, account: low(event.params.account), bond: low(event.params.bond),
+    timestamp: BigInt(event.block.timestamp), txHash: event.transaction.hash });
+});
+
+indexer.onEvent({ contract: 'BondrailCreditRegistry', event: 'Attested' }, async ({ event, context }) => {
+  const registry = low(event.srcAddress);
+  const account = low(event.params.account);
+  const key = `${event.chainId}:${registry}:${account}`;
+  const id = `${key}:${event.params.nonce}`;
+  context.CreditAttestation.set({ id, chainId: event.chainId, registry, account,
+    signer: low(event.params.signer), periodStart: event.params.periodStart, periodEnd: event.params.periodEnd,
+    attributedRevenue: event.params.attributedRevenue, excludedRevenue: event.params.excludedRevenue,
+    distinctPayers: event.params.distinctPayers, topPayerShareBps: Number(event.params.topPayerShareBps),
+    creditLine: event.params.creditLine, evidenceHash: low(event.params.evidenceHash), issuedAt: event.params.issuedAt,
+    expiresAt: event.params.expiresAt, nonce: event.params.nonce,
+    timestamp: BigInt(event.block.timestamp), txHash: event.transaction.hash });
+  context.LatestCreditAttestation.set({ id: key, registry, account, attestation_id: id });
+});

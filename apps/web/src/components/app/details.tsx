@@ -9,6 +9,7 @@ import { chain } from '@/lib/wallet';
 import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
 import { creditLine, defaultCreditTerms } from '@bondrail/sdk/credit';
+import { RegistryCreditProfile } from './credit-profile';
 import { BondActions } from './bond-actions';
 import { Trade } from './trade';
 import { ImpliedYieldPanel } from './implied-yield';
@@ -341,11 +342,13 @@ function CreditLinePanel({ a }: { a: AccountView }) {
 
 export function AccountPage({ address }: { address: string }) {
   const { data, loading, error, configured } = useProtocol();
-  if (!configured) return <Empty title="No indexer configured" />;
-  if (loading) return <div className="h-96 animate-pulse rounded-xl border border-foreground/10" />;
-  if (error) return <Empty title="Couldn't reach the indexer">{error.message}</Empty>;
-  const a = data!.accounts.find((x) => x.address.toLowerCase() === address.toLowerCase());
-  if (!a) return <Empty title="No SliceAccount at this address">It may not be indexed yet.</Empty>;
+  const a = data?.accounts.find((x) => x.address.toLowerCase() === address.toLowerCase());
+  if (!a) return <div className="space-y-8"><Back /><h1 className="text-4xl font-semibold">Credit profile</h1>
+    <RegistryCreditProfile account={address} />
+    <Empty title={!configured ? 'No indexer configured' : loading ? 'Loading indexed estimates…' : error ? "Couldn't reach the indexer" : 'No indexed account yet'}>
+      Registry reads are independent of the indexed estimates below.
+    </Empty>
+  </div>;
   const bonds = data!.bonds.filter((b) => b.account === a.address);
   return (
     <div className="space-y-8">
@@ -364,6 +367,8 @@ export function AccountPage({ address }: { address: string }) {
           · issuer {short(a.issuer)}
         </p>
       </header>
+      <RegistryCreditProfile account={a.address} />
+      <h2 className="text-xl font-semibold">Indexer estimates · unsigned</h2>
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
         <div className="space-y-6">
           <History a={a} />
@@ -392,7 +397,7 @@ export function AccountPage({ address }: { address: string }) {
               </ul>
             )}
           </Panel>
-          <Panel title="Paid to investors">
+          <Panel title="Collected for investors">
             <p className="font-mono text-2xl tabular">[{fmt(a.toInvestors, a.asset)}]</p>
             <p className="mt-1 text-xs text-foreground/60">across all bonds, split inside each payment</p>
           </Panel>

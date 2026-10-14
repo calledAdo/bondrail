@@ -29,3 +29,5 @@ Entry prices use `previewMint(one share)`; exit prices use `previewRedeem(one sh
 open during Active/Closing phases. Prices exclude unvested income; exit prices also include impairment.
 Holding values precede the vault-wide vesting deduction. Carrying at cost assumes healthy bonds keep
 paying, and impairment follows rules rather than a market price.
+
+Account credit profiles show separate **On-chain record**, **Repayment record**, **Attested**, and unsigned indexer-estimate sections. Set optional `NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS` after deploying the registry; it is currently not deployed. Registry reads work without indexer data and share one block through the SDK. The attested section exposes its original signer (including after rotation), expiry, input period and evidence hash; expired records remain visible with an expired label.
