@@ -2,7 +2,7 @@ import { createServer } from 'node:http';
 import type { VerifyRequest } from '@x402/core/types';
 import type { createFacilitator } from './index.js';
 
-export function facilitatorServer(facilitator: ReturnType<typeof createFacilitator>) {
+export function facilitatorServer(facilitator: Awaited<ReturnType<typeof createFacilitator>>) {
   const server = createServer(async (req, res) => {
     const reply = (status: number, data: unknown) => {
       res.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });

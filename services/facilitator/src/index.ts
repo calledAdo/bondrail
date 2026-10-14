@@ -1,12 +1,12 @@
 import type { PaymentPayload, PaymentRequirements, SettleResponse, SupportedResponse, VerifyResponse } from '@x402/core/types';
 import {
+  BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError,
   isAddress, parseAbi, parseSignature, verifyTypedData, zeroAddress,
-  type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type WalletClient,
+  type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type TypedDataDomain, type WalletClient,
 } from 'viem';
 import { sliceAccountAbi, sliceFactoryAbi } from '@bondrail/sdk/abis';
 import { settleThroughAccount, type TransferAuthorization } from '@bondrail/sdk/x402';
 
-export const NETWORK = 'eip155:10143' as const;
 export const authorizationTypes = {
   TransferWithAuthorization: [
     { name: 'from', type: 'address' }, { name: 'to', type: 'address' },
@@ -15,6 +15,9 @@ export const authorizationTypes = {
   ],
 } as const;
 const tokenAbi = parseAbi([
+  'function eip712Domain() view returns (bytes1 fields, string name, string version, uint256 chainId, address verifyingContract, bytes32 salt, uint256[] extensions)',
+  'function name() view returns (string)',
+  'function version() view returns (string)',
   'function authorizationState(address authorizer, bytes32 nonce) view returns (bool)',
   'function balanceOf(address owner) view returns (uint256)',
 ]);
@@ -24,27 +27,64 @@ const same = (a: string, b: string) => a.toLowerCase() === b.toLowerCase();
 const uint = (v: unknown): v is string => typeof v === 'string' && /^(0|[1-9][0-9]{0,77})$/.test(v) && BigInt(v) < 2n ** 256n;
 const bytes32 = (v: unknown): v is Hex => typeof v === 'string' && /^0x[0-9a-fA-F]{64}$/.test(v);
 
+type GasWallet = WalletClient<Transport, Chain, Account>;
+
 export interface FacilitatorOptions {
   factory: Address;
   asset: Address;
   publicClient: Pick<PublicClient, 'getChainId' | 'getBlock' | 'readContract' | 'simulateContract' | 'waitForTransactionReceipt'>;
-  walletClient: WalletClient<Transport, Chain, Account>;
+  /** A factory lets server startup configure the gas wallet from the cached RPC chain ID. */
+  walletClient: GasWallet | ((chainId: number) => GasWallet);
+  domainName?: string;
+  domainVersion?: string;
   now?: () => number;
 }
 
-/** Only the pinned USDC asset/domain and factory on Monad testnet are accepted. */
-export function createFacilitator(o: FacilitatorOptions) {
+async function tokenDomain(o: FacilitatorOptions, chainId: number): Promise<TypedDataDomain> {
+  const discovered = await o.publicClient.readContract({
+    address: o.asset, abi: tokenAbi, functionName: 'eip712Domain',
+  }).catch((error: unknown) => {
+    // Older tokens may revert or return no data for the unknown ERC-5267 selector.
+    // Transport failures must still abort startup, even when both overrides are configured.
+    if (!(error instanceof BaseError && error.walk(cause =>
+      cause instanceof ContractFunctionRevertedError || cause instanceof ContractFunctionZeroDataError))) throw error;
+    return undefined;
+  });
+  if (discovered) {
+    const [fields, name, version, domainChainId, verifyingContract, salt, extensions] = discovered;
+    const mask = Number(fields);
+    // Require chain/asset binding and the name/version used by x402; honor optional salt.
+    if ((mask & 0x0f) !== 0x0f || (mask & ~0x1f) !== 0 || extensions.length)
+      throw new Error('unsupported_token_domain');
+    if (domainChainId !== BigInt(chainId) || !same(verifyingContract, o.asset))
+      throw new Error('token_domain_mismatch');
+    return { name: o.domainName ?? name, version: o.domainVersion ?? version, chainId, verifyingContract,
+      ...(mask & 0x10 ? { salt } : {}) };
+  }
+  const [name, version] = await Promise.all([
+    o.domainName ?? o.publicClient.readContract({ address: o.asset, abi: tokenAbi, functionName: 'name' }),
+    o.domainVersion ?? o.publicClient.readContract({ address: o.asset, abi: tokenAbi, functionName: 'version' }),
+  ]);
+  return { name, version, chainId, verifyingContract: o.asset };
+}
+
+/** Discover and cache the RPC chain and pinned token's domain before accepting payments. */
+export async function createFacilitator(o: FacilitatorOptions) {
   if (!addr(o.factory) || !addr(o.asset) || same(o.factory, zeroAddress) || same(o.asset, zeroAddress))
     throw new Error('Nonzero factory and asset addresses required');
-  if (o.walletClient.chain.id !== 10143) throw new Error('Facilitator supports Monad testnet only');
-  const domain = { name: 'USDC', version: '2', chainId: 10143, verifyingContract: o.asset } as const;
+  const chainId = await o.publicClient.getChainId();
+  if (!Number.isSafeInteger(chainId) || chainId <= 0) throw new Error('invalid_rpc_chain_id');
+  const network = `eip155:${chainId}` as const;
+  const walletClient = typeof o.walletClient === 'function' ? o.walletClient(chainId) : o.walletClient;
+  if (walletClient.chain.id !== chainId) throw new Error('rpc_chain_mismatch');
+  const domain = await tokenDomain(o, chainId);
   const now = o.now ?? (() => Math.floor(Date.now() / 1000));
 
   function parse(payload: PaymentPayload, requirements: PaymentRequirements) {
     const p: unknown = payload, r: unknown = requirements;
     if (!record(p) || p.x402Version !== 2 || !record(p.accepted) || !record(p.payload) || !record(r))
       throw new Error('invalid_payload');
-    const supported = (v: Record<string, unknown>) => v.scheme === 'exact' && v.network === NETWORK &&
+    const supported = (v: Record<string, unknown>) => v.scheme === 'exact' && v.network === network &&
       addr(v.asset) && same(v.asset, o.asset) && addr(v.payTo) && !same(v.payTo, zeroAddress) &&
       uint(v.amount) && BigInt(v.amount) > 0n && Number.isSafeInteger(v.maxTimeoutSeconds) &&
       Number(v.maxTimeoutSeconds) > 0 && Number(v.maxTimeoutSeconds) <= 3600 && record(v.extra) &&
@@ -64,7 +104,6 @@ export function createFacilitator(o: FacilitatorOptions) {
   async function checked(payload: PaymentPayload, requirements: PaymentRequirements) {
     const payment = parse(payload, requirements);
     const { authorization: a, signature } = payment;
-    if (await o.publicClient.getChainId() !== 10143) throw new Error('rpc_chain_mismatch');
     const block = await o.publicClient.getBlock();
     const timestamp = BigInt(Math.max(now(), Number(block.timestamp)));
     // EIP-3009 uses strict inequalities. Leave six seconds for inclusion, and reject overlong offers.
@@ -88,7 +127,7 @@ export function createFacilitator(o: FacilitatorOptions) {
     const { r, s, yParity } = parseSignature(signature);
     // Also rejects old account implementations, paused/blocked tokens and wrong on-chain domains.
     await o.publicClient.simulateContract({
-      account: o.walletClient.account, address: a.to, abi: sliceAccountAbi, functionName: 'settle',
+      account: walletClient.account, address: a.to, abi: sliceAccountAbi, functionName: 'settle',
       args: [a.from, BigInt(a.value), BigInt(a.validAfter), BigInt(a.validBefore), a.nonce, 27 + yParity, r, s],
     });
     return payment;
@@ -101,8 +140,8 @@ export function createFacilitator(o: FacilitatorOptions) {
   return {
     supported(): SupportedResponse {
       return {
-        kinds: [{ x402Version: 2, scheme: 'exact', network: NETWORK, extra: { assetTransferMethod: 'eip3009' } }],
-        extensions: [], signers: { [NETWORK]: [o.walletClient.account.address] },
+        kinds: [{ x402Version: 2, scheme: 'exact', network, extra: { assetTransferMethod: 'eip3009' } }],
+        extensions: [], signers: { [network]: [walletClient.account.address] },
       };
     },
     async verify(payload: PaymentPayload, requirements: PaymentRequirements): Promise<VerifyResponse> {
@@ -118,13 +157,13 @@ export function createFacilitator(o: FacilitatorOptions) {
         try {
           const { authorization, signature } = await checked(payload, requirements);
           payer = authorization.from;
-          transaction = await settleThroughAccount(o.walletClient, authorization.to, authorization, signature);
+          transaction = await settleThroughAccount(walletClient, authorization.to, authorization, signature);
           const receipt = await o.publicClient.waitForTransactionReceipt({ hash: transaction, confirmations: 1, timeout: 60_000 });
           if (receipt.status !== 'success') throw new Error('settlement_reverted');
-          return { success: true, transaction, network: NETWORK, payer, amount: authorization.value };
+          return { success: true, transaction, network, payer, amount: authorization.value };
         } catch (e) {
           // Preserve a broadcast hash on timeout for the agent's authenticated receipt reconciliation.
-          return { success: false, transaction: transaction ?? '', network: NETWORK, payer,
+          return { success: false, transaction: transaction ?? '', network, payer,
             errorReason: transaction && reason(e) === 'chain_validation_failed' ? 'settlement_pending' : reason(e) };
         }
       };
