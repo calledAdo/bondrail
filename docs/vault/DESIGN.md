@@ -76,7 +76,8 @@ stops at its deadline until cancellation; Active/Closing claims must be held; th
 last claim cannot redeem early; a positive pool can reject a sub-unit redemption.
 Fuzz checks compare NAV to actual refund/withdraw/redeem receipts where callable and
 to funded pro-rata backing otherwise, then settle and collect to verify realization.
-Closed sub-unit dust may occupy a slot until other holders redeem; no privileged
+Closed sub-unit dust may occupy a slot until claims are consolidated or other
+redemptions make it payable; a tiny pool can require consolidation. No privileged
 write-off or claim burn is added to bypass that bond rule.
 
 ## Scope and risks

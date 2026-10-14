@@ -11,3 +11,15 @@ Wallet actions simulate before requesting signatures. Failed/rejected/reverted t
 `/demo` includes public, nonsecret readiness flags plus a protected operator area. `DEMO_ACCESS_CODE` should be a unique strong secret. Login creates an expiring HMAC-signed HttpOnly, SameSite=Strict cookie; mutating routes require the same origin. Fixed restore/drift commands are proxied only to `AGENT_BASE_URL`, authenticate using server-only `AGENT_ADMIN_TOKEN`, read the current config revision, verify the test network, and use compare-and-set. The client cannot choose a recipient, service URL or arbitrary contract method. `DEMO_COMPLIANT_PAY_TO`/`NEXT_PUBLIC_AGENT_ROUTER_ADDRESS` and `DEMO_DIVERT_PAY_TO` configure the only destinations. An external access/rate-limit policy should protect a publicly hosted operator login.
 
 No wallet, RPC or provider credentials are required to explore the synthetic preview. Sponsor support and a configured address are not represented as tested deployments or award qualification.
+
+## Credit vault — not yet deployed
+
+`/vault`, linked from the app navigation, is read-only. Leave `NEXT_PUBLIC_VAULT_ADDRESS` blank until
+a vault exists on the configured `NEXT_PUBLIC_CHAIN_ID`/RPC. No deployment address is supplied by this
+change. A missing address shows “Not yet deployed” and unavailable balances, not synthetic holdings.
+
+Once configured, it reads NAV, one-share value, idle assets, per-bond claims/realized backing, limits,
+entry-window status, owner, curator and pending curator change directly at one block, refreshing every
+30 seconds. It needs no wallet or indexer. Read failures are explicit; failed refreshes label the last
+successful block. No deposit, withdrawal or curator transactions are exposed. Design limits shown
+before configuration are labeled as design values, not live readings.

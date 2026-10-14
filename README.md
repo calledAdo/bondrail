@@ -73,6 +73,23 @@ activation-day bucket is excluded, including receipts before and after activatio
 count on the day they are swept.
 All three trigger terms must be zero to disable it. See [contract details](contracts/README.md#performance-triggers--not-yet-deployed).
 
+## Bondrail Credit vault — not yet deployed
+
+`BondrailVault` lets investors deposit one asset (such as USDC) for ERC-4626 shares;
+a disclosed curator allocates across eligible Funding bonds. Its conservative NAV is idle cash plus
+refundable Funding/Cancelled claims and each other holding's realized share of the bond pool.
+Future revenue is excluded: activation can reduce NAV, and repayments/recoveries raise it.
+Deposits and minting close while any tracked claims are Active or Closing to prevent entry just before repayments.
+
+The vault never redeems claims early. Withdrawals use idle liquidity only, with no queue or guaranteed
+exit. Fixed allocation limits are 25% of NAV per bond, 16 holdings, and 20% idle remaining; concentrations
+can drift and withdrawals can consume that buffer. The immutable owner can only replace the curator
+after a two-day delay. There are no arbitrary calls, rescue transfers, fee recipients or upgrades.
+
+The app's `/vault` page is read-only and shows **not yet deployed** until an address is configured.
+No deployment manifests were changed. See [design and residual risks](docs/vault/DESIGN.md),
+[validation](docs/vault/VALIDATION.md), and [web configuration](apps/web/README.md#credit-vault--not-yet-deployed).
+
 ## Two revenue integrations
 
 | Integration | How it works | Trust boundary |

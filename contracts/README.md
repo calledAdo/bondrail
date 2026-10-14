@@ -20,7 +20,7 @@ Watched closing keeps a fixed 120-second historical-report window; each observat
 freshness and 5-second maximum clock skew. The observer and milestone signer are disclosed trusted
 evaluators; forwarder delivery alone cannot forge their signatures.
 
-Tests: 94 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
+Tests: 122 Foundry tests (unit, fuzz and a stateful accounting invariant), covering staged release and
 cap scaling, cancellation, early redemption, signed and on-chain milestones, CRE-only observations,
 adjacent violations, the closing boundary, rounding carry, Native binding and review, the minimum-history
 gate, deposit health checks, accounts in any asset (an 18-decimal token without permit), payments out
@@ -102,3 +102,22 @@ Demo setup defaults to zeros. To enable it for newly created demo bonds, set all
 Existing clones cannot gain the feature; new bond/factory deployments are required, and the extended
 `createBond` tuple changes that function's selector. No deployment files have been changed, and no
 deployment or live worker transactions were performed. See [validation](../docs/bench/task05-validation.md).
+
+## Bondrail Credit vault — not yet deployed
+
+`BondrailVault(IERC20 asset, SliceFactory factory, address owner, address curator)` is a standalone,
+non-upgradeable ERC-4626 vault; existing bond contracts are unchanged. Choose an exact-transfer,
+non-rebasing asset. Shares use asset decimals + 6 (12 for USDC), with OZ virtual shares/assets.
+`holdings()`, `holdingValue(bond)`, `idleAssets()`, `totalAssets()` and `depositsOpen()` expose the
+portfolio without an indexer. `maxWithdraw`/`maxRedeem` reflect idle liquidity.
+
+Only the curator can `allocate`, `withdrawFromRaise` or `collect`; all bond payouts go to the vault.
+Only the immutable owner can `proposeCurator` and, after `CURATOR_DELAY`, `acceptCurator`.
+`MAX_BOND_BPS = 2500`, `MAX_BONDS = 16`, and `MIN_IDLE_BPS = 2000` have no setters.
+Entry closes with Active/Closing holdings, including zero-valued claims; collection requires Closed
+or Cancelled. Defaulted backing remains in NAV; unslashed issuer stake and undrawn commitments do not.
+
+The 28 vault tests cover these limits, lifecycle, default, cancellation, roles/delay, entry windows,
+exact transfers, callbacks/reentrancy, donation inflation, dust, and a fuzz receipt oracle for NAV.
+Realized backing is not immediate collectability; see [design](../docs/vault/DESIGN.md) and
+[validation](../docs/vault/VALIDATION.md). No deployment was performed.
