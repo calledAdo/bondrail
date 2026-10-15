@@ -112,14 +112,14 @@ cd /opt/bondrail
 node --import tsx scripts/ops-status.ts
 node --import tsx scripts/ops-status.ts --json
 # Optional alternate facilitator health endpoint, including the full /health path:
-BONDRAIL_FACILITATOR_HEALTH_URL=http://127.0.0.1:8789/health \
+FACILITATOR_HOST=172.18.0.1 FACILITATOR_PORT=8789 \
   node --import tsx scripts/ops-status.ts --json
 ```
 
 Run status on the host with permission to read the **system** journal (root or the
 appropriate journal group). It only reads systemd/journal and the facilitator's
 `/health`; it does not source `/etc/bondrail.env`, load signing keys, start jobs, or
-send transactions. The default health URL is `http://127.0.0.1:8789/health`.
+send transactions. When the explicit health URL is unset, it uses `FACILITATOR_HOST` and `FACILITATOR_PORT` from the process environment (fallback `127.0.0.1:8789`). Production binds `172.18.0.1`; pass that host when running status without the service environment.
 Each command/HTTP read has a five-second timeout; failures yield partial output
 with errors. Exit 0 means all checks are healthy; exit 1 means attention or unknown
 data; exit 2 means invalid arguments. JSON has `schemaVersion: 1`, `generatedAt`,

@@ -101,9 +101,16 @@ async function facilitatorStatus(url: string, fetch: typeof globalThis.fetch) {
   }
 }
 
+export function facilitatorHealthUrl(env: NodeJS.ProcessEnv = process.env): string {
+  if (env.BONDRAIL_FACILITATOR_HEALTH_URL) return env.BONDRAIL_FACILITATOR_HEALTH_URL;
+  const host = env.FACILITATOR_HOST || '127.0.0.1';
+  const authority = host.includes(':') && !host.startsWith('[') ? `[${host}]` : host;
+  return `http://${authority}:${env.FACILITATOR_PORT || '8789'}/health`;
+}
+
 export async function collectOpsStatus({
   run = runCommand, fetch = globalThis.fetch, now = Date.now(),
-  healthUrl = process.env.BONDRAIL_FACILITATOR_HEALTH_URL ?? 'http://127.0.0.1:8789/health',
+  healthUrl = facilitatorHealthUrl(),
 }: { run?: Command; fetch?: typeof globalThis.fetch; now?: number; healthUrl?: string } = {}) {
   const [timers, facilitator] = await Promise.all([
     Promise.all(jobs.map(job => timerStatus(job, run, now))), facilitatorStatus(healthUrl, fetch),
@@ -130,7 +137,7 @@ export function formatOpsStatus(status: Awaited<ReturnType<typeof collectOpsStat
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const args = process.argv.slice(2);
   if (args.includes('--help')) {
-    console.log('Usage: node --import tsx scripts/ops-status.ts [--json]\nReads local systemd/journal and BONDRAIL_FACILITATOR_HEALTH_URL (default http://127.0.0.1:8789/health). Exit 1 means attention or incomplete status.');
+    console.log('Usage: node --import tsx scripts/ops-status.ts [--json]\nReads local systemd/journal and BONDRAIL_FACILITATOR_HEALTH_URL (defaults to http://FACILITATOR_HOST:FACILITATOR_PORT/health, falling back to 127.0.0.1:8789). Exit 1 means attention or incomplete status.');
   } else if (args.some(arg => arg !== '--json')) {
     console.error('Usage: node --import tsx scripts/ops-status.ts [--json]'); process.exitCode = 2;
   } else {

@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { collectOpsStatus, formatOpsStatus } from './ops-status.ts';
+import { collectOpsStatus, facilitatorHealthUrl, formatOpsStatus } from './ops-status.ts';
+
+test('health URL follows the facilitator bind address unless explicitly overridden', () => {
+  assert.equal(facilitatorHealthUrl({}), 'http://127.0.0.1:8789/health');
+  assert.equal(facilitatorHealthUrl({ FACILITATOR_HOST: '172.18.0.1', FACILITATOR_PORT: '8788' }), 'http://172.18.0.1:8788/health');
+  assert.equal(facilitatorHealthUrl({ FACILITATOR_HOST: '172.18.0.1' }), 'http://172.18.0.1:8789/health');
+  assert.equal(facilitatorHealthUrl({ FACILITATOR_HOST: '::1', FACILITATOR_PORT: '9000' }), 'http://[::1]:9000/health');
+  assert.equal(facilitatorHealthUrl({ FACILITATOR_HOST: '172.18.0.1', BONDRAIL_FACILITATOR_HEALTH_URL: 'https://health.example/health' }), 'https://health.example/health');
+});
 
 const now = Date.parse('2026-10-16T12:00:00.000Z');
 const success = '2026-10-16T11:45:00.000Z';
