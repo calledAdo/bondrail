@@ -1,7 +1,7 @@
 # @bondrail/sdk
 
 Typed clients, contract ABIs, x402 payments and revenue analytics for Bondrail.
-**Testnet; not audited.** Version 0.1.0 is prepared for release and has not been published.
+**Testnet; not audited.** Version 0.1.1 is prepared for release. This repository task does not publish it.
 
 ## Install
 
@@ -15,7 +15,7 @@ Before release, build a tarball from this repository and install it locally:
 
 ```sh
 npx -y pnpm@10.32.0 sdk:pack
-npm install /absolute/path/to/packages/sdk/bondrail-sdk-0.1.0.tgz viem
+npm install /absolute/path/to/packages/sdk/bondrail-sdk-0.1.1.tgz viem
 ```
 
 Requires Node.js 20+ and viem ^2.54.2. ESM only; TypeScript declarations are included.

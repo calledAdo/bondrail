@@ -1,35 +1,38 @@
 ---
 title: What is Bondrail
-description: Issue revenue bonds, raise capital, and repay investors from business revenue on Monad.
+description: Raise capital through revenue bonds, inspect credit evidence, and invest directly or through a vault.
 ---
 
-Bondrail was previously called Slice. The sources on `next` use `Bondrail*` contracts and `@bondrail/*` packages; the judged live deployment retains its historical names and signed domains.
+<Callout type="warn">Monad testnet prototype; not audited. Demonstration activity uses controlled
+wallets. These docs describe `next`; the Metropolis submission (judged) remains a separate historical
+deployment. See [selected addresses](/docs/reference/deployments).</Callout>
 
-Bondrail lets onchain businesses **issue revenue bonds** to raise capital. Investors fund a bond and
-receive claim tokens. A fixed share of business revenue is routed toward repayment, up to the bond's cap.
+Bondrail lets businesses create a revenue account with `BondrailFactory.createAccount` and issue a
+bond with `createBond`. Investors deposit the account's asset and receive ERC-20 claims. After
+activation, an agreed share of connected revenue goes to the bond up to its effective cap; capital is
+released in stages. Repayment depends on revenue, not promised interest or guaranteed principal.
 
-Each issuer builds a revenue record through a **BondrailAccount** before issuing a **BondrailBond**. Investors
-can inspect that record, the terms, and the repayment balance. Native payments split revenue within the
-transaction; paid API receipts require a separate collection transaction. Repayment depends on revenue,
-not a promise of fixed interest.
+Native projects route fees through `BondrailAccount.collect` / `settleOut`. Paid APIs can use
+`account.settle` to verify an EIP-3009 payer and book/split immediately. `sweep` books plain transfers.
+Each route builds history before or during a bond.
 
-- **Credit history from the first payment.** Revenue, payers, volume and fee rate are on-chain counters, not
-  claims in a pitch deck.
-- **Repayment without trust in the issuer.** The split happens inside each payment. The business cannot route
-  around it (Native) or is punished for routing around it (Watched).
-- **Claims you can exit.** Bond claims are ERC-20s, redeemable at any time for their share of what has been
-  collected, and tradable on Kuru.
+- **Native templates:** `deployNative` deploys and binds approved template code without individual review.
+  Custom contracts inheriting `BondrailEarner` need individual approval before raising.
+- **Performance triggers:** `checkTrigger` can raise the investor share when booked revenue falls below
+  the agreed floor; a later check can restore it. Payments use the last checked share.
+- **Credit vault:** `BondrailVault` pools investments with carried-cost valuation, separate entry/exit
+  prices, seven-day income vesting and exits limited to idle cash.
+- **Credit profiles:** `onchainProfile` exposes state and coverage; `attestedProfile` adds a separately
+  trusted assessment. SDK credit-line and yield estimates are advisory.
+
+Claims can transfer after Funding. `BondrailBond.redeem` burns the position for current pool backing,
+giving up future receipts; the last claim waits for Closed. Kuru exits depend on a listed market and liquidity.
 
 <Cards>
-  <Card title="Integrate a project" href="/docs/guides/quickstart" description="Route revenue through a BondrailAccount in five minutes." />
-  <Card title="Issue a revenue bond" href="/docs/guides/raising" description="Issue a bond, get listed, release capital in two stages." />
-  <Card title="Invest" href="/docs/guides/investing" description="Read a credit profile, fund a bond, redeem or trade." />
-  <Card title="Trust model" href="/docs/trust-model" description="Exactly who and what you rely on." />
+  <Card title="Native integration" href="/docs/guides/native" description="Reviewed templates or custom Solidity contracts." />
+  <Card title="x402 integration" href="/docs/guides/x402" description="Account settlement, facilitator funding and reconciliation." />
+  <Card title="Credit vault" href="/docs/concepts/credit-vault" description="Understand valuation, income vesting and exit liquidity." />
+  <Card title="Credit profiles" href="/docs/concepts/credit-profiles" description="Separate on-chain history from attested underwriting." />
+  <Card title="Developers / SDK" href="/docs/developers/sdk" description="Install packages and use every public SDK entry point." />
+  <Card title="Trust model" href="/docs/trust-model" description="Enforcement, disclosed parties and remaining risks." />
 </Cards>
-
-## Two ways to connect revenue
-
-| Tier | For | Why fees can't be diverted |
-|---|---|---|
-| **Native** | Contracts built on Bondrail (inherit `BondrailEarner`) | Every fee moves through the account, which is fixed into the contract. A disclosed reviewer checks the code before it can raise. |
-| **Watched** | Paid HTTP APIs (x402) | The business publishes its account in `/.well-known/bondrail.json`. Chainlink CRE checks every paid endpoint every 30 minutes (each report covers one 30-second epoch); a confirmed diversion defaults the bond and slashes the issuer's stake. |

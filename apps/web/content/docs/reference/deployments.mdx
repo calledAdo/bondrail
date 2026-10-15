@@ -1,9 +1,24 @@
 ---
 title: Deployments
-description: Addresses from the deployment selected for this build.
+description: Contracts and service roles from the deployment manifest selected for this build.
 ---
 
-<Callout type="warn">These addresses come from the deployment manifest selected for this build.
-The next deployment is independent of the original judged deployment.</Callout>
+<Callout type="warn">Monad testnet; not audited. The next deployment is independent of the
+Metropolis submission (judged). Historical immutable clones do not gain next features.</Callout>
+
+All addresses below are read at build time through `deploymentPath`. `NEXT_PUBLIC_CHAIN_ID` selects
+the chain and `BONDRAIL_DEPLOYMENT=next` selects `docs/deployments/10143-next.json` for Monad testnet.
+The default `main` selection uses the historical `docs/deployments/10143.json`. Rebuild after changing
+selection; web wallet configuration must point at that same deployment. No address is copied into MDX.
+
+The table includes `BondrailVault`, `BondrailCreditRegistry`, curator/attester and the facilitator gas
+wallet when those fields exist in the selected manifest. An absent row means the manifest provides no
+address, not a zero-address deployment. The facilitator is an HTTP service whose wallet relays
+`account.settle`, not a contract that holds payer funds. A manifest records deployment identities,
+not current service health or a guarantee that the latest source revision has been rolled out.
 
 <Deployments />
+
+For current next service URLs and operational checks, see the
+[next runbook](https://github.com/calledAdo/bondrail/blob/next/docs/deployments/NEXT-RUNBOOK.md)
+and [repository README](https://github.com/calledAdo/bondrail/tree/next#current-testnet-deployment-next).

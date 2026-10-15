@@ -3,7 +3,8 @@ title: Quickstart
 description: Run Bondrail locally and route your first payment through a BondrailAccount.
 ---
 
-You need Node 22+, pnpm and Foundry.
+Testnet/local prototype; not audited. You need Node 22+, pnpm 10.32.0 and Foundry.
+For a standalone Solidity integration, use the [external package example](https://github.com/calledAdo/bondrail/tree/next/examples/native-project).
 
 ```bash
 pnpm install
@@ -18,7 +19,8 @@ BONDRAIL_CHAIN_ID=31337 pnpm tsx scripts/deploy.ts
 BONDRAIL_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
 ```
 
-The first run creates the account, deploys PumpLab bound to it and has the reviewer approve it. It then stops:
+The first run creates the account, has the reviewer approve the PumpLab template hash with
+`setNativeTemplate`, then deploys and binds it with `deployNative`. It then stops:
 a bond needs real history. Send traffic, then run setup again to issue, fund and activate the bond:
 
 ```bash
@@ -27,6 +29,6 @@ BONDRAIL_CHAIN_ID=31337 pnpm tsx demo/scripts/setup-demo.ts pumplab
 ```
 
 Every buy went in through `collect`, every sell out through `settleOut`, and the account's history is on-chain.
-Locally the minimum-history wait is skipped by advancing the chain clock; on testnet it is 10 minutes.
+Locally the minimum-history wait is skipped by advancing the chain clock; the next testnet manifest configures 10 minutes (`factory.minHistory()`).
 
 Next: [build a Native project](/docs/guides/native) or [make an x402 API pay its account](/docs/guides/x402).

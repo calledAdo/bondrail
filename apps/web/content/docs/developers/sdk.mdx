@@ -1,0 +1,263 @@
+---
+title: SDK
+description: Install the TypeScript SDK and Solidity package, with an example for every SDK entry point.
+---
+
+<Callout type="warn">Monad testnet; not audited. Use the [selected deployment](/docs/reference/deployments)
+for all addresses. Package preparation does not publish a release or deploy contracts.</Callout>
+
+## Install
+
+```sh
+npm i @bondrail/sdk viem
+npm i @bondrail/contracts
+```
+
+Use SDK **0.1.1 or later**; 0.1.0 had broken package exports. The Solidity package is prepared at **0.1.0**.
+If the version is not yet in the registry, install a locally packed tarball as described in the
+[SDK README](https://github.com/calledAdo/bondrail/tree/next/packages/sdk#readme) and
+[contracts README](https://github.com/calledAdo/bondrail/tree/next/packages/contracts#readme).
+
+The ten SDK entry points below are ESM with bundled TypeScript declarations. Examples that write
+send transactions; reads and analytics do not. Replace configuration placeholders with your deployment.
+
+Requires Node.js 20+ and viem ^2.54.2. ESM only; TypeScript declarations are included.
+Use subpath imports to select the helpers you need. Server payment handling uses Node's `Buffer`;
+keep facilitator credentials, durable journals and Nansen API keys on the server.
+
+## Chains and configuration
+
+Supported development targets are **Monad testnet (10143)** and **local Anvil (31337)**.
+Supply your own viem chain, transport and matching contract/token addresses. No deployment addresses
+are embedded in the package. Monad mainnet (143) is not an endorsed deployment target for this release;
+Nansen enrichment supports mainnet data only and explicitly returns unavailable on testnet.
+
+The renamed contracts require fresh deployments: the historical judged deployment predates these
+ABIs and signed domains. Domains are `BondrailFactory`, `BondrailCovenant`, and `Bondrail Profile`
+(v1); registry attestations use `BondrailCreditRegistry` v1. Old signatures/policies are incompatible.
+
+The snippets below share these values; configure the addresses for your own deployment:
+
+```ts
+import { createPublicClient, createWalletClient, http, type Address } from 'viem';
+import { monadTestnet } from 'viem/chains';
+import { privateKeyToAccount } from 'viem/accounts';
+
+const publicClient = createPublicClient({ chain: monadTestnet, transport: http() });
+// Server-side example. A browser app should supply its connected wallet client instead.
+const walletClient = createWalletClient({
+  account: privateKeyToAccount(process.env.PRIVATE_KEY as `0x${string}`),
+  chain: monadTestnet,
+  transport: http(),
+});
+const factory = process.env.FACTORY_ADDRESS as Address;
+const asset = process.env.TOKEN_ADDRESS as Address;
+const account = process.env.ACCOUNT_ADDRESS as Address;
+const bond = process.env.BOND_ADDRESS as Address;
+const registry = process.env.CREDIT_REGISTRY_ADDRESS as Address;
+```
+
+## client
+
+```ts
+import { bondrailClient, readBondTerms } from '@bondrail/sdk/client';
+
+const client = bondrailClient({ publicClient, walletClient, factory });
+const history = await client.creditHistory(account);
+const terms = await readBondTerms(publicClient, bond);
+// Sends a transaction; omit walletClient for read-only clients.
+const newAccount = await client.createAccount(asset);
+```
+
+The client also exposes `bindProject`, `createBond`, `activate`, `releaseSecond`, `checkTrigger`,
+`sweep`, `withdraw`, `deposit`, `redeem` and `depositAllowed`. Client writes simulate first and wait
+for a successful receipt. Approve the required token amounts separately before deposits/stakes.
+
+## x402 (including settle)
+
+Serve the business manifest at `/.well-known/bondrail.json`:
+
+```ts
+import { bondrailManifest, manifestResponse } from '@bondrail/sdk/x402';
+
+const manifest = bondrailManifest({
+  chainId: 10143, account, endpoints: ['https://api.example/answer'],
+});
+const manifestRoute = () => manifestResponse(manifest);
+```
+
+Handle paid requests with a durable store that implements atomic compare-and-swap across replicas:
+
+```ts
+import {
+  exactUsdcRequirements, handlePaidRequest, httpFacilitator,
+  type DurableStore,
+} from '@bondrail/sdk/x402';
+
+const requirements = exactUsdcRequirements({
+  chainId: 10143, asset, amount: '10000', payTo: account, // 0.01 of a 6-decimal token
+});
+const facilitator = httpFacilitator(process.env.FACILITATOR_URL!, 10143);
+
+async function paidRoute(request: Request, store: DurableStore, work: () => Promise<unknown>) {
+  return handlePaidRequest({
+    header: request.headers.get('PAYMENT-SIGNATURE'),
+    resource: 'https://api.example/answer', description: 'Answer one question',
+    requirements, store, facilitator, work,
+  });
+}
+```
+
+`DurableStore` requires `get(key): Promise<string | null>` and
+`cas(key, previous, next): Promise<boolean>`. Use persistent storage with atomic CAS, not a per-process
+map. `handlePaidRequest` verifies the authorization, journals work, calls `facilitator.settle`, and
+returns a receipt-backed result. A 202 means settlement is unresolved: reconcile the receipt and
+reuse the same authorization. An empty-hash funding/busy/fee-cap refusal is a retryable 503;
+the saved result is reused with the same signed request. See the [x402 guide](/docs/guides/x402).
+
+`exactUsdcRequirements` defaults to the `USDC` v2 token signing domain. If your token differs, set
+`requirements.extra.name` and `.version` to its actual EIP-712 domain before offering payment.
+Use a facilitator configured for your factory and token with account-mediated settlement support.
+
+To submit a previously verified authorization directly through the account's `settle` function:
+
+```ts
+import { settleThroughAccount, type TransferAuthorization } from '@bondrail/sdk/x402';
+import type { Hex } from 'viem';
+
+async function relay(authorization: TransferAuthorization, signature: Hex) {
+  const hash = await settleThroughAccount(walletClient, account, authorization, signature);
+  const receipt = await publicClient.waitForTransactionReceipt({ hash });
+  if (receipt.status !== 'success') throw new Error('Settlement reverted');
+  return receipt;
+}
+```
+
+The authorization must name the account as recipient and carry a 65-byte EIP-3009 signature. The
+relayer pays gas. `settleThroughAccount` returns a transaction hash; callers must verify the receipt.
+
+## x402-guard
+
+```ts
+import { bondrailGuard, isBondrailAccount, pinFromBond } from '@bondrail/sdk/x402-guard';
+
+const guardedFetch = bondrailGuard(fetch, {
+  verifyAccount: isBondrailAccount(publicClient, factory),
+  pin: { 'https://api.example': await pinFromBond(publicClient, bond) },
+});
+const offer = await guardedFetch('https://api.example/answer');
+```
+
+This checks each HTTP 402 offer against the manifest and independent bond pin; it does not pay.
+Give `guardedFetch` to your x402 payment client's fetch wrapper before signing. Missing manifests,
+wrong recipients/chains/assets and cross-origin offer redirects throw `BondrailGuardError`.
+
+## permit
+
+```ts
+import { signAccountPermit } from '@bondrail/sdk/permit';
+
+const permit = await signAccountPermit({
+  publicClient, walletClient, asset, account, value: 10_000n,
+  deadline: BigInt(Math.floor(Date.now() / 1000) + 300),
+});
+// Pass permit.deadline/v/r/s into the reviewed project's permit-enabled payment method.
+```
+
+The token must support EIP-2612. The spender is the BondrailAccount; signing alone sends no transaction.
+
+## credit
+
+```ts
+import { creditLine, getCreditProfile, creditAttestationLabel } from '@bondrail/sdk/credit';
+
+const estimate = creditLine({ revenuePerDay: 100, ageDays: 60, uniquePayers: 12, topPayerShare: 0.15 });
+const profile = await getCreditProfile(publicClient, registry, account);
+const attestationStatus = creditAttestationLabel(profile, BigInt(Math.floor(Date.now() / 1000)));
+console.log(estimate, profile.onchain.complete, attestationStatus);
+```
+
+`getCreditProfile` reads on-chain history, attestation and current signer at one block. Always display
+recorded-versus-created bond coverage; a registry record may be incomplete. Booked revenue is not
+proof of independent customers, and attested underwriting is a separate trust layer. Historical
+attestations from a rotated-out signer remain readable but invalid.
+
+## yield
+
+```ts
+import { impliedYield } from '@bondrail/sdk/yield';
+
+const now = Math.floor(Date.now() / 1000);
+const projection = impliedYield({
+  supply: 1000, pool: 200, effectiveCap: 1200, collected: 200,
+  verifiedDaily: 100, revenueShare: 0.25, maturity: now + 30 * 86400, now, price: 1,
+});
+console.log(projection.impliedAPR, projection.paybackDays);
+```
+
+Use whole asset/token units here, not bigint base units. Returns are projections at the trailing
+revenue rate, not promised yields; missing or invalid data produces null fields. APR is simple,
+not compounded.
+
+## trigger
+
+```ts
+import { parseTriggerTerms } from '@bondrail/sdk/trigger';
+
+const trigger = parseTriggerTerms({
+  triggerRevenue: '50', triggerWindowDays: '7', stepUpBps: '3500',
+}, 6, 2500); // token decimals and base investor share
+// Spread trigger into BondTerms when creating a bond.
+```
+
+Use all zeroes (or empty inputs) to disable. Otherwise the window must be 1–30 complete UTC days,
+with positive revenue and a stepped-up share above the base share and at most 5000 bps.
+
+## data, abis and root
+
+```ts
+import { calculateScore } from '@bondrail/sdk/data';
+import { bondrailAccountAbi } from '@bondrail/sdk/abis';
+import { Tier } from '@bondrail/sdk';
+
+const score = calculateScore({
+  chainId: 10143, account, from: 1_700_000_000, to: 1_700_086_400,
+  coverageComplete: false, block: '123', blockHash: '0x' + '00'.repeat(32), payments: [],
+});
+const revenue = await publicClient.readContract({
+  address: account, abi: bondrailAccountAbi, functionName: 'cumulativeRevenue',
+});
+console.log(score, revenue, Tier.Native);
+```
+
+`data` also exports `indexedScore`, `graphql`, `scorePolicy` and `NansenClient`. A caller must reconcile
+indexer coverage before claiming a complete window. `abis` exports all seven contracts. The root
+re-exports ABIs, client, trigger, permit, x402, data and credit; import `yield` and `x402-guard` via their
+dedicated subpaths.
+
+## Solidity integrations
+
+```solidity
+import {BondrailEarner} from "@bondrail/contracts/src/BondrailEarner.sol";
+import {IBondrailAccount, IBondrailBond, IBondrailFactory} from "@bondrail/contracts/src/BondrailTypes.sol";
+import {IBondrailVault} from "@bondrail/contracts/src/IBondrailVault.sol";
+import {IBondrailCreditRegistry} from "@bondrail/contracts/src/IBondrailCreditRegistry.sol";
+```
+
+Use Solidity 0.8.28 and OpenZeppelin 5.4.0. The same imports work with npm or `forge install` using the
+[documented remappings](https://github.com/calledAdo/bondrail/tree/next/packages/contracts#readme).
+The package is copied from canonical `contracts/src` at prepack; it also includes full implementations
+for local deployment and functions outside the minimal interfaces. The external
+[Foundry example](https://github.com/calledAdo/bondrail/tree/next/examples/native-project) deploys real
+local Bondrail contracts and routes a fee through `collect`.
+
+**Custom contracts need individual review before raising; reviewed templates deployed with
+`factory.deployNative` need none.** Follow the [Native guide](/docs/guides/native).
+For vault calls, use the [entry/exit previews](/docs/guides/investing) and inspect idle liquidity.
+
+## Verify a release candidate
+
+`pnpm sdk:verify` builds, packs and imports all ten SDK entry points in an isolated plain-Node consumer.
+`pnpm contracts:verify` packs Solidity with npm, checks byte identity and interface layouts, and builds
+and tests an isolated Foundry consumer. The [release guide](https://github.com/calledAdo/bondrail/blob/next/RELEASING.md)
+separates SDK, contracts and repository tags. Neither check publishes or creates a tag.

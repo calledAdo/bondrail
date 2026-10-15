@@ -1,17 +1,30 @@
 ---
-title: SDK
-description: "@bondrail/sdk: typed client, permit, x402 seller and buyer helpers."
+title: SDK entry points
+description: Public JavaScript exports and the Solidity integration package.
 ---
 
-| Import | What it gives you |
-|---|---|
-| `@bondrail/sdk/client` | `bondrailClient({ publicClient, walletClient, factory })`: `createAccount`, `bindProject`, `createBond`, `activate`, `releaseSecond`, `sweep`, `withdraw`, `deposit`, `redeem`, `depositAllowed`, `creditHistory` |
-| `@bondrail/sdk/permit` | `signAccountPermit`: an EIP-2612 permit for the account, for one-transaction Native payments |
-| `@bondrail/sdk/x402` | `handlePaidRequest`, `exactUsdcRequirements`, `httpFacilitator`, `bondrailManifest`, `manifestResponse` |
-| `@bondrail/sdk/x402-guard` | `bondrailGuard`, `isBondrailAccount`, `pinFromBond`: buyer-side payTo verification, pinned to a bond's account |
-| `@bondrail/sdk/abis` | Generated ABIs for every protocol contract |
+Monad testnet; not audited. Start with [Developers / SDK](/docs/developers/sdk) for installation,
+configuration and a working example for every public entry point.
 
-Every write simulates first, sends with a padded gas limit (Monad bills the limit) and waits for a successful
-receipt.
+| Import | Public helpers / purpose |
+| --- | --- |
+| `@bondrail/sdk` | Root re-exports: ABIs, client, triggers, permits, x402 seller, data and credit |
+| `@bondrail/sdk/abis` | Generated factory, account, bond, covenant, earner, vault and credit registry ABIs |
+| `@bondrail/sdk/client` | `bondrailClient`, `readBondTerms`, `Tier`, `MilestoneMode` |
+| `@bondrail/sdk/permit` | `signAccountPermit`: EIP-2612 with the account as spender |
+| `@bondrail/sdk/x402` | `handlePaidRequest`, `exactUsdcRequirements`, `httpFacilitator`, `settleThroughAccount`, manifest helpers |
+| `@bondrail/sdk/x402-guard` | `bondrailGuard`, `isBondrailAccount`, `pinFromBond`: check offers before signing |
+| `@bondrail/sdk/data` | `calculateScore`, `indexedScore`, `graphql`, `scorePolicy`, `NansenClient` |
+| `@bondrail/sdk/credit` | `creditLine`, `getCreditProfile`, `creditAttestationLabel` and attestation types/domain |
+| `@bondrail/sdk/yield` | `impliedYield`: trailing-revenue projections, not promised returns |
+| `@bondrail/sdk/trigger` | `parseTriggerTerms`: validate optional trigger inputs |
 
-<Source file="packages/sdk/src/client.ts" from="async creditHistory(" title="bondrailClient.creditHistory" />
+The root does not re-export `yield` or `x402-guard`; use their subpaths. `bondrailClient` writes simulate,
+pad gas, submit and wait for a successful receipt. `settleThroughAccount` returns a hash instead:
+callers must wait for and check the receipt. Token approvals are separate. No convenience client method
+exists for every ABI function: use viem with the relevant ABI for template deployment, vault operations,
+Funding withdrawal or registry administration.
+
+`@bondrail/contracts` is a Solidity source package, not a JavaScript entry point. It includes
+`BondrailEarner`, `BondrailTypes`, `IBondrailVault`, `IBondrailCreditRegistry` and the protocol implementations.
+See [Native integration](/docs/guides/native) for review requirements.

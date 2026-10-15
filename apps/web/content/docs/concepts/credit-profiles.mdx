@@ -1,0 +1,81 @@
+---
+title: Credit profiles
+description: Exact on-chain records and separately attested underwriting, with explicit coverage.
+---
+
+<Callout type="warn">Monad testnet; not audited. The next manifest includes `BondrailCreditRegistry`.
+Read its [selected address](/docs/reference/deployments). A profile is evidence for your own credit
+decision, not a borrowing entitlement or repayment guarantee.</Callout>
+
+## Two separate trust layers
+
+`onchainProfile(account)` reads the immutable factory's account and recorded bonds directly. No credit
+attester is needed to read those counters. It returns asset, issuer, bound project, history age,
+`cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `collectedCount`, `uniquePayers`, bond outcomes
+and repayment totals. `tier` is Native if a project is bound, otherwise Watched if bonds are recorded,
+otherwise Unknown. It does not assert current reviewer approval or every historical bond's adapter.
+
+These are trustless reads of recorded state, not proof of economic quality. Booked revenue includes
+self-payments and swept transfers. Unique payer addresses are not independent customers. The default
+flag records the covenant's decision and inherits its observer/CRE trust.
+
+`attestedProfile(account)` separately returns a `CreditAttestation`, its original signer and `valid`:
+
+| Attested field | Meaning |
+| --- | --- |
+| `attributedRevenue`, `excludedRevenue` | The signer's revenue attribution and exclusion analysis |
+| `distinctPayers`, `topPayerShareBps` | The signer's eligible payer count and concentration |
+| `creditLine` | Advisory amount in asset base units under the signer's credit policy |
+| `periodStart`, `periodEnd`, `issuedAt`, `expiresAt` | Assessment period and signature validity window |
+| `evidenceHash`, `chainId`, `nonce` | Commitment to evidence, chain binding and replay protection |
+
+The signer is trusted for indexer completeness, issuer-funding links and exclusion policy. The hash
+commits to evidence; it does not prove truth or availability. `attest` checks the EIP-712 domain
+(`BondrailCreditRegistry`, version `1`, chain and registry), current signer, time bounds, nonzero evidence,
+concentration bounds and nonce. A newer period wins; equal-period corrections need a later `issuedAt`.
+
+## Check completeness every time
+
+Anyone can `recordBond(bond)` for a factory bond. Membership is unique, append-only and capped at **64
+bonds per account**. `recordedBonds(account)` lists that membership. The repayment summary covers only
+those bonds; `factory.bondsCreated(account)` counts all successful issuance, including cancelled and
+defaulted bonds. `onchainProfile.complete` compares the recorded count with that lifetime count.
+
+Display **“Repayment record covers N of M bonds”**, using `repayment.bondsIssued` and `bondsCreated`.
+When `complete` is false, omitted bonds may include defaults. Zero of zero is complete; new issuance
+makes coverage incomplete until recorded. At 64 of 65, the registry cannot become complete because
+of its bound. Coverage is specific to this account, factory and chain.
+
+`totalRaised` sums original raises only after activation. `totalCollected` is revenue received;
+`totalRepaidToInvestors` sums actual `totalRedeemed`, including principal/stake recoveries. Unclaimed
+pool backing is not yet paid out. A RevenueCap close is counted as fully repaid even during Closing;
+the default flag can overlap it. `repaidRatioBps` compares collected revenue with the effective revenue
+cap, excluding principal/stake recovery. Inspect per-bond phase, close reason and default together.
+
+## Rotation and expiry
+
+The immutable owner calls `proposeAttester(next)` then `acceptAttester()` after **two days**; replacing
+a proposal restarts the delay. A proposal alone does not change validity. After accepting a different
+signer, old stored assessments remain readable but `valid` is false. Expiry also invalidates them.
+Consumed nonces remain used across rotation. Valid means signed by the **current** attester and unexpired,
+not independently verified. Show the original signer and expiry even when invalid.
+
+## How another lender reads it
+
+```ts
+import { getCreditProfile, creditAttestationLabel } from '@bondrail/sdk/credit';
+
+const profile = await getCreditProfile(publicClient, registry, account);
+console.log(profile.onchain.repayment.bondsIssued, profile.onchain.bondsCreated);
+if (!profile.onchain.complete) throw new Error('Incomplete repayment history');
+console.log(creditAttestationLabel(profile, BigInt(Math.floor(Date.now() / 1000))));
+```
+
+The helper reads both layers and the current attester at one block. Solidity lenders can use
+`IBondrailCreditRegistry` from `@bondrail/contracts` and call `onchainProfile` / `attestedProfile`.
+Pin the registry and check `factory()`, asset, coverage, freshness and signer against your own policy.
+Neither `creditLine` nor this example enforces a safe lending limit.
+
+The [credit design](https://github.com/calledAdo/bondrail/blob/next/docs/credit/DESIGN.md) documents the
+attester's canonical evidence and backfill procedure. Its original pre-deployment status is historical;
+current behavior is in [`BondrailCreditRegistry.sol`](https://github.com/calledAdo/bondrail/blob/next/contracts/src/BondrailCreditRegistry.sol).

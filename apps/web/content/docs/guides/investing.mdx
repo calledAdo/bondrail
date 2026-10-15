@@ -1,27 +1,60 @@
 ---
-title: Invest in a revenue bond
-description: Read a credit profile, fund a bond, redeem or trade your claim.
+title: Invest in bonds or the credit vault
+description: Evaluate credit evidence, fund a raise, and understand bond versus vault exits.
 ---
 
-## Read the profile
-- **Attributed vs raw revenue:** attributed revenue is payments with a proven payer (a Native pull from the
-  payer's own balance, or an x402 payment the payer signed) and no detected link to the issuer: it excludes the
-  issuer's own wallets, payers its treasury funded, and unclassified transfers. It does not prove that a payer is
-  an independent customer or that a service was delivered; wallet diversity is not customer diversity, and the
-  funding check sees one hop.
-- **Payers and concentration:** how many distinct payers, and how much the largest one accounts for.
-- **Age and consistency:** time since the first payment; steady daily revenue vs a spike before listing.
-- **Track record:** earlier bonds on the same account and how they ended.
+<Callout type="warn">Monad testnet; not audited. Revenue, repayment and exit liquidity are uncertain.
+Use the [selected deployment](/docs/reference/deployments), not historical judged addresses with next ABIs.</Callout>
 
-## Read the terms
-- **Multiple:** `repayCap ÷ raise`. **Coverage:** projected repayment by maturity ÷ cap.
-- **At risk now:** only the first release (25% or 50%) has left the bond; the rest returns to you if the
-  milestone is missed.
-- **Tier:** a Native bond's fees can't be diverted on the reviewed contract (the business can still stop or move
-  users elsewhere); Watched bonds are monitored and backed by a stake. Check the stake against the investor share
-  of a day's revenue: that is roughly what a diversion can cost before it defaults.
-- **Asset:** the bond repays in its account's token.
+## Read the evidence and terms
 
-## Fund, redeem, trade
-Approve the bond for its asset and `deposit` while it is funding. After activation, `redeem` at any time for
-your share of what has been collected (the last claim waits for close), or trade the claim on Kuru.
+Read [credit profiles](/docs/concepts/credit-profiles): `onchainProfile` gives booked history and recorded
+bond outcomes; `attestedProfile` gives a separately trusted assessment. Check `complete`, `bondsCreated`,
+signer and expiry. Attributed revenue excludes detected related payers/unclassified transfers according
+to indexer policy. A proven payer with no detected funding link is not necessarily an independent customer.
+
+Read `BondrailBond.terms()`, `phase()`, `releasedPrincipal()`, `undrawnPrincipal()`, `pool()` and
+`effectiveRevenueCap()`. First release is 25% or 50%, but more can leave after the milestone. Revenue
+share can step up through `checkTrigger`; `revenueBps()` is the current share. A missed cap at maturity
+is a loss even without a covenant default. SDK `impliedYield` projects trailing revenue; it is not a promise.
+
+## Direct bond investment
+
+Approve the bond for its asset, then call `deposit(amount)`. It requires Funding, a future funding
+deadline, remaining raise capacity and `factory.depositAllowed(bond)`. Claims mint 1:1 and cannot
+transfer during Funding. Before activation and before the deadline, `withdraw(amount, to)` burns
+claims for escrowed assets 1:1, reopening the raise gap. It does not require a healthy source.
+
+After the deadline, `account.cancelFunding(bond)` can cancel a still-Funding bond, then holders use
+`bond.refund(amount, to)`. After activation, `redeem(tokens, to)` burns claims for their share of the
+current pool; this gives up all future revenue and recoveries on those claims. Active or Closing redemption
+cannot burn the last outstanding claim. `redeem` does not finalize settlement: call
+`finalizeSettlement()` after `settleAfter` to make a Watched bond Closed. A nonzero pool payout
+that rounds to zero reverts; when the pool itself is zero, redeeming can burn claims for no assets. Listed claims can trade on Kuru if a market and liquidity exist.
+
+## Vault deposits and withdrawals
+
+The [credit vault](/docs/concepts/credit-vault) pools the asset across curator-selected Funding bonds.
+The `/vault` page displays prices and holdings; it is **read-only**. Use the contract or your integration
+for the following ERC-4626 operations; no vault transaction UI is implied.
+
+| Intent | Quote | Transaction |
+| --- | --- | --- |
+| Deposit a chosen asset amount | `previewDeposit(assets)` | `deposit(assets, receiver)` after asset approval |
+| Mint a chosen share amount | `previewMint(shares)` | `mint(shares, receiver)` after asset approval |
+| Receive a chosen asset amount | `previewWithdraw(assets)` and `maxWithdraw(owner)` | `withdraw(assets, receiver, owner)` |
+| Redeem a chosen share amount | `previewRedeem(shares)` and `maxRedeem(owner)` | `redeem(shares, receiver, owner)` |
+
+Entries use `entryAssets()`; exits and `convertToAssets` / `convertToShares` use `totalAssets()` (exit NAV).
+Use the entry previews for deposits/mints, especially during impairments. Withdrawals by a different
+caller need a share allowance. A preview is not a liquidity reservation or slippage limit; simulate
+before submission and protect price bounds in your integration where required.
+
+Deposits remain open during Active/Closing bonds. Both prices exclude unvested profit, recognized over
+seven days after observation; new profit can extend the remainder's vesting. Exit values apply trigger
+and default/maturity write-downs. Final settlement losses affect both prices.
+
+`maxWithdraw` / `maxRedeem` cap exits at idle cash. The vault does not sell or redeem active bonds to
+fund your exit and has no withdrawal queue. Early exits can consume all cash, including the allocation
+buffer. The curator only `collect`s Cancelled/Closed positions back into the vault; its ability to do
+so and the issuers' performance affect later liquidity. Review the vault's full risk and power limits.

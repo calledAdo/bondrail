@@ -1,28 +1,37 @@
 ---
 title: BondrailAccount
-description: The business's revenue address, payment entrypoint and credit history.
+description: The business's revenue address, payment entry point and booked credit history.
 ---
 
-One account per business, created by `factory.createAccount(asset)`. It holds one asset: the token the
-business charges fees in. Its bonds raise, repay and take stake in the same token.
+Monad testnet; not audited. `factory.createAccount(asset)` creates an account for one issuer and one
+asset. An issuer may create multiple accounts; the protocol does not enforce one account per business.
+Each account has at most one attached bond, and its bonds fund, repay and take stake in that asset.
 
-## Three ways money moves through it
+## Payment routes
 
-| Path | Who calls | What happens |
-|---|---|---|
-| `collect(payer, gross, fee)` | The bound Native project | Pulls `gross` from the payer, keeps `fee`, sends the rest to the project. The payer is proven by the pull. |
-| `settleOut(payer, gross, fee)` | The bound Native project | Pulls `gross` from the project, pays `gross − fee` to the payer, keeps `fee`. For fees on what the payer receives. |
-| `sweep()` | Anyone | Books any balance that arrived by plain transfer (x402 settlements, anything else). |
+| Function | Caller | Behavior |
+| --- | --- | --- |
+| `collect(payer, gross, fee)` | Bound Native project | Pulls gross from payer, books fee, sends net to project; payer approves account |
+| `collectWithPermit(...)` | Bound Native project | Same pull with an EIP-2612 permit |
+| `settleOut(payer, gross, fee)` | Bound Native project | Pulls gross from project, pays net to recipient and books fee |
+| `settle(from, value, validAfter, validBefore, nonce, v, r, s)` | Any relayer | Verifies token EIP-3009 authorization through the account, emits `Settled`, books/splits the full payment |
+| `sweep()` | Anyone | Books uncredited asset balance from plain transfers with no proven on-chain payer |
 
-## Modes
-- **Passthrough** (no bond, or the bond is still funding): 100% of revenue is credited to the issuer.
-- **Credit** (bond active): `revenueBps` of each payment goes to the bond, capped at its remaining cap.
+`BondrailEarner` fixes its account at deployment. `bindProject` checks that the project points back to
+this account. Binding alone is not reviewer approval. Native routes authenticate callers and enforce
+the Active bond's `minFeeBps`; `settle` treats the whole payment as revenue and has no Native fee floor.
 
-The issuer withdraws its share with `withdraw(to, amount)` at any time.
+## Modes and history
 
-## History
-`cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `collectedCount`, `uniquePayers`, `firstRevenueAt`,
-`lastRevenueAt`, `revenueByDay(day)`. Fee rate = revenue ÷ volume for collected payments.
+With no Active bond (including Funding), `_book` credits 100% of revenue to `issuerCredit`.
+With an Active bond it splits `revenueBps()` to the bond, limited by `remainingRevenueCap()`, using a
+rounding carry. The issuer calls `withdraw(to, amount)` for its available booked credit.
 
-<Callout type="warn">The contract books every transfer it receives. The indexer separates proven payments
-(Native pulls, x402 signatures) from unclassified inflows, which never count as verified revenue.</Callout>
+Getters include `cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `collectedCount`, `uniquePayers`,
+`firstRevenueAt`, `lastRevenueAt` and `revenueByDay(day)`. Only nonzero booked revenue advances payment
+history; zero-fee Native activity can increase volume without adding a revenue payment. Plain transfers
+count on the day swept and do not increase proven-payer or volume counters.
+
+These counters include self-payments. A pulled/authorized payer is not proof of an independent customer;
+`settleOut` identifies the payment recipient. The [credit profile](/docs/concepts/credit-profiles) keeps
+these facts distinct from indexer attribution and attested underwriting.

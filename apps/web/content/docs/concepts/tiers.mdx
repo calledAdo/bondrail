@@ -1,27 +1,39 @@
 ---
 title: Native and Watched
-description: How each tier makes diversion impossible or expensive.
+description: Reviewed contract routing and monitored HTTP payment offers have different trust boundaries.
 ---
 
-## Native: impossible by construction
-The project inherits `BondrailEarner`, which fixes its BondrailAccount at deploy. Every fee moves through
-`_collect` or `_settleOut`. The issuer binds the project to the account once, and a disclosed reviewer
-approves the code before it can raise. Before every deposit, activation and second release the factory checks
-that the project is still approved, bound and pointing at the account.
+Monad testnet; not audited. Both tiers use the same bond accounting and can opt into `checkTrigger`.
 
-"Impossible" covers the reviewed contract's payment path. The business can still stop operating, lower volume, or
-move users to a new contract; a `minFeeBps` floor stops it cutting the fee on the bound contract, and the claim's
-Kuru price is where the remaining risk shows.
+## Native
 
-## Watched: caught and punished
-For revenue paid over HTTP (x402). The business sets its `payTo` to the account and publishes
-`/.well-known/bondrail.json`. On every check (every 30 minutes on testnet, each report covering one 30-second
-epoch) the observer and Chainlink CRE read the manifest and every paid endpoint independently:
+A project inherits `BondrailEarner`, whose account reference is immutable, and routes every fee through
+`_collect` or `_settleOut`. Custom contracts need individual `setNativeApproval` before raising.
+An approved creation-code template deployed through `factory.deployNative` needs no individual review.
+`createBond`, `depositAllowed`, `activate` and the release checks verify approval and account binding.
+See the [Native guide](/docs/guides/native).
 
-- **Violation:** any payment option pays someone else, uses another network, asset or scheme, or is priced
-  below the floor; or the manifest names another account or drops a covered endpoint.
-- **Unknown:** nothing readable (outage or error).
-- **Compliant:** everything pays the account.
+Review is a trust assumption: inheriting the base does not itself rule out alternate fee paths or
+upgrade powers. Routing is enforced for the reviewed path; the business can still stop operating or
+move users elsewhere. `minFeeBps` constrains Native fees while Active, not future demand.
 
-A violation is re-checked in the next epoch; two adjacent violations default the bond. A day of continuous Unknowns while active also defaults it; an hour
-pauses deposits. A Watched bond requires a stake, slashed to investors on default.
+## Watched
+
+A paid HTTP API publishes its account and endpoints in `/.well-known/bondrail.json`. An
+account-mediated facilitator calls `account.settle` for immediate booking. Observer and CRE checks
+compare observed offers with the policy committed by `policyHash`:
+
+- **Violation:** a conflicting recipient/network/asset/scheme, a price below the floor, or a manifest
+  that changes the account or drops covered endpoints.
+- **Unknown:** the offer cannot be read or parsed.
+- **Compliant:** observed offers satisfy the committed route.
+
+`BondrailCovenant.onReport` checks the pinned forwarder and observer signature. Reports use 30-second
+epochs; this is not a guarantee of a check every 30 seconds. Two qualifying adjacent violations can
+record default; sustained Unknown reports have separate warning/default thresholds. See
+[defaults and recovery](/docs/concepts/defaults). Monitoring cannot discover every undeclared endpoint
+or prove that every customer sees the same offer.
+
+Watched bonds require stake. `depositAllowed` rejects `inViolation`; activation and second release
+require `isHealthy`, a fresh Compliant observation. Missing reports can block those releases without
+establishing issuer default. [Guarded buyers](/docs/guides/x402) can independently pin a bond's route.

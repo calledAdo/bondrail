@@ -1,28 +1,43 @@
 ---
 title: Trust model
-description: What Bondrail enforces in code, and the disclosed parties it relies on.
+description: Contract enforcement, disclosed operators, and the limits of credit evidence.
 ---
 
-<Callout title="Testnet">Bondrail runs on Monad testnet. All demo activity comes from team-controlled wallets.</Callout>
+<Callout type="warn">Monad testnet; not audited. Demonstration activity uses team-controlled wallets.
+Tests establish behavior under their assumptions, not production safety or business demand.</Callout>
 
 ## Enforced by contracts
-- Only the bound project can move payments through a Native account, and the account is immutable in it.
-- The split to investors happens inside every payment; the issuer's share is pull-based, so a reverting
-  wallet cannot block payments.
-- Bond accounting: assets always cover every liability (tested invariant).
+
+`BondrailAccount.collect` / `settleOut` restrict Native routing to the bound project; `settle` verifies
+a token authorization and records its payer. `_book` splits Active revenue up to the cap, while the
+issuer pulls its credited share with `withdraw`. `BondrailBond` separates escrow, releases, revenue,
+recoveries and stake. Exact-transfer checks reject transfer-tax behavior on supported pull paths;
+they do not guarantee a token's value or prevent freezes/rebases.
 
 ## Disclosed parties
 
-| Party | Can | Cannot |
-|---|---|---|
-| **Native reviewer** | Approve or revoke a Native project's code. Revoking blocks new deposits, activation and the second release. | Stop the split of an active bond, or move funds. |
-| **Milestone signer** | Attest wash-adjusted revenue for bonds that chose the Signed milestone mode. | Anything for bonds in On-chain milestone mode. |
-| **Observer** | Sign x402 observations (Compliant, Violation, Unknown) delivered through Chainlink CRE. | Deliver an observation without CRE, or reuse one. |
+| Party | Powers and boundaries |
+| --- | --- |
+| Native reviewer | `setNativeApproval` / `setNativeTemplate` approve or revoke code. Factory checks can block issuance, deposits and releases; revocation does not stop an Active payment split. |
+| Milestone signer | Signs `releaseSecondSigned` evidence; Onchain milestones use the account counter instead. |
+| Observer and CRE/forwarder | `onReport` requires the pinned forwarder plus observer signature. The current simulation forwarder is not independent proof of a decentralized oracle decision. |
+| Facilitator | Relays `account.settle`, paying gas from its wallet. Cannot change a signed recipient/amount; availability and gas budget still affect service. |
+| Vault curator | `allocate`, `withdrawFromRaise`, `collect` within fixed asset, phase and allocation limits; no arbitrary withdrawal to the curator. |
+| Vault owner | `proposeCurator` / `acceptCurator` after two days; no fund-transfer or upgrade power. |
+| Credit attester | Signs underwriting assertions for `attest`; cannot alter account counters or bond state. |
+| Registry owner | `proposeAttester` / `acceptAttester` after two days; rotation changes which stored signatures are valid. |
 
 ## Residual risks
-- A business can stop operating or move users to a new contract. Coverage, the cap, the undrawn principal and
-  the Kuru price are the protection.
-- An x402 business can show unguarded buyers a different `payTo`. Guarded buyers refuse to pay, and the bond
-  page alerts when attributed x402 revenue collapses while monitoring reports compliant.
-- Accounts may hold any token. A token the issuer can mint makes its history meaningless; the market's
-  default view promotes well-known assets only.
+
+A business can stop or move customers elsewhere. Native review is not a formal proof; monitoring sees
+observed declared offers and cannot guarantee what every customer sees. Missing reports can prevent
+release without establishing default. Principal already released cannot be clawed back.
+
+Booked revenue can be self-funded. Indexer attribution uses limited funding-link evidence; distinct
+wallets need not be independent customers. `onchainProfile.complete` detects missing factory bonds
+within its scope; `attestedProfile.valid` means current signer and unexpired, not true or complete evidence.
+
+Vault carried value can exceed realized backing; exits depend on idle cash. Credit-line and yield
+estimates depend on revenue assumptions. Claim markets need buyers and liquidity. See
+[credit vault risks](/docs/concepts/credit-vault), [credit profiles](/docs/concepts/credit-profiles)
+and [investing](/docs/guides/investing).

@@ -1,1 +1,9 @@
-{ "title": "Reference", "pages": ["contracts", "sdk", "deployments", "indexer"] }
+{
+  "title": "Reference",
+  "pages": [
+    "deployments",
+    "contracts",
+    "sdk",
+    "indexer"
+  ]
+}

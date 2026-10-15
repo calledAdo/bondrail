@@ -3,6 +3,8 @@ title: BondrailBond
 description: The investors' vault and ERC-20 claim.
 ---
 
+Monad testnet; not audited. These terms apply to the next implementation; see [selected deployments](/docs/reference/deployments).
+
 ## Terms (fixed at creation)
 
 | Field | Meaning |
@@ -16,9 +18,9 @@ description: The investors' vault and ERC-20 claim.
 | `stake` | Issuer stake, slashed to investors on default (required for Watched) |
 | `milestoneMode` | `Onchain` or `Signed` |
 | `minFeeBps` | Native fee floor while active (0 = none) |
-| `triggerRevenue`, `triggerWindowDays`, `stepUpBps` | Optional performance trigger (not yet deployed): all zero disables, otherwise positive revenue floor over 1–30 days and a share above the base, at most 50% |
+| `triggerRevenue`, `triggerWindowDays`, `stepUpBps` | Optional performance trigger: all zero disables, otherwise positive revenue floor over 1–30 days and a share above the base, at most 50% |
 
-## Performance trigger — not yet deployed
+## Performance trigger
 
 Anyone can call `checkTrigger()` once per UTC day while Active and not defaulted. It sums the last
 `triggerWindowDays` complete UTC buckets in the account's `revenueByDay` mapping, excluding today.
@@ -31,11 +33,11 @@ Payments use the last checked share until another check. Rounding carry and the 
 
 Issuer self-payments count. Padding revenue to avoid a trigger costs real money because investors
 receive their share, but is possible. This counter is not wash-adjusted; plain transfers count when
-swept. Existing immutable bonds do not gain the feature. New contracts and an updated indexer are required.
+swept. The next deployment includes this implementation. Historical immutable bonds do not gain the feature.
 
 ## Lifecycle
-- **Funding:** deposits until the raise is full; claims cannot be transferred; refunds if the deadline passes unfilled.
-- **Active:** revenue repays; claims trade; `redeem(tokens, to)` pays `tokens × pool ÷ supply` at any time.
+- **Funding:** `deposit` until full before the deadline; `withdraw` takes escrow back before that deadline; claims cannot transfer. A still-Funding bond can be cancelled after the deadline and holders call `refund`.
+- **Active:** revenue repays; claims trade; `redeem(tokens, to)` burns claims for `tokens × pool ÷ supply`, giving up future receipts.
   The last claim waits for Closed.
-- **Closing → Closed:** at the cap or maturity. Watched bonds keep a 120 s window for late evidence.
+- **Closing → Closed:** at the cap or maturity. Watched bonds keep a 120 s window for late evidence, then need `finalizeSettlement()`. Partial redemption also works during Closing; the last claim waits for Closed.
 - Undrawn principal becomes investor recovery if the milestone deadline passes or the bond defaults.

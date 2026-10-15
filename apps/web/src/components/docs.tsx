@@ -68,11 +68,12 @@ type Deployment = {
   reviewer?: string;
   milestoneSigner?: string;
   observer?: string;
+  roles?: { facilitator?: string };
   minHistory?: number;
   issuers: Record<string, { name: string; tier: string; account: string; bond?: string; source?: string }>;
 };
 
-/** The live deployment, straight from docs/deployments/<chainId>.json. */
+/** The deployment manifest selected by chain and BONDRAIL_DEPLOYMENT for this build. */
 export function Deployments({ chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID ?? 10143) }: { chainId?: number }) {
   const d = JSON.parse(fs.readFileSync(deploymentPath(ROOT, chainId), 'utf8')) as Deployment;
   const explorer = (a: string) => `https://testnet.monadexplorer.com/address/${a}`;
@@ -96,7 +97,7 @@ export function Deployments({ chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID 
       <table>
         <thead>
           <tr>
-            <th>Contract</th>
+            <th>Contract / role</th>
             <th>Address</th>
           </tr>
         </thead>
@@ -106,6 +107,7 @@ export function Deployments({ chainId = Number(process.env.NEXT_PUBLIC_CHAIN_ID 
           {row('CRE forwarder', d.forwarder)}
           {row('BondrailCreditRegistry', d.creditRegistry)}
           {row('BondrailVault', d.vault)}
+          {row('Facilitator gas wallet (service role)', d.roles?.facilitator)}
           {row('Credit attester', d.attester)}
           {row('Vault curator', d.curator)}
           {row('Default asset (USDC)', d.asset)}
@@ -154,7 +156,7 @@ type AbiItem = {
 const params = (xs: AbiItem['inputs'] = []) => xs.map((x) => `${x.type}${x.name ? ' ' + x.name : ''}`).join(', ');
 
 /** Every function, event and error of a protocol contract, from the SDK's generated ABIs. */
-export function Abi({ contract }: { contract: 'BondrailFactory' | 'BondrailAccount' | 'BondrailBond' | 'BondrailCovenant' | 'BondrailEarner' }) {
+export function Abi({ contract }: { contract: 'BondrailFactory' | 'BondrailAccount' | 'BondrailBond' | 'BondrailCovenant' | 'BondrailEarner' | 'BondrailVault' | 'BondrailCreditRegistry' }) {
   const id = `${contract[0]!.toLowerCase()}${contract.slice(1)}Abi` as keyof typeof abis;
   const abi = abis[id] as unknown as AbiItem[];
   const fns = abi.filter((x) => x.type === 'function').sort((a, b) => a.name!.localeCompare(b.name!));
