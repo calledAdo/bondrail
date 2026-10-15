@@ -1,0 +1,117 @@
+{
+  "capturedAt": "2026-10-15T23:36:49.097Z",
+  "base": "http://localhost:3212",
+  "registryUrl": "https://bondrail.vercel.app/api/registry?accounts=0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5,0x9decB240F7e063fcC090AF740341b956B7A3B079,0x067861e4bf4803a66DB97cF74E252B6F4927FA54&bonds=0xb6f44e47C7468c42A32d9679170cC3C4B145099B,0x16813A1Ba366Ea5d1375F5B64B0BC8348642a735,0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+  "liveData": "Public RPC/indexer reads; signed profiles saved in registry-snapshot.json",
+  "fixtures": "Synthetic model and mocked read-only RPC; never transactions",
+  "errors": [],
+  "unexpected": [],
+  "results": [
+    {
+      "check": "Live PumpLab 375: section order, disclosure, primary above fold, no overflow",
+      "cls": 0
+    },
+    {
+      "check": "Live CurveLab 375: section order, disclosure, primary above fold, no overflow",
+      "cls": 0
+    },
+    {
+      "check": "Live Oracle Agent 375: section order, disclosure, primary above fold, no overflow",
+      "cls": 0
+    },
+    {
+      "check": "375: actual text contrast passes in both themes",
+      "darkContrast": {
+        "lowest": 7.41694395267062,
+        "failures": []
+      },
+      "lightContrast": {
+        "lowest": 5.406421844863522,
+        "failures": []
+      }
+    },
+    {
+      "check": "Fixture Funding 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Funding-paused 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active-triggered 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active-defaulted 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Closing 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Closed 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Cancelled 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active-market 375: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Live PumpLab 1280: section order, disclosure, primary above fold, no overflow",
+      "cls": 0
+    },
+    {
+      "check": "Live CurveLab 1280: section order, disclosure, primary above fold, no overflow",
+      "cls": 0
+    },
+    {
+      "check": "Live Oracle Agent 1280: section order, disclosure, primary above fold, no overflow",
+      "cls": 0
+    },
+    {
+      "check": "1280: actual text contrast passes in both themes",
+      "darkContrast": {
+        "lowest": 7.41694395267062,
+        "failures": []
+      },
+      "lightContrast": {
+        "lowest": 5.406421844863522,
+        "failures": []
+      }
+    },
+    {
+      "check": "Fixture Funding 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Funding-paused 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active-triggered 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active-defaulted 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Closing 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Closed 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Cancelled 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Fixture Active-market 1280: sentence, timeline, action, and applicable interaction checks pass"
+    },
+    {
+      "check": "Empty ask and failed credit registry stay local to their sections; risks remain readable"
+    },
+    {
+      "check": "Six reserved section skeletons transition to independent error/retry cards on indexer failure"
+    }
+  ]
+}

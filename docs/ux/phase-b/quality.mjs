@@ -1,0 +1,40 @@
+// Supplemental disclosure, hover persistence, enlarged text and landscape acceptance.
+import { chromium, expect } from '@playwright/test';
+import {writeFile} from 'node:fs/promises';
+import {fileURLToPath} from 'node:url';
+const base=process.env.PHASE_B_BASE_URL || 'http://localhost:3212';
+if (!['localhost','127.0.0.1'].includes(new URL(base).hostname)) throw new Error('Local preview only');
+const out=fileURLToPath(new URL('.',import.meta.url));
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const results=[];
+try {
+  const page=await browser.newPage({viewport:{width:375,height:844},reducedMotion:'reduce'});
+  await page.goto(`${base}/review-phase-b/Funding`);
+  await page.getByRole('heading',{name:'Fixture Studio',exact:true}).waitFor();
+  await page.addStyleTag({content:'nextjs-portal { display: none !important; }'});
+  const term=page.getByRole('button',{name:'claim',exact:true}).first();
+  await term.hover();
+  const more=page.getByRole('link',{name:'Learn more about claims'});
+  await more.hover(); await page.waitForTimeout(250);
+  await expect(more).toBeVisible(); await expect(more).toHaveAttribute('href','/docs/concepts/bond');
+  await page.keyboard.press('Escape'); await expect(more).toHaveCount(0);
+  results.push('Hover definition remains open while moving to Learn more; Escape dismisses without focus');
+  const terms=page.locator('details').filter({has:page.locator('summary').filter({hasText:'Full terms & technical details'})}).first();
+  await terms.locator('summary').click();
+  await expect(terms.getByRole('heading',{name:'Terms',exact:true})).toBeVisible();
+  for(const label of ['Coverage','Principal at risk','Policy hash','Addresses & policy']) await expect(terms.getByText(label,{exact:true}).first()).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  await terms.screenshot({path:`${out}technical-details-375.png`});
+  results.push('Expanded technical details retain terms, metrics, policy, explorer links and checks without 375px overflow');
+  await page.addStyleTag({content:'html { font-size: 200%; }'});
+  expect(await page.evaluate(()=>document.querySelector('[data-testid="bond-page"]').scrollWidth<=innerWidth)).toBe(true);
+  results.push('Bond sections support 200% text without horizontal overflow');
+  await page.close();
+  const landscape=await browser.newPage({viewport:{width:844,height:375},reducedMotion:'reduce'});
+  await landscape.goto(`${base}/review-phase-b/Active`);
+  await landscape.getByRole('heading',{name:'Fixture Studio',exact:true}).waitFor();
+  expect(await landscape.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  results.push('844×375 landscape has no horizontal overflow');
+  await writeFile(`${out}quality-results.json`,JSON.stringify({capturedAt:new Date().toISOString(),results},null,2)+'\n');
+  console.log(results.join('\n'));
+} finally {await browser.close();}

@@ -1,0 +1,54 @@
+{
+  "profiles": {
+    "0x0c58ce2d764c089aefe8da8ca27c2e521bdc31f5": {
+      "profile": {
+        "account": "0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5",
+        "name": "PumpLab",
+        "description": "A token launchpad on Monad. Every trading fee is paid into its Bondrail account in code.",
+        "website": "",
+        "x": "",
+        "useOfFunds": "Liquidity incentives for new launches and an audit of the launchpad contracts.",
+        "updatedAt": "1792098633"
+      },
+      "signature": "0xf4abcc8d5a9faebbfb43debdfe6765b982274e846dab09a3d0edfb352d4c5bcc2551da74b515dd184a97ef3482364d84ca6f3f702bc2f10b446eb0d3135aac011b",
+      "signer": "0x3FFfb2De63f1Efd3250b2ffCad40e6633f92baD3",
+      "domainVerified": false,
+      "checkedAt": 1792098635
+    },
+    "0x9decb240f7e063fcc090af740341b956b7a3b079": {
+      "profile": {
+        "account": "0x9decB240F7e063fcC090AF740341b956B7A3B079",
+        "name": "CurveLab",
+        "description": "A token launchpad deployed from the reviewed PumpLab template. Its raise is open to anyone until 28 October.",
+        "website": "",
+        "x": "",
+        "useOfFunds": "Launch incentives and market-making for the first month.",
+        "updatedAt": "1792098636"
+      },
+      "signature": "0x44125838b8c4f3e183f8ef9a715d0877cc045ecb3bd0cd66ee811ba78b0a547552c38bd24256ff4ae32a9b891ee5fd0925735161d577d662249d1e293af28d391c",
+      "signer": "0xb7ee001B6207830A69Ca5B4e9CCF86DCc01006Ef",
+      "domainVerified": false,
+      "checkedAt": 1792098636
+    },
+    "0x067861e4bf4803a66db97cf74e252b6f4927fa54": {
+      "profile": {
+        "account": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54",
+        "name": "Oracle Agent",
+        "description": "A paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.",
+        "website": "https://slice-agent.vercel.app",
+        "x": "",
+        "useOfFunds": "Model inference credits and hosting for the next six months.",
+        "updatedAt": "1792098635"
+      },
+      "signature": "0x05d67381f5a5879d333f8e137627c47e7b7da5e737ab564bcadc71e0d152604806d4c660a97c646ba80286848cd765d30b893321d5a9470439c91ea3f3ec0ba31b",
+      "signer": "0xAB6E9EA14274DC3d82486DDc3A66f1E5b14B4360",
+      "domainVerified": false,
+      "checkedAt": 1792098635
+    }
+  },
+  "kuru": {
+    "0xb6f44e47c7468c42a32d9679170cc3c4b145099b": null,
+    "0x16813a1ba366ea5d1375f5b64b0bc8348642a735": null,
+    "0x66a9aafad577a6319645f4e2e2daaad42a987343": null
+  }
+}

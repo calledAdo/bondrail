@@ -1,0 +1,23 @@
+{
+  "checkedAt": "2026-10-15T23:39:29.362150+00:00",
+  "command": "pnpm check:all",
+  "exitCode": 0,
+  "sourceCopy": "/private/tmp/bondrail-task22-check",
+  "identicalWebSourceFiles": 68,
+  "solidityTests": 149,
+  "workspaceTests": 201,
+  "webTests": 23,
+  "scriptsTests": 17,
+  "indexerTests": 9,
+  "contractConsumerTests": 2,
+  "sdkExportsVerified": 10,
+  "productionBuilds": [
+    "apps/web",
+    "demo/agent"
+  ],
+  "browserGroups": 28,
+  "supplementalChecks": 4,
+  "screenshots": 32,
+  "productionFixtureStatus": 404,
+  "remoteWrites": false
+}
