@@ -17,14 +17,45 @@ claim tokens. An agreed share of the business's connected revenue flows toward r
 Capital is released in stages as the business demonstrates revenue after activation.
 
 The working prototype supports native smart-contract businesses and paid x402 APIs. Native integrations
-split fees inside the business transaction; API receipts require a separate collection transaction.
+split fees inside the business transaction; account-mediated x402 settlement verifies the payer and
+books/splits API revenue immediately through `BondrailAccount.settle`. Plain transfers still need `sweep()`.
 Repayment depends on revenue. These claims do not promise fixed interest, full principal recovery, or a liquid exit.
 
-[Open the app](https://bondrail.vercel.app) · [Explore bonds](https://bondrail.vercel.app/markets) ·
-[Documentation](https://bondrail.vercel.app/docs) · [GitHub](https://github.com/calledAdo/bondrail)
+[Open next](https://bondrail-next-web.vercel.app) · [Explore bonds](https://bondrail-next-web.vercel.app/markets) ·
+[Documentation](https://bondrail-next-web.vercel.app/docs) · [GitHub](https://github.com/calledAdo/bondrail)
 
-Built for **Metropolis — Onchain Finance & Trading**. Current deployment: **Monad testnet, chain 10143**.
+Built for **Metropolis — Onchain Finance & Trading**. Current `next` deployment: **Monad testnet, chain 10143; not audited**.
 Demo payments and trades use controlled test wallets; they are evidence of functionality, not customer traction.
+
+## Features on `next`
+
+- **Reviewed Native templates:** `factory.deployNative` deploys and binds approved code without individual
+  review. Custom contracts inheriting `BondrailEarner` need individual review before raising.
+- **Account settlement and facilitator:** `account.settle` verifies EIP-3009 payments and books/splits
+  immediately. The separate gas-funded facilitator has verification, settlement, health and recovery code.
+- **Performance triggers:** `bond.checkTrigger` can step up the investor share below an agreed booked-revenue
+  floor and restore it on a later check. Investors can `bond.withdraw` while the raise is open.
+- **Credit vault:** carried-cost bond allocations, separate entry/exit prices, seven-day income vesting and
+  idle-liquidity-limited exits. The deployed vault's web view is read-only; deposits/exits are contract calls.
+- **Portable credit profiles:** `onchainProfile` exposes exact state and bond coverage; `attestedProfile`
+  adds a separately trusted assessment with current-signer and expiry checks.
+- **Yield and credit line:** SDK `impliedYield` estimates returns at the trailing revenue rate; `creditLine`
+  estimates a raise using history, concentration, stress and coverage. Both are advisory, not promises
+  or factory-enforced borrowing limits.
+
+## Install
+
+```sh
+npm i @bondrail/sdk viem
+npm i @bondrail/contracts
+```
+
+The SDK is prepared at **0.1.1** (0.1.0 had broken exports), and the Solidity package at **0.1.0**.
+This work does not publish either package. If the version is unavailable, use the tarball instructions
+in the [SDK README](packages/sdk/README.md) and [contracts README](packages/contracts/README.md).
+Solidity users can also `forge install calledAdo/bondrail@next`; use the package README's remappings.
+A version-pinned `forge install calledAdo/bondrail@contracts-v0.1.0` requires that tag to exist first.
+See [release preparation](RELEASING.md); no tags are created here.
 
 ## Why Bondrail
 
@@ -54,10 +85,10 @@ revenue collection to financing without building a separate repayment system.
    capital can be recovered for claim holders after the deadline or a qualifying covenant default.
 5. **Collect repayments.** While collection is active, the agreed share of connected revenue goes to
    the bond. x402 payments can use `account.settle` to prove the payer and split revenue in the same
-   transaction (**implemented, not yet deployed**); `sweep()` remains for other transfers.
+   transaction; `sweep()` remains for other transfers.
    The effective repayment cap scales with capital actually released. Collection closes when
    the cap is reached or a maturity-close transaction executes; Watched bonds then have an evidence window.
-   **Optional performance trigger — implemented, not yet deployed:** terms can step the investor share
+   **Optional performance trigger (`checkTrigger`):** terms can step the investor share
    up (for example, 25% → 40%) when booked revenue falls below a floor over 1–30 complete UTC days.
    Anyone can call `checkTrigger()` once per UTC day while Active and not defaulted; a later check at
    or above the floor restores the base share. Checks start only when the entire window falls strictly
@@ -78,9 +109,9 @@ revenue to avoid a trigger costs the issuer real money because investors receive
 is possible. This counter is not the indexer's attributed or wash-adjusted revenue. The entire
 activation-day bucket is excluded, including receipts before and after activation; plain transfers
 count on the day they are swept.
-All three trigger terms must be zero to disable it. See [contract details](contracts/README.md#performance-triggers--not-yet-deployed).
+All three trigger terms must be zero to disable it. See [trigger terms](apps/web/content/docs/concepts/bond.mdx).
 
-## Bondrail Credit vault — not yet deployed
+## Bondrail Credit vault
 
 `BondrailVault` lets investors deposit one asset (such as USDC) for ERC-4626 shares;
 a disclosed curator allocates across eligible Funding bonds. Healthy positions carry unrecovered cost,
@@ -96,17 +127,17 @@ exit. Fixed allocation limits are 25% of exit NAV per bond, 16 holdings, and 20%
 can drift and withdrawals can consume that buffer. The immutable owner can only replace the curator
 after a two-day delay. There are no arbitrary calls, rescue transfers, fee recipients or upgrades.
 
-The app's `/vault` page shows entry/exit prices, NAV and unvested income. It is read-only and shows
-**not yet deployed** until an address is configured.
-No deployment manifests were changed. See [design and residual risks](docs/vault/DESIGN.md),
-[validation](docs/vault/VALIDATION.md), and [web configuration](apps/web/README.md#credit-vault--not-yet-deployed).
+The current next manifest includes the vault. The app's `/vault` page shows entry/exit prices, NAV and
+unvested income; it remains read-only. See the [current vault guide](apps/web/content/docs/concepts/credit-vault.mdx),
+[design arithmetic](docs/vault/DESIGN.md) and [validation](docs/vault/VALIDATION.md). The design document
+records its original pre-deployment status; current addresses are listed below.
 
 ## Two revenue integrations
 
 | Integration | How it works | Trust boundary |
 |---|---|---|
 | **Native** | A business inherits `BondrailEarner` and binds its revenue account. Payments in (`collect`) and payouts out (`settleOut`) book fees and split the investor share in the same transaction. An optional fee floor applies while the bond is active. | A disclosed reviewer approves individual contracts or reusable templates. Routing is enforced for that reviewed contract's payment path; a business can still stop operating or move customers elsewhere. |
-| **Watched** | An x402 API publishes its revenue account and covered endpoints in `/.well-known/bondrail.json`. Account-mediated x402 settlement proves the payer and books/splits immediately (**not yet deployed**); direct transfers still use `sweep()`. Chainlink CRE checks payment offers against the committed policy. | Monitoring covers declared endpoints and observed offers. It cannot prove that every customer sees the same offer or discover all undeclared endpoints. The testnet deployment uses a trusted observer signer. |
+| **Watched** | An x402 API publishes its revenue account and covered endpoints in `/.well-known/bondrail.json`. Account-mediated x402 settlement proves the payer and books/splits immediately; direct transfers still use `sweep()`. Chainlink CRE checks payment offers against the committed policy. | Monitoring covers declared endpoints and observed offers. It cannot prove that every customer sees the same offer or discover all undeclared endpoints. The testnet deployment uses a trusted observer signer. |
 
 Watched bonds require a stake. Two qualifying violation reports in adjacent 30-second epochs record a
 default, recover unreleased principal, and slash held stake into the investor pool. Sustained Unknown
@@ -131,19 +162,20 @@ term, history length, and payer concentration. The SDK applies a stress haircut 
 This estimate is not a credit rating, a financing commitment, or a factory-enforced borrowing limit.
 See [`packages/sdk/src/credit.ts`](packages/sdk/src/credit.ts).
 
-Accounts retain their history across bonds, but an outcome-based reputation system and repeat-issuer
-underwriting rules are not yet implemented.
+Accounts retain history across bonds. The credit registry exposes recorded repayment outcomes and detects
+omissions through `bondsCreated`/`complete`; attested credit limits remain advisory. It does not enforce
+repeat-issuer underwriting or provide an automatic reputation service.
 
 ## Try the product
 
-No application login is required to browse. Open [Markets](https://bondrail.vercel.app/markets), select a
+No application login is required to browse. Open [Markets](https://bondrail-next-web.vercel.app/markets), select a
 bond, and inspect its terms, revenue history, current backing, and transaction evidence. Connect a browser
 wallet or use the Mera passkey connector to interact on Monad testnet.
 
 For funding, obtain test USDC from [Circle's faucet](https://faucet.circle.com) and test MON for gas. The
 app also provides a configured testnet gas drip, subject to its balance and limits.
 
-**CurveLab** is the judge-access example: bond
+**Metropolis submission (judged) — CurveLab** is the historical judge-access example: bond
 [`0xD4E5901cce4A7173903F75e6e0327020f5C18B05`](https://bondrail.vercel.app/bonds/0xD4E5901cce4A7173903F75e6e0327020f5C18B05).
 Its configured funding deadline is 28 October 2026. Check its current phase in the app before depositing;
 it may fill or activate earlier. While funding remains open, approve the asset, deposit, and optionally
@@ -186,10 +218,50 @@ the hackathon submission. Recordings use actual testnet operations with edited t
 - **Nansen:** optional server-side payer-label lookups on Monad mainnet. Unlabelled testnet wallets do
   not establish customer independence. [API route](apps/web/src/app/api/nansen/route.ts).
 
-## Deployment and architecture
+## Current testnet deployment (`next`)
 
-Core deployment addresses are recorded in [`docs/deployments/10143.json`](docs/deployments/10143.json).
-The later LaunchLab recording has its own addresses and receipt journal in the technical demo guide.
+Source: [`docs/deployments/10143-next.json`](docs/deployments/10143-next.json), chain 10143, deployed
+15 October 2026. The manifest identifies this independent testnet deployment; it does not attest service
+uptime or which later source revisions have been rolled out. All contracts are **not audited**.
+
+| Service | Live URL |
+| --- | --- |
+| Web and docs | https://bondrail-next-web.vercel.app |
+| Oracle Agent | https://bondrail-next-agent.vercel.app |
+| Facilitator | https://bondrail-next.64-227-40-35.sslip.io |
+| Envio GraphQL | https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql |
+
+| Contract / role | Address from next manifest |
+| --- | --- |
+| Factory | `0x94c86517a520e56f104c6c82b96632643b3f5d81` |
+| Covenant | `0x901021116203aaf92fbc427ce8a440a4c4ccfcda` |
+| Account implementation | `0xf1ad610cf89fd047d1718fbff843e0288eea86c5` |
+| Bond implementation | `0x95427c18841dc8a5b6240a5337a9a4382f380c69` |
+| Credit vault | `0x57fd6a271a6a4e96b151e5d0732c7f61e3059f07` |
+| Credit registry | `0x8cb78ff328cd4982030f275d017892fd2fa512f8` |
+| Test USDC | `0x534b2f3A21130d7a60830c2Df862319e593943A3` |
+| CRE mock forwarder | `0xB9F79d863261869B234c481D1f9A7af84AeAd192` |
+| Native reviewer | `0xbFAaF97B7fd74279b68962F990a9876Eb8968B46` |
+| Credit attester | `0x0500a7eDeD5425a7F94045674aBDc5BC0e55119E` |
+| Vault curator | `0xc927A118aDb0b19CDE4d51f77a34bA59b36B3c9b` |
+| Facilitator gas wallet (service role) | `0x0CE7D559B9A87E600a117F5A3EdBb6B552028B36` |
+
+| Demo business | Account | Bond |
+| --- | --- | --- |
+| PumpLab | `0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5` | `0xb6f44e47C7468c42A32d9679170cC3C4B145099B` |
+| CurveLab | `0x9decB240F7e063fcC090AF740341b956B7A3B079` | `0x16813A1Ba366Ea5d1375F5B64B0BC8348642a735` |
+| Oracle Agent | `0x067861e4bf4803a66DB97cF74E252B6F4927FA54` | `0x66A9aAfad577A6319645F4E2E2daAad42a987343` |
+
+Web reference addresses are generated from the selected manifest at build time (`BONDRAIL_DEPLOYMENT=next`).
+See the [next runbook](docs/deployments/NEXT-RUNBOOK.md) for facilitator `/health`, gas budgets, receipt
+reconciliation and separate service roles. The facilitator is an HTTP service; its wallet is not a
+protocol contract or a custody address.
+
+### Metropolis submission (judged)
+
+The preserved submission manifest is [`docs/deployments/10143.json`](docs/deployments/10143.json).
+These historical addresses and recording evidence are separate from `next` and must not be used with
+next ABIs or signed domains. The LaunchLab recording has its own receipt journal in the technical demo guide.
 
 | Contract / asset | Monad testnet address |
 |---|---|
@@ -201,11 +273,13 @@ The later LaunchLab recording has its own addresses and receipt journal in the t
 | Oracle Agent Watched bond | `0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21` |
 | PumpLab Kuru market | `0x6492423ca48E33C8D82D085a97B830C9f86a5720` |
 
-Recent evidence:
+Historical submission/demo evidence:
 
 - Native revenue split: [`0xf0ac64…d6e89`](https://testnet.monadscan.com/tx/0xf0ac64fe77bf20f4aee6a9ca2941620ca60530687ae3dd97c8afc868d72d6e89).
 - CRE accepted compliant observation: [`0x51baff…9c452`](https://testnet.monadscan.com/tx/0x51baffd86c3cd274b3f486245bf2dde54d1a515cca01b62d77f7e3d47639c452).
 - Kuru demo purchase: [`0xa7f7d6…b2cad`](https://testnet.monadscan.com/tx/0xa7f7d63d4277787f4b60bcf177855a0aac6b989e5a02425c127ce16ecb6b2cad).
+
+### Architecture
 
 ```mermaid
 flowchart LR
@@ -230,12 +304,13 @@ sign app transactions through their wallets. Offchain services do not custody in
 
 | Directory | Purpose |
 |---|---|
-| [`contracts/src`](contracts/src) | Revenue account, bond, factory, covenant, and Native integration base |
+| [`contracts/src`](contracts/src) | Account, bond, factory, covenant, vault, credit registry and integration interfaces |
+| [`packages/contracts`](packages/contracts) | `@bondrail/contracts`: canonical Solidity sources, npm/Git imports and external example |
 | [`packages/sdk`](packages/sdk) | `@bondrail/sdk`: clients, ABIs, permits, payment helpers, raise estimate |
 | [`packages/scoring`](packages/scoring) | Revenue scoring, evidence reconciliation, Envio and Nansen clients |
 | [`apps/web`](apps/web) | Next.js app, markets, issuer console, portfolio, and documentation |
 | [`indexer`](indexer) | Envio HyperIndex configuration and event handlers |
-| [`services`](services) | Observer and collection/lifecycle worker |
+| [`services`](services) | Observer, collection/lifecycle worker, x402 facilitator and credit attester |
 | [`cre`](cre) / [`ops`](ops) | CRE workflow and reporter deployment instructions |
 | [`demo`](demo) | Example businesses, test traffic, recordings, and reproduction scripts |
 
@@ -260,7 +335,10 @@ Run `pnpm check` for every change: it runs workspace TypeScript checks, tests, a
 `pnpm build:apps`, which builds both `demo/agent` and `apps/web` in production mode using
 Next.js's default Turbopack bundler. A passing development server or typecheck alone does not
 verify production module resolution. For SDK or workspace-package changes, also run
-`pnpm sdk:verify` to build and import the packed SDK in an isolated plain-Node consumer.
+`pnpm sdk:verify` to build and import the packed SDK in an isolated plain-Node consumer. For Solidity or
+package changes, run `pnpm contracts:verify`: npm pack, byte-identity and ABI checks, then an external
+Foundry build/test. Its [example](examples/native-project) is outside the workspace build. Full release
+checks, including extra tsc projects, are in [RELEASING.md](RELEASING.md).
 
 Source-consumed workspace packages (`shared`, `sdk`, `observer`, and `scoring`) use TypeScript
 bundler resolution. Use extensionless relative imports (or existing `.ts` imports where allowed)
@@ -310,13 +388,14 @@ use only. Profile and market registry storage is in memory without the optional 
 
 ### Deploy your own testnet instance
 
-After building contracts, provision a funded testnet deployer key as described in
-[`scripts/lib.ts`](scripts/lib.ts), then run `pnpm tsx scripts/deploy.ts`. This creates a new deployment and
-writes `docs/deployments/10143.json`; preserve the existing manifest if you need to retain its references.
+For a separately authorized deployment, build contracts and configure a funded deployer as described in
+[`scripts/lib.ts`](scripts/lib.ts). Select a new name, for example
+`BONDRAIL_DEPLOYMENT=my-testnet pnpm tsx scripts/deploy.ts`, to write `docs/deployments/10143-my-testnet.json`.
+Never overwrite `docs/deployments/10143.json` (Metropolis submission, judged), or reuse `next` for another instance.
 Demo setup requires test USDC and MON and waits for the configured minimum history on testnet.
 
 Configure the web app with the new addresses and indexer URL. Generate indexer configuration with
-`node indexer/gen-config.mjs 10143`. See the [observer](services/observer/README.md),
+`BONDRAIL_DEPLOYMENT=my-testnet node indexer/gen-config.mjs 10143`. See the [observer](services/observer/README.md),
 [worker](services/worker/README.md), [CRE workflow](cre/bondrail-covenant/README.md), and
 [reporter operations](ops/covenant-server/README.md) for their separate configuration. Watched policies
 must match the deployed account, bond, covenant, and observer signer.
@@ -348,8 +427,8 @@ The judged deployment in `docs/deployments/10143.json` remains historical and un
 
 New policies and clients use `/.well-known/bondrail.json`; the agent serves `/.well-known/slice.json`
 as an alias to the same document. Local credentials still default to `~/.slice` (override with
-`BONDRAIL_KEY_DIR`), and existing deployment hostnames remain stable, including
-`https://slice-agent.vercel.app/api/oracle`. [Brand assets and migration notes](brand/bondrail/README.md).
+`BONDRAIL_KEY_DIR`), and the historical agent hostname is
+`https://slice-agent.vercel.app/api/oracle`. The independent next service URLs are listed above. [Brand assets and migration notes](brand/bondrail/README.md).
 
 ## Build history, attribution, and license
 
@@ -376,12 +455,25 @@ inspiration from Kokonut UI. External logo sources are recorded in
 Bondrail source is [MIT licensed](LICENSE). Testnet demonstrations are not an investment offer or an
 endorsement by Monad, Metropolis, or an integration provider.
 
-### Portable credit registry (not deployed)
+### Portable credit registry
 
-`BondrailCreditRegistry` exposes exact account counters and the current repayment state of up to 64 permissionlessly recorded factory bonds. `@bondrail/sdk/credit.getCreditProfile(client, registry, account)` reads both the on-chain record and latest signed assessment at one block. History covers recorded bonds only; `bondsCreated` counts all factory issuance for the account and `complete` compares that count with recorded membership. The web shows "Repayment record covers N of M bonds" and warns when incomplete, including beyond the 64-bond limit. Attestations are valid only while unexpired and signed by the current attester; previous signers and payloads remain visible with "Signed by a previous attester — not valid". Booked revenue includes self-payments, and default flags inherit covenant observer trust.
+The next manifest includes `BondrailCreditRegistry`. `onchainProfile(account)` reads account counters
+and current outcomes of up to 64 permissionlessly recorded factory bonds. `bondsCreated` counts every
+issuance; `complete` compares that count with recorded membership. Show “Repayment record covers N of M
+bonds” and warn when incomplete, including beyond the 64-bond bound. Booked revenue includes self-payments;
+default flags inherit covenant observer trust.
 
-The separately disclosed attester signs attributed/excluded revenue, payer count/concentration and the SDK credit line. Readers trust that signer for indexer coverage, attribution and policy; the evidence hash commits to inputs, not their truth. The [design](docs/credit/DESIGN.md) defines each field. [services/attester](services/attester/README.md) defaults to dry-run and writes canonical evidence under `docs/credit/evidence/`. No registry is deployed/configured; the account credit page explicitly marks this. Set `NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS` only after deployment.
+`attestedProfile(account)` returns separately signed attributed/excluded revenue, payer concentration and
+an advisory credit line. Valid means current attester and unexpired; previous signers and payloads remain
+visible after a two-day attester rotation. The evidence hash commits to inputs, not their truth.
+`@bondrail/sdk/credit.getCreditProfile` reads both layers and current signer at one block.
+See [credit profiles](apps/web/content/docs/concepts/credit-profiles.mdx), the [design](docs/credit/DESIGN.md)
+and [attester operations](services/attester/README.md). The design's pre-deployment status is historical.
 
-For Envio, set optional `CREDIT_REGISTRY_ADDRESS` when running `node indexer/gen-config.mjs 10143`, then run `npx -y pnpm@10.32.0 --dir indexer codegen`. The checked-in config has no registry address. `BondRecorded` membership and complete `Attested` history/latest pointers are scoped by chain and registry; expiry and current-attester validity must be evaluated at read time through the registry; stored indexer history does not establish current validity. Start indexing before registry issuance to capture every event.
+The attester defaults to dry-run; relay backfills registry membership and verifies coverage before an
+assessment. Envio stores chain/registry-scoped `BondRecorded` and `Attested` history; current expiry,
+signer validity and completeness must still be evaluated from the registry. Generating Envio configuration
+with `BONDRAIL_DEPLOYMENT=next` selects the registry from that manifest;
+the checked-in default config remains historical. Other deployments need their own registry address.
 
 `demo/scripts/erc8004.ts repaid` can explicitly publish positive feedback for the registered agent's bond only after final cap settlement with no default. The script checks that the account issuer owns the registered agent; default feedback remains available with `feedback`. It has no automatic watcher or deduplication: check existing reputation feedback before rerunning. These commands send transactions; they have not been run as part of this task.
