@@ -10,7 +10,7 @@ export function BondSummary({ b, account, actions, now }: { b: BondView; account
   const tier = b.tier === 'Watched' ? 'Paid API · watched by Chainlink' : review === 'template' ? 'Native · reviewed template' : review === 'individual' ? 'Native · reviewed contract' : 'Native · review not verified';
   return <Panel className="min-h-[30rem] p-4 sm:min-h-[24rem] sm:p-6">
     <h1 className="text-2xl font-semibold leading-tight sm:text-4xl">{b.name}</h1>
-    {account?.profile?.profile.description && <p className="mt-2 truncate text-sm text-foreground/70" title={account.profile.profile.description}>{account.profile.profile.description}</p>}
+    {account?.profile?.profile.description && <p className="mt-2 truncate text-sm text-foreground/70" title={account.profile.profile.description}><TermsText>{account.profile.profile.description}</TermsText></p>}
     <div className="my-3 flex flex-wrap gap-1.5">
       <Badge><TermsText>{phaseLabel(b, now)}</TermsText></Badge>
       <Badge>{b.tier === 'Watched' ? <Term term="watched">{tier}</Term> : <TermsText>{tier}</TermsText>}</Badge>
@@ -33,7 +33,7 @@ export function BondTimeline({ b, now }: { b: BondView; now: number }) {
       {steps.map((s, i) => <li key={s.title} aria-current={s.state === 'current' ? 'step' : undefined}
         className="min-w-0 border-l border-foreground/20 pl-4 lg:border-l-0 lg:border-t lg:pl-0 lg:pt-4">
         <div className="mb-2 flex flex-wrap items-center gap-2 text-sm font-semibold"><span className="font-mono text-xs text-foreground/70">{i + 1}</span><TermsText>{s.title}</TermsText></div>
-        <p className="mb-2 min-h-5 text-xs font-medium">{s.state === 'current' ? 'You are here' : s.state === 'complete' ? 'Complete' : s.state === 'skipped' ? 'Window ended' : 'Ahead / conditional'}</p>
+        <p className="mb-2 min-h-5 text-xs font-medium">{s.state === 'current' ? b.phase === 'Closing' ? 'You are here · settling' : 'You are here' : s.state === 'complete' ? 'Complete' : s.state === 'skipped' ? s.title === 'Maturity' ? 'Cap reached early' : 'Window ended' : 'Ahead / conditional'}</p>
         <p className="mb-2 text-xs text-foreground/70">{s.date}</p>
         <p className="text-sm leading-relaxed text-foreground/80"><TermsText>{s.text}</TermsText></p>
       </li>)}

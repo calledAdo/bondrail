@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bondAction, bondSummary, bondTimeline, depositPauseReason, purchaseEstimate } from './bond-decision';
+import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, purchaseEstimate } from './bond-decision';
 import { bondFixtures, fixtureAccount, FIXTURE_NOW, marketFixture } from './bond-fixtures';
 
 const activeSentence = 'Fixture Studio raised $1,000.00 of $1,000.00. Claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until $1,500.00 has been repaid or Jan 14, 2027. $200.00 repaid so far.';
@@ -11,7 +11,7 @@ const expected = {
   Active: [activeSentence, 'Repaying', null],
   'Active-triggered': [activeSentence.replace('over 7 days)', 'over 7 days) — currently stepped up'), 'Repaying', null],
   'Active-defaulted': [activeSentence + ' The issuer defaulted on Oct 15, 2026; recovered funds are being paid to claim holders.', 'Default recovery', null],
-  Closing: [activeSentence.replace('$200.00 repaid', '$750.00 repaid'), 'Maturity', null],
+  Closing: [activeSentence.replace('$200.00 repaid', '$750.00 repaid'), 'Settled', null],
   Closed: [activeSentence.replace('$200.00 repaid', '$750.00 repaid'), 'Settled', 'Redeem'],
   Cancelled: ["This raise didn't complete. Every deposit can be refunded in full.", 'Raise cancelled', 'Refund'],
 } as const;
@@ -68,4 +68,14 @@ test('missing market, quote, USD conversion, supply or revenue never fabricate e
   assert.equal(purchaseEstimate({ ...marketFixture, supply: 0 }, fixtureAccount, 10, 1, FIXTURE_NOW), null);
   assert.equal(purchaseEstimate(marketFixture, undefined, 10, 1, FIXTURE_NOW)!.expected, null);
   assert.equal(purchaseEstimate(marketFixture, fixtureAccount, NaN, 1, FIXTURE_NOW), null);
+});
+
+test('settlement does not imply a future maturity date has occurred; terminal risks describe remaining exposure', () => {
+  const timeline = bondTimeline(bondFixtures.Closing, FIXTURE_NOW);
+  assert.equal(timeline.find(s => s.title === 'Maturity')!.state, 'skipped');
+  assert.equal(timeline.find(s => s.title === 'Settled')!.state, 'current');
+  assert.match(bondRisks(bondFixtures.Cancelled, FIXTURE_NOW)[0], /refundable in full/);
+  assert.ok(!bondRisks(bondFixtures.Closed, FIXTURE_NOW).some(s => s.includes('early redemption')));
+  const matured = purchaseEstimate(marketFixture, fixtureAccount, 10, 1, marketFixture.maturity)!;
+  assert.equal(matured.best, matured.stopped);
 });

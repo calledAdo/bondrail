@@ -12,14 +12,14 @@ export function ImpliedYieldPanel({ b, account }: { b: BondView; account?: Accou
   const { mid } = useKuruPrice(b.kuru?.market);
   const y = bondImpliedYield(b, account, mid, Date.now() / 1000);
   if (!b.kuru && b.phase !== 'Funding') return (
-    <p className="text-sm text-foreground/60">No market yet — yield appears once claims trade</p>
+    <p className="text-sm text-foreground/70"><TermsText>No market yet — yield appears once claims trade</TermsText></p>
   );
   const payback = y.paybackDays !== null
     ? y.paybackDays === 0 ? 'Now' : `${y.paybackDays.toLocaleString('en-US', { maximumFractionDigits: 1 })} days`
     : y.impliedReturn !== null ? 'Not by maturity' : '–';
   return (
-    <Panel title="Implied yield">
-      {!b.kuru && <p className="mb-4 text-sm text-foreground/60">No market yet — yield appears once claims trade. Funding estimate below uses the par price.</p>}
+    <Panel title={<Term term="yield">Implied yield</Term>}>
+      {!b.kuru && <p className="mb-4 text-sm text-foreground/70"><TermsText>No market yet — yield appears once claims trade. Funding estimate below uses the par price.</TermsText></p>}
       <dl className="grid grid-cols-2 gap-5 text-sm sm:grid-cols-4">
         {[
           [b.kuru ? 'Kuru mid price' : b.phase === 'Funding' ? 'Raise price' : 'Market price', y.price === null ? '–' : fmt(y.price, b.asset, 4)],
@@ -28,12 +28,12 @@ export function ImpliedYieldPanel({ b, account }: { b: BondView; account?: Accou
           ['Payback', payback],
         ].map(([label, value]) => (
           <div key={label} className="min-w-0">
-            <dt className="text-xs text-foreground/60"><TermsText>{label}</TermsText></dt>
+            <dt className="text-xs text-foreground/70"><TermsText>{label}</TermsText></dt>
             <dd className="break-words font-mono tabular">{value}</dd>
           </div>
         ))}
       </dl>
-      <p className="mt-4 text-xs text-foreground/60">
+      <p className="mt-4 text-xs text-foreground/70">
         Assumes attributed revenue continues at the trailing 7-day rate; not a guarantee.
         {b.phase === 'Funding' && ' Funding assumes the full raise activates at the funding deadline and only the initial capital release occurs. It excludes later releases and capital or stake recoveries.'}
       </p>
@@ -69,7 +69,7 @@ export function WhatYouGet({ b, account, now }: { b: BondView; account?: Account
       <div><dt className="text-sm">Best case</dt><dd className="mt-1 font-mono text-xl tabular">{cash(estimate?.best)}</dd><p className="mt-1 text-xs text-foreground/70"><Term term="cap">Repayment cap</Term> reached; includes any returnable capital</p></div>
     </dl>
     {estimate?.paybackDays !== null && estimate?.paybackDays !== undefined && <p className="mt-4 text-sm">Estimated payback: <span className="font-mono tabular">{estimate.paybackDays.toLocaleString('en-US', { maximumFractionDigits: 1 })} days</span> from today.</p>}
-    {estimate?.exceedsSupply && <p className="mt-4 text-sm">This amount exceeds all available claims. The figures show proportions only; reduce the amount before investing.</p>}
+    {estimate?.exceedsSupply && <p className="mt-4 text-sm"><TermsText>This amount exceeds all available claims. The figures show proportions only; reduce the amount before investing.</TermsText></p>}
     {b.phase === 'Funding' && valid && Number(amount) > b.raise - b.raised && <p className="mt-3 text-sm">Only {fmt(Math.max(0, b.raise - b.raised), b.asset)} remains to fund. This amount cannot be deposited in full.</p>}
     <p id="calculator-assumption" className="mt-5 text-xs leading-relaxed text-foreground/70"><TermsText>{`Assumes trailing 7-day attributed revenue and the current share continue, no further capital release, and undrawn capital returns by maturity; excludes fees, price impact and future stake recovery. Not a guarantee.${b.phase === 'Funding' ? ' Funding assumes the full raise activates at the deadline; if cancelled, deposits are refunded in full.' : ''} Best case allows the second release only while still possible.`}</TermsText></p>
     {!account && <p className="mt-3 text-sm">Revenue history is unavailable, so expected return cannot be estimated.</p>}

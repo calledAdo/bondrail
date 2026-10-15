@@ -59,10 +59,10 @@ export function WalletButton() {
       >
         <Wallet className="size-4" />
         {isPending ? 'Connecting…' : address ? (wrong ? `Switch to ${chain.name}` : <span className="font-mono">{short(address)}</span>) : 'Connect'}
-        {address && !wrong && <ChevronDown className="size-3.5 text-foreground/60" />}
+        {address && !wrong && <ChevronDown className="size-3.5 text-foreground/70" />}
       </button>
       {address && (
-        <button type="button" aria-label="Disconnect wallet" onClick={() => disconnect()} className="inline-flex size-9 items-center justify-center rounded-lg text-foreground/60 hover:bg-foreground/5 hover:text-foreground">
+        <button type="button" aria-label="Disconnect wallet" onClick={() => disconnect()} className="inline-flex size-9 items-center justify-center rounded-lg text-foreground/70 hover:bg-foreground/5 hover:text-foreground">
           <LogOut className="size-4" />
         </button>
       )}
@@ -116,14 +116,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 key={href}
                 href={href}
                 aria-current={path.startsWith(href) ? 'page' : undefined}
-                className={cn('transition-colors duration-300 hover:text-foreground', path.startsWith(href) ? 'text-foreground' : 'text-foreground/60')}
+                className={cn('transition-colors duration-300 hover:text-foreground', path.startsWith(href) ? 'text-foreground' : 'text-foreground/70')}
               >
                 {label}
               </Link>
             ))}
           </nav>
           <div className="ml-auto flex items-center gap-2">
-            <span className="hidden rounded-full border border-foreground/10 px-2.5 py-1 font-mono text-[11px] text-foreground/60 sm:inline">
+            <span className="hidden rounded-full border border-foreground/10 px-2.5 py-1 font-mono text-[11px] text-foreground/70 sm:inline">
               {chain.name}
             </span>
             <ThemeToggle />
@@ -132,7 +132,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
         <nav aria-label="Main (mobile)" className="flex gap-5 overflow-x-auto px-6 pb-3 text-sm md:hidden">
           {NAV.map(([href, label]) => (
-            <Link key={href} href={href} className={path.startsWith(href) ? 'text-foreground' : 'text-foreground/60'}>
+            <Link key={href} href={href} className={path.startsWith(href) ? 'text-foreground' : 'text-foreground/70'}>
               {label}
             </Link>
           ))}
@@ -142,7 +142,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <footer className="border-t border-foreground/10">
-        <p className="mx-auto max-w-7xl px-6 py-8 font-mono text-[11px] text-foreground/60">
+        <p className="mx-auto max-w-7xl px-6 py-8 font-mono text-[11px] text-foreground/70">
           {chain.name} · demo businesses and their traffic are run by the Bondrail team · not investment advice
         </p>
       </footer>

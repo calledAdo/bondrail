@@ -128,15 +128,15 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
   return (
     <div className="space-y-6">
       {mode !== 'maintenance' && <>{!address ? (
-        <p className="text-sm text-foreground/60">Connect a wallet to fund, redeem or manage this bond.</p>
+        <p className="text-sm text-foreground/70">Connect a wallet to fund, redeem or manage this bond.</p>
       ) : (
         <dl className="grid grid-cols-2 gap-3 text-sm">
           <div>
-            <dt className="text-xs text-foreground/60">Your claims</dt>
+            <dt className="text-xs text-foreground/70"><TermsText>Your claims</TermsText></dt>
             <dd className="font-mono tabular">{fmtUnits(claims)}</dd>
           </div>
           <div>
-            <dt className="text-xs text-foreground/60">Your {b.asset.symbol}</dt>
+            <dt className="text-xs text-foreground/70">Your {b.asset.symbol}</dt>
             <dd className="font-mono tabular">{fmtUnits(cash)}</dd>
           </div>
         </dl>
@@ -146,13 +146,13 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
       {(b.phase === 'Funding' || b.phase === 'Active' || b.phase === 'Closed' || b.phase === 'Cancelled') && (
         <div className="space-y-3">
           <label className="block space-y-1.5">
-            <span className="text-xs text-foreground/60">Amount ({b.phase === 'Funding' ? b.asset.symbol : 'claims'})</span>
+            <span className="text-xs text-foreground/70">Amount ({b.phase === 'Funding' ? b.asset.symbol : 'claims'})</span>
             <input
               inputMode="decimal"
               value={amount}
               onChange={(e) => { setAmount(e.target.value); setConfirming(false); }}
               placeholder="0.00"
-              className="min-h-11 w-full rounded-lg border border-foreground/15 bg-transparent px-3 font-mono text-sm outline-none focus:border-foreground/40"
+              className="min-h-11 w-full rounded-lg border border-foreground/15 bg-transparent px-3 font-mono text-sm focus-visible:outline-2 focus-visible:outline-foreground"
             />
           </label>
           {b.phase === 'Funding' && (
@@ -172,9 +172,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
                   <Button disabled={!ready || value === 0n || value > (claims ?? 0n) || now >= b.fundingDeadline} onClick={() => send('Withdraw', { address: b.address, abi: bondAbi as Abi, functionName: 'withdraw', args: [value, address] })}>
                     Withdraw
                   </Button>
-                  <p className="text-xs text-foreground/60">
-                    Before activation and the funding deadline, you can take your deposit back (claims burn 1:1). Activation needs the full raise.
-                  </p>
+                  <p className="text-xs text-foreground/70"><TermsText>Before activation and the funding deadline, you can take your deposit back (claims burn 1:1). Activation needs the full raise.</TermsText></p>
                 </>
               )}
             </>
@@ -191,7 +189,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
                     ] as const
                   ).map(([k, v]) => (
                     <div key={k} className="flex justify-between gap-4">
-                      <dt className="text-foreground/60"><TermsText>{k}</TermsText></dt>
+                      <dt className="text-foreground/70"><TermsText>{k}</TermsText></dt>
                       <dd className="font-mono tabular">{v}</dd>
                     </div>
                   ))}
@@ -204,8 +202,8 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
               >
                 {proceeds === 0n && value > 0n ? 'Nothing to redeem yet' : early ? 'Redeem early' : 'Redeem'}
               </Button>
-              {early && <p className="text-xs text-foreground/60"><TermsText>Early redemption burns claims for current backing and gives up their future receipts.</TermsText></p>}
-              {value > (claims ?? 0n) && address && <p className="text-xs text-orange-500">Enter no more than your claim balance.</p>}
+              {early && <p className="text-xs text-foreground/70"><TermsText>Early redemption burns claims for current backing and gives up their future receipts.</TermsText></p>}
+              {value > (claims ?? 0n) && address && <p className="text-xs text-foreground/80"><TermsText>Enter no more than your claim balance.</TermsText></p>}
               {confirming && early && (
                 <EarlyRedemptionConfirmation key={quoteKey}
                   burned={formatUnits(value, d)} cash={`${formatUnits(proceeds, d)} ${b.asset.symbol}`}
@@ -215,7 +213,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
                   status={status?.text}
                 />
               )}
-              {b.phase !== 'Closed' && <p className="text-xs text-foreground/60">The last outstanding claim waits for the bond to close.</p>}
+              {b.phase !== 'Closed' && <p className="text-xs text-foreground/70"><TermsText>The last outstanding claim waits for the bond to close.</TermsText></p>}
             </>
           )}
           {b.phase === 'Cancelled' && (
@@ -231,7 +229,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
       {/* Issuer */}
       {isIssuer && factory && (
         <div className="space-y-3 border-t border-foreground/10 pt-5">
-          <p className="text-xs font-medium uppercase tracking-wider text-foreground/60">Issuer</p>
+          <p className="text-xs font-medium uppercase tracking-wider text-foreground/70">Issuer</p>
           {b.phase === 'Funding' && (
             <Button disabled={!ready || b.raised < b.raise} onClick={() => send('Activate', { address: factory, abi: factoryAbi as Abi, functionName: 'activate', args: [b.address] })}>
               Activate {b.raised < b.raise && '(needs the full raise)'}
@@ -263,21 +261,21 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
       {/* Anyone */}
       <details className="space-y-3 border-t border-foreground/10 pt-2">
         <summary className="cursor-pointer py-3 text-sm text-foreground/70">Maintenance (anyone can run)</summary>
-        <p className="text-xs text-foreground/60">Book and split plain transfers waiting in the account. Bondrail-facilitated account settlements are already split.</p>
+        <p className="text-xs text-foreground/70">Book and split plain transfers waiting in the account. Bondrail-facilitated account settlements are already split.</p>
         <Button disabled={!ready} onClick={() => send('Sweep', { address: b.account, abi: accountAbi as Abi, functionName: 'sweep' })}>
           Book pending transfers (sweep)
         </Button>
         {b.phase === 'Active' && b.triggerWindowDays > 0 && !b.defaulted && <>
-          <p className="pt-2 text-xs text-foreground/60">Check complete UTC revenue days and update the investor share if the performance trigger applies.</p>
+          <p className="pt-2 text-xs text-foreground/70"><TermsText>Check complete UTC revenue days and update the investor share if the performance trigger applies.</TermsText></p>
           <Button disabled={!ready} onClick={() => send('Trigger checked', { address: b.address, abi: bondAbi as Abi, functionName: 'checkTrigger' })}>Check performance trigger</Button>
         </>}
         {deployment.creditRegistry && <>
-          <p className="pt-2 text-xs text-foreground/60">Add this bond to the account’s registry repayment record if it has not been recorded yet.</p>
+          <p className="pt-2 text-xs text-foreground/70">Add this bond to the account’s registry repayment record if it has not been recorded yet.</p>
           <Button disabled={!ready} onClick={() => send('Bond recorded', { address: deployment.creditRegistry!, abi: bondrailCreditRegistryAbi as Abi, functionName: 'recordBond', args: [b.address] })}>Record bond</Button>
         </>}
         {b.phase === 'Funding' && now >= b.fundingDeadline && (
           <>
-          <p className="pt-2 text-xs text-foreground/60">End the expired funding round so depositors can claim refunds.</p>
+          <p className="pt-2 text-xs text-foreground/70"><TermsText>End the expired funding round so depositors can claim refunds.</TermsText></p>
           <Button disabled={!ready} onClick={() => send('Cancel', { address: b.account, abi: accountAbi as Abi, functionName: 'cancelFunding', args: [b.address] })}>
             Cancel the unfilled raise
           </Button>
@@ -285,7 +283,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
         )}
         {b.phase === 'Active' && now >= b.maturity && (
           <>
-          <p className="pt-2 text-xs text-foreground/60">Stop revenue collection at maturity and recover undrawn capital.</p>
+          <p className="pt-2 text-xs text-foreground/70"><TermsText>Stop revenue collection at maturity and recover undrawn capital.</TermsText></p>
           <Button disabled={!ready} onClick={() => send('Close', { address: b.account, abi: accountAbi as Abi, functionName: 'closeBondAtMaturity', args: [b.address] })}>
             Close at maturity
           </Button>
@@ -293,7 +291,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
         )}
         {b.phase === 'Active' && b.undrawn > 0 && now >= b.secondReleaseDeadline && (
           <>
-          <p className="pt-2 text-xs text-foreground/60">Recover capital after the second release window has expired.</p>
+          <p className="pt-2 text-xs text-foreground/70"><TermsText>Recover capital after the second release window has expired.</TermsText></p>
           <Button disabled={!ready} onClick={() => send('Expire', { address: b.address, abi: bondAbi as Abi, functionName: 'expireUndrawn' })}>
             Return undrawn capital to investors
           </Button>
@@ -301,7 +299,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
         )}
         {b.phase === 'Closing' && settleAfter !== undefined && now >= Number(settleAfter) && (
           <>
-          <p className="pt-2 text-xs text-foreground/60">End the reporting grace period so the last outstanding claims can redeem.</p>
+          <p className="pt-2 text-xs text-foreground/70"><TermsText>End the reporting grace period so the last outstanding claims can redeem.</TermsText></p>
           <Button disabled={!ready} onClick={() => send('Settle', { address: b.address, abi: bondAbi as Abi, functionName: 'finalizeSettlement' })}>
             Finalize settlement
           </Button>
@@ -311,7 +309,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
 
       </>}
       {status && (
-        <p role={status.error ? 'alert' : 'status'} className={cn('text-sm', status.error ? 'text-red-500' : 'text-foreground/70')}>
+        <p role={status.error ? 'alert' : 'status'} className={cn('text-sm', status.error ? 'text-foreground' : 'text-foreground/70')}>
           {status.text}{' '}
           {status.hash && chain.blockExplorers && (
             <a href={`${chain.blockExplorers.default.url}/tx/${status.hash}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline-offset-4 hover:underline">
@@ -347,19 +345,17 @@ function EarlyRedemptionConfirmation({ burned, cash, estimate, b, disabled, busy
       onCancel={(event) => { if (busy) event.preventDefault(); else onCancel(); }}
       className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-xl border border-foreground/20 bg-background p-6 text-foreground backdrop:bg-black/70">
       <h2 id="redeem-title" tabIndex={-1} className="text-xl font-semibold outline-none">Confirm early redemption</h2>
-      <p id="redeem-warning" className="mt-3 text-sm text-foreground/70">
-        This permanently burns your selected claims for their current cash backing. You give up all future receipts on those claims, including revenue and any later capital or stake recovery.
-      </p>
+      <p id="redeem-warning" className="mt-3 text-sm text-foreground/70"><TermsText>This permanently burns your selected claims for their current cash backing. You give up all future receipts on those claims, including revenue and any later capital or stake recovery.</TermsText></p>
       <dl className="my-5 space-y-3 rounded-lg border border-foreground/15 p-4 text-sm">
         {[
           ['Claims burned', burned], ['Cash received now', cash],
           ['Estimated additional revenue by maturity', estimate ? fmt(estimate.additional, b.asset, 6) : 'Unavailable — missing revenue history'],
           ['Estimated total if held', estimate ? fmt(estimate.total, b.asset, 6) : 'Unavailable'],
         ].map(([label, value]) => <div key={label} className="space-y-1">
-          <dt className="text-xs text-foreground/60">{label}</dt><dd className="break-words font-mono tabular">{value}</dd>
+          <dt className="text-xs text-foreground/70"><TermsText>{label}</TermsText></dt><dd className="break-words font-mono tabular">{value}</dd>
         </div>)}
       </dl>
-      <p className="text-xs text-foreground/60">
+      <p className="text-xs text-foreground/70">
         {b.phase === 'Closing' ? 'Revenue collection has ended, so no additional revenue is projected. Settlement may still recover stake.'
           : 'Estimate uses the trailing attributed daily revenue and current investor share, capped at the remaining revenue cap through maturity. It assumes the claim supply and terms stay unchanged and excludes future capital or stake recovery. It is not a guarantee.'}
         {' '}Cash is based on the latest read; the transaction uses the pool and supply when executed.

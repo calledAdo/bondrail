@@ -57,22 +57,25 @@ export function bondTimeline(b: BondView, now: number): LifecycleStep[] {
   };
   return [raising, released, milestone,
     { title: 'Repaying', date: funding ? 'From activation' : bondDate(b.activationTime), text: `${number(b.revenueShare)}% of every payment goes to the bond in the same transaction. Plain transfers are split when swept; repayment starts before the milestone.`, state: funding ? 'pending' : ended ? 'complete' : 'current' },
-    { title: 'Maturity', date: bondDate(b.maturity), text: `${bondDate(b.maturity)}: collection stops.${ended ? ` Collection ended ${bondDate(b.collectionClosedAt)}${b.collectionClosedAt && b.collectionClosedAt < b.maturity ? ' after reaching the cap early' : ''}.` : ' It can stop earlier if the cap is reached.'}`, state: ended ? b.phase === 'Closing' ? 'current' : 'complete' : 'pending' },
-    { title: 'Settled', date: b.phase === 'Closed' ? 'Finalized · date unavailable' : b.settleAfter ? `Opens ${bondDate(b.settleAfter)}` : 'After collection ends', text: 'Claims redeem for their share of everything collected.', state: b.phase === 'Closed' ? 'current' : 'pending' },
+    { title: 'Maturity', date: bondDate(b.maturity), text: `${bondDate(b.maturity)}: collection stops.${ended ? ` Collection ended ${bondDate(b.collectionClosedAt)}${b.collectionClosedAt && b.collectionClosedAt < b.maturity ? ' after reaching the cap early' : ''}.` : ' It can stop earlier if the cap is reached.'}`, state: ended ? b.collectionClosedAt && b.collectionClosedAt < b.maturity ? 'skipped' : 'complete' : 'pending' },
+    { title: 'Settled', date: b.phase === 'Closed' ? 'Finalized · date unavailable' : b.settleAfter ? `Opens ${bondDate(b.settleAfter)}` : 'After collection ends', text: 'Claims redeem for their share of everything collected.', state: ended ? 'current' : 'pending' },
   ];
 }
 
 export function bondRisks(b: BondView, now: number): string[] {
-  const risks = ['The business can stop earning. Repayment depends on revenue; you may receive less than you put in.'];
+  const risks = [b.phase === 'Cancelled' ? 'The raise did not activate. Deposits are refundable in full, but refunds still depend on the contracts working.'
+    : b.phase === 'Closing' || b.phase === 'Closed' ? 'Revenue collection has stopped. Your share of the money collected may be less than you originally put in.'
+      : 'The business can stop earning. Repayment depends on revenue; you may receive less than you put in.'];
   risks.push(b.phase === 'Funding' ? `${b.firstReleasePct}% of principal will go to the business at activation. Once released, the contracts cannot take it back.`
     : b.phase === 'Cancelled' ? 'The raise was cancelled before capital was released. Refunds require a transaction.'
       : `${b.firstReleasePct}% of principal went to the business at activation${b.released > b.raise * b.firstReleasePct / 100 ? `; ${number(b.raise > 0 ? b.released / b.raise * 100 : 0)}% has now been released in total` : ''}. The contracts cannot take it back.`);
   if (b.tier === 'Watched') risks.push(`The API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its ${fmt(b.stake, b.asset)} stake covers only part of possible losses.`);
-  if (b.triggerWindowDays) risks.push(`Revenue below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC days can raise the share to ${b.stepUpShare}%. A trigger check must be run; self-payments count. ${b.triggered ? 'The higher share is currently in effect.' : 'A step-up cannot make a business earn more.'}`);
+  if (b.triggerWindowDays && (b.phase === 'Funding' || b.phase === 'Active')) risks.push(`Revenue below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC day${b.triggerWindowDays === 1 ? '' : 's'} can raise the share to ${b.stepUpShare}%. A trigger check must be run; self-payments count. ${b.triggered ? 'The higher share is currently in effect.' : 'A step-up cannot make a business earn more.'}`);
   if (b.defaulted) risks.push(`Default recorded ${bondDate(b.defaultedAt)}. Recovered capital and stake may not cover your loss.`);
-  else if (b.tier === 'Watched') risks.push('Two qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.');
+  else if (b.tier === 'Watched' && b.phase !== 'Closed' && b.phase !== 'Cancelled') risks.push('Two qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.');
   if (b.undrawn > 0 && now < b.secondReleaseDeadline) risks.push('The milestone may still release the remaining capital. The “revenue stops” estimate assumes that capital instead returns to holders.');
-  risks.push(b.kuru ? 'Claims may be hard to sell. The market may have too few buyers, and a large trade can move the price.' : 'There is no market. You cannot sell claims here; early redemption gives up future receipts.');
+  if (b.phase === 'Funding') risks.push('Claims cannot be sold during raising. If no liquid market opens after activation, they may be hard to sell.');
+  else if (b.phase === 'Active') risks.push(b.kuru ? 'Claims may be hard to sell. The market may have too few buyers, and a large trade can move the price.' : 'There is no market. You cannot sell claims here; early redemption gives up future receipts.');
   risks.push('Monad testnet. These contracts are unaudited; bugs can cause losses.');
   return risks;
 }
@@ -96,8 +99,8 @@ export function purchaseEstimate(b: BondView, account: Pick<AccountView, 'verifi
   const stopped = (pool + undrawn) * claims / supply;
   const expected = y.expectedValue === null ? null : (y.expectedValue + undrawn / supply) * claims;
   // Best case permits a second release only while the window is open and no default is recorded.
-  const mayRelease = undrawn > 0 && now < b.secondReleaseDeadline && !b.defaulted;
-  const bestPool = Math.max(pool + Math.max(0, cap - collected) + undrawn, mayRelease ? pool + Math.max(0, b.cap - collected) : 0);
+  const mayRelease = undrawn > 0 && now < b.secondReleaseDeadline && now < b.maturity && !b.defaulted;
+  const bestPool = now >= b.maturity ? pool + undrawn : Math.max(pool + Math.max(0, cap - collected) + undrawn, mayRelease ? pool + Math.max(0, b.cap - collected) : 0);
   const gain = expected === null ? null : expected / amount - 1;
   return { price, claims, expected, stopped, best: bestPool * claims / supply, gain,
     apr: gain === null || y.daysLeft === null ? null : gain * 365 / Math.max(1, (b.maturity - now) / 86400),
