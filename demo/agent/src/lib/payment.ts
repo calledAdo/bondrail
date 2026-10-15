@@ -20,14 +20,14 @@ export function requirements(env: AgentEnvironment, config: AgentConfig) {
   return exactUsdcRequirements({ chainId: env.chainId, asset: env.asset, amount: '10000', payTo: config.payTo });
 }
 
-export function resourceURL(env: AgentEnvironment, question: string) {
+export function resourceURL(env: AgentEnvironment, question?: string | null) {
   const u = new URL('/api/oracle', env.publicURL);
-  u.searchParams.set('question', question);
+  if (question != null) u.searchParams.set('question', question);
   return u.toString();
 }
 
 export function handlePaidRequest(
-  question: string,
+  question: string | null,
   header: string | null,
   env: AgentEnvironment,
   config: AgentConfig,
@@ -41,7 +41,8 @@ export function handlePaidRequest(
     requirements: requirements(env, config),
     store,
     facilitator: backend,
-    work: () => backend.answer(question),
+    // Keep the base resource in the offer/payment binding; only the model input defaults to health.
+    work: () => backend.answer(question ?? 'health'),
     available: !!env.apiKey,
     resultField: 'answer',
   });
