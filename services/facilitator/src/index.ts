@@ -1,11 +1,15 @@
 import type { PaymentPayload, PaymentRequirements, SettleResponse, SupportedResponse, VerifyResponse } from '@x402/core/types';
 import {
   BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError,
-  isAddress, parseAbi, parseSignature, verifyTypedData, zeroAddress,
+  encodeFunctionData, isAddress, keccak256, parseAbi, parseSignature, verifyTypedData, zeroAddress,
+  WaitForTransactionReceiptTimeoutError, TransactionReceiptNotFoundError,
   type Account, type Address, type Chain, type Hex, type PublicClient, type Transport, type TypedDataDomain, type WalletClient,
 } from 'viem';
 import { bondrailAccountAbi, bondrailFactoryAbi } from '@bondrail/sdk/abis';
-import { settleThroughAccount, type TransferAuthorization } from '@bondrail/sdk/x402';
+import type { TransferAuthorization } from '@bondrail/sdk/x402';
+import type { DurableStore } from '@bondrail/observer/store';
+import { isTransientRpcError } from '@bondrail/shared';
+import { setTimeout as delay } from 'node:timers/promises';
 
 export const authorizationTypes = {
   TransferWithAuthorization: [
@@ -32,6 +36,8 @@ type GasWallet = WalletClient<Transport, Chain, Account>;
 export interface FacilitatorOptions {
   factory: Address;
   asset: Address;
+  /** Retain across restarts; an authorization is permanently bound to one signed transaction. */
+  store: DurableStore;
   publicClient: Pick<PublicClient, 'getChainId' | 'getBlock' | 'readContract' | 'simulateContract' | 'waitForTransactionReceipt'>;
   /** A factory lets server startup configure the gas wallet from the cached RPC chain ID. */
   walletClient: GasWallet | ((chainId: number) => GasWallet);
@@ -134,8 +140,27 @@ export async function createFacilitator(o: FacilitatorOptions) {
   }
 
   const reason = (e: unknown) => e instanceof Error && /^[a-z_]+$/.test(e.message) ? e.message : 'chain_validation_failed';
+  async function confirmed(transaction: Hex) {
+    // Each wait has its own deadline. Replacement detection would scan entire blocks and could
+    // mistake a successful cancellation for settlement; only accept the exact signed hash.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const receipt = await o.publicClient.waitForTransactionReceipt({
+          hash: transaction, confirmations: 1, timeout: 20_000, pollingInterval: 1500,
+          checkReplacement: false, retryCount: 0,
+        });
+        if (receipt.transactionHash !== transaction) throw new Error('settlement_receipt_mismatch');
+        if (receipt.status !== 'success') throw new Error('settlement_reverted');
+        return;
+      } catch (error) {
+        if (attempt === 2 || !(isTransientRpcError(error) || error instanceof WaitForTransactionReceiptTimeoutError ||
+            error instanceof TransactionReceiptNotFoundError)) throw error;
+        await delay(250 + Math.random() * 250);
+      }
+    }
+  }
   // Serialize writes for this gas wallet, including concurrent retries of the same authorization.
-  // Token nonce checks remain authoritative across restarts/replicas; run one process per gas key.
+  // The durable hash also prevents a different transaction across retries/restarts. One process per gas key.
   let queue: Promise<unknown> = Promise.resolve();
   return {
     supported(): SupportedResponse {
@@ -155,14 +180,40 @@ export async function createFacilitator(o: FacilitatorOptions) {
         let transaction: Hex | undefined;
         let payer: Address | undefined;
         try {
-          const { authorization, signature } = await checked(payload, requirements);
+          const { authorization, signature } = parse(payload, requirements);
           payer = authorization.from;
-          transaction = await settleThroughAccount(walletClient, authorization.to, authorization, signature);
-          const receipt = await o.publicClient.waitForTransactionReceipt({ hash: transaction, confirmations: 1, timeout: 60_000 });
-          if (receipt.status !== 'success') throw new Error('settlement_reverted');
+          const { r, s, yParity } = parseSignature(signature);
+          const data = encodeFunctionData({ abi: bondrailAccountAbi, functionName: 'settle',
+            args: [payer, BigInt(authorization.value), BigInt(authorization.validAfter),
+              BigInt(authorization.validBefore), authorization.nonce, 27 + yParity, r, s] });
+          const binding = `${authorization.to.toLowerCase()}:${keccak256(data)}`;
+          const key = `facilitator:${chainId}:${o.asset.toLowerCase()}:${payer.toLowerCase()}:${authorization.nonce.toLowerCase()}`;
+          let previous = await o.store.get(key);
+          if (!previous) {
+            await checked(payload, requirements);
+            const request = await walletClient.prepareTransactionRequest({
+              account: walletClient.account, to: authorization.to, data,
+            });
+            const serializedTransaction = await walletClient.signTransaction(request);
+            const hash = keccak256(serializedTransaction);
+            // Persist BEFORE sending: even a lost send response or a crash has a known hash.
+            if (await o.store.cas(key, null, JSON.stringify({ binding, transaction: hash }))) {
+              transaction = hash;
+              // An RPC rejection can follow acceptance. Receipt lookup is authoritative.
+              await walletClient.sendRawTransaction({ serializedTransaction }).catch(() => undefined);
+            } else previous = await o.store.get(key);
+          }
+          if (previous) {
+            const saved = JSON.parse(previous) as { binding: string; transaction: Hex };
+            if (saved.binding !== binding) throw new Error('authorization_already_bound');
+            if (!bytes32(saved.transaction)) throw new Error('invalid_settlement_journal');
+            transaction = saved.transaction;
+          }
+          if (!transaction) throw new Error('settlement_journal_conflict');
+          await confirmed(transaction);
           return { success: true, transaction, network, payer, amount: authorization.value };
         } catch (e) {
-          // Preserve a broadcast hash on timeout for the agent's authenticated receipt reconciliation.
+          // Never submit again from this authorization. Keep its hash for authenticated reconciliation.
           return { success: false, transaction: transaction ?? '', network, payer,
             errorReason: transaction && reason(e) === 'chain_validation_failed' ? 'settlement_pending' : reason(e) };
         }

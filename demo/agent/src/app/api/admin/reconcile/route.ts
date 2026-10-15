@@ -3,6 +3,7 @@ import { authorized } from '@bondrail/observer/auth';
 import { environment } from '../../../../lib/config';
 import { reconcile } from '../../../../lib/reconcile';
 import type { Hex } from 'viem';
+import { rpcUrlsFromEnv } from '@bondrail/shared';
 export async function POST(request: Request) {
   if (!authorized(request.headers.get('authorization'), process.env.AGENT_ADMIN_TOKEN))
     return Response.json({ error: 'unauthorized' }, { status: 401 });
@@ -14,8 +15,8 @@ export async function POST(request: Request) {
       transaction: Hex;
     };
     const env = environment(),
-      rpc = process.env.BONDRAIL_RPC_URL;
-    if (!rpc) throw new Error('RPC unavailable');
+      rpc = rpcUrlsFromEnv();
+    if (!rpc.length) throw new Error('RPC unavailable');
     return Response.json(await reconcile(storeFromEnv(), paymentKey, transaction, rpc, env.chainId));
   } catch {
     return Response.json({ error: 'receipt_reconciliation_failed' }, { status: 409 });

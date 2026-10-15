@@ -5,7 +5,9 @@
 //   curvelab Native  : a second issuer on the same reviewed template; its raise stays open (judges can fund)
 //   agent    Watched : account (the x402 payTo) -> bond with stake; activation waits for a CRE report
 //
-//   AGENT_URL=https://<agent>/api/oracle?question=health pnpm tsx scripts/setup-demo.ts [pumplab|agent ...]
+//   AGENT_PUBLIC_URL=https://<agent> pnpm tsx demo/scripts/setup-demo.ts [pumplab|agent ...]
+// AGENT_URL optionally pins a manifest-listed resource (normally /api/oracle). Issuance requires a
+// Compliant unpaid observer preflight. --skip-preflight is only for explicit chain-31337 local tests.
 //
 // A bond needs `factory.minHistory()` seconds since the account's first booked payment. Run the first time to
 // create the account and project, send real traffic (traffic-launchpad.ts / traffic-agent.ts), then run
@@ -28,7 +30,8 @@ import {
   stringToHex,
   type Address,
 } from 'viem';
-import { PARSER_VERSION, policyHash, type WatchPolicy } from '../../services/observer/src/protocol.ts';
+import { PARSER_VERSION, policyHash, type WatchPolicy } from '@bondrail/observer/protocol';
+import { assertPreflightMode, fetchUnpaid, preflightWatchedPolicy, selectAgentEndpoint } from './watched-preflight.ts';
 import {
   account,
   assertDeploymentWritable,
@@ -54,6 +57,8 @@ const triggerTerms = parseTriggerTerms({
 }, 6, 2500);
 const HOUR = 3600n;
 const ZERO: Address = '0x0000000000000000000000000000000000000000';
+const skipPreflight = process.argv.includes('--skip-preflight');
+assertPreflightMode(skipPreflight, chainId, process.env.BONDRAIL_ENV);
 
 const erc20 = parseAbi([
   'function transfer(address,uint256) returns (bool)',
@@ -314,15 +319,15 @@ async function setupAgent() {
   const d = await ensureAccount('agent', 'Oracle Agent', 'watched');
   const rec = d.issuers.agent!;
   console.log(`  Oracle Agent: x402 payTo = ${rec.account}`);
-  const agentUrl = process.env.AGENT_URL;
-  if (!agentUrl) return console.log('  Oracle Agent bond skipped: deploy the agent, then set AGENT_URL');
   if (!rec.bond) {
+    const agentOrigin = process.env.AGENT_PUBLIC_URL ?? process.env.AGENT_URL;
+    if (!agentOrigin) return console.log('  Oracle Agent bond skipped: deploy the agent, then set AGENT_PUBLIC_URL (or AGENT_URL)');
     if (!(await historyReady('agent'))) return;
     // The policy commits to the bond address, which the factory creates next with CREATE.
     const nonce = await publicClient.getTransactionCount({ address: d.factory });
     const bond = getContractAddress({ from: d.factory, nonce: BigInt(nonce) });
-    // Every paid endpoint the agent lists in its manifest is covered; the price is a floor.
-    const origin = new URL(agentUrl).origin;
+    // Pin a listed resource with a price floor; observer checks also cover other listed endpoints.
+    const origin = new URL(agentOrigin).origin;
     const policy: WatchPolicy = {
       id: 'bondrail-agent',
       chainId,
@@ -330,7 +335,7 @@ async function setupAgent() {
       covenant: d.covenant,
       bond,
       manifestUrl: `${origin}/.well-known/bondrail.json`,
-      endpoints: [{ url: agentUrl, minAmount: '10000' }],
+      endpoints: [],
       method: 'GET',
       headers: { accept: 'application/json' },
       network: `eip155:${chainId}`,
@@ -341,6 +346,14 @@ async function setupAgent() {
       epochSeconds: 30,
       freshnessSeconds: 90,
     };
+    const manifest = await fetchUnpaid(policy.manifestUrl, policy.headers);
+    const agentUrl = selectAgentEndpoint(manifest, policy, process.env.AGENT_URL);
+    policy.endpoints = [{ url: agentUrl, minAmount: '10000' }];
+    if (skipPreflight) console.log('  Oracle Agent: SKIPPED unpaid classification for local test (--skip-preflight)');
+    else {
+      const result = await preflightWatchedPolicy(policy, fetch, manifest);
+      console.log(`  Oracle Agent: Watched preflight Compliant (${result.reason}); endpoint ${agentUrl}`);
+    }
     await createBond(
       'agent',
       { adapter: 1, source: ZERO, policyHash: policyHash(policy) },

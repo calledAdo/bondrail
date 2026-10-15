@@ -1,4 +1,5 @@
 import { defineChain, type Address } from 'viem';
+export { createRpcTransport, rpcUrlsFromEnv, isTransientRpcError, type RpcTransportOptions } from './rpc.js';
 
 export const monadTestnet = defineChain({
   id: 10143,

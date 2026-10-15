@@ -7,14 +7,14 @@ import path from 'node:path';
 import {
   createPublicClient,
   createWalletClient,
-  http,
   type Abi,
   type Address,
   type Hex,
   type PublicClient,
 } from 'viem';
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
-import { monadTestnet, bondrailLocal } from '../packages/shared/src/index.ts';
+import type { WatchPolicy } from '@bondrail/observer/protocol';
+import { monadTestnet, bondrailLocal, createRpcTransport, rpcUrlsFromEnv } from '../packages/shared/src/index.ts';
 
 export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 export const DEPLOYMENT = deploymentName();
@@ -28,12 +28,14 @@ export const chainId = Number(process.env.BONDRAIL_CHAIN_ID ?? 10143) as 10143 |
 if (chainId !== 10143 && chainId !== 31337)
   throw new Error('Bondrail scripts write to local 31337 or Monad testnet 10143 only');
 export const chain = chainId === 31337 ? bondrailLocal : monadTestnet;
-export const rpcUrl = process.env.BONDRAIL_RPC_URL ?? chain.rpcUrls.default.http[0];
+export const rpcUrls = rpcUrlsFromEnv(chain.rpcUrls.default.http[0]);
+export const rpcUrl = rpcUrls[0];
+const rpcTransport = createRpcTransport(rpcUrls);
 
 /** Monad bills the gas limit, not gas used: estimate and add 20%, never a blanket large limit. */
 export const publicClient: PublicClient = createPublicClient({
   chain,
-  transport: http(rpcUrl, { batch: { wait: 16 }, retryCount: 4 }),
+  transport: rpcTransport,
 });
 
 const ANVIL_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
@@ -63,7 +65,7 @@ export function account(name: string, opts?: Parameters<typeof key>[1]): Private
 }
 
 export function wallet(acct: PrivateKeyAccount) {
-  return createWalletClient({ account: acct, chain, transport: http(rpcUrl) });
+  return createWalletClient({ account: acct, chain, transport: rpcTransport });
 }
 
 export function artifact(name: string): { abi: Abi; bytecode: Hex } {
@@ -155,7 +157,7 @@ export type DeploymentFile = {
   bondImplementation: Address;
   accountImplementation: Address;
   issuers: Record<string, IssuerRecord>;
-  watchPolicy?: unknown;
+  watchPolicy?: WatchPolicy;
 };
 export function readDeployment(): DeploymentFile {
   const d = JSON.parse(fs.readFileSync(deploymentFile, 'utf8')) as DeploymentFile;

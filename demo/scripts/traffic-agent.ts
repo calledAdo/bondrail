@@ -4,7 +4,8 @@
 // Payers are guarded buyers (@bondrail/sdk/x402-guard): they refuse any offer whose payTo is not the
 // BondrailAccount the agent publishes in /.well-known/bondrail.json and the factory confirms on-chain.
 //
-//   AGENT_URL=https://<agent>/api/oracle pnpm tsx scripts/traffic-agent.ts [calls=20] [payers=5]
+//   AGENT_URL=https://<agent>/api/oracle pnpm tsx demo/scripts/traffic-agent.ts [calls=20] [payers=5]
+// Use the canonical base resource listed by the agent manifest; traffic adds its own question query.
 import { x402Client, wrapFetchWithPayment } from '@x402/fetch';
 import { registerExactEvmScheme } from '@x402/evm/exact/client';
 import { parseAbi, parseUnits } from 'viem';

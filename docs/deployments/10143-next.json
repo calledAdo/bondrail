@@ -46,7 +46,9 @@
       "name": "Oracle Agent",
       "tier": "watched",
       "issuer": "0xAB6E9EA14274DC3d82486DDc3A66f1E5b14B4360",
-      "account": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54"
+      "account": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54",
+      "bond": "0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+      "endpoint": "https://bondrail-next-agent.vercel.app/api/oracle"
     }
   },
   "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
@@ -66,5 +68,30 @@
     "bond": "0xb6f44e47C7468c42A32d9679170cC3C4B145099B",
     "amount": "500000",
     "deposit": "2000000"
+  },
+  "watchPolicy": {
+    "id": "bondrail-agent",
+    "chainId": 10143,
+    "chainSelector": "2183018362218727504",
+    "covenant": "0x901021116203aaf92fbc427ce8a440a4c4ccfcda",
+    "bond": "0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+    "manifestUrl": "https://bondrail-next-agent.vercel.app/.well-known/bondrail.json",
+    "endpoints": [
+      {
+        "url": "https://bondrail-next-agent.vercel.app/api/oracle",
+        "minAmount": "10000"
+      }
+    ],
+    "method": "GET",
+    "headers": {
+      "accept": "application/json"
+    },
+    "network": "eip155:10143",
+    "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+    "expectedPayTo": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54",
+    "maxTimeoutSeconds": 300,
+    "parserVersion": "bondrail-x402-v2-exact-eip3009/2",
+    "epochSeconds": 30,
+    "freshnessSeconds": 90
   }
 }

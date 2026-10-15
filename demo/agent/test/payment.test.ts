@@ -23,7 +23,7 @@ const config: AgentConfig = {
   audit: [],
 };
 const payer = '0x2222222222222222222222222222222222222222';
-function header(question = 'hello') {
+function header(question: string | null = 'hello') {
   return Buffer.from(
     JSON.stringify({
       x402Version: 2,
@@ -103,6 +103,21 @@ test('replay returns cached answer and authorization cannot purchase different r
     assert.equal(counters.answer, 1);
     assert.equal(counters.settle, 1);
     assert.equal((await handlePaidRequest('different', header('different'), env, config, s, b)).status, 409);
+  }));
+test('paid base resource answers health once and remains distinct from the explicit health resource', async () =>
+  withStore(async (s) => {
+    const counters = { verify: 0, answer: 0, settle: 0 };
+    const b = backend(counters);
+    const questions: string[] = [];
+    const answer = b.answer;
+    b.answer = async (question) => { questions.push(question); return answer(question); };
+    const first = await handlePaidRequest(null, header(null), env, config, s, b);
+    const replay = await handlePaidRequest(null, header(null), env, config, s, b);
+    assert.equal(first.status, 200);
+    assert.deepEqual(await first.json(), await replay.json());
+    assert.deepEqual(questions, ['health']);
+    assert.equal(counters.settle, 1);
+    assert.equal((await handlePaidRequest('health', header('health'), env, config, s, b)).status, 409);
   }));
 test('concurrent authorization use elects one paid/model operation', async () =>
   withStore(async (s) => {

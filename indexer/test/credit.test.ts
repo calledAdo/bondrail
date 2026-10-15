@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { indexer, createTestIndexer, type TestIndexerProcessConfig } from 'envio';
+import { START_BLOCK } from '../src/deployment';
 import '../src/handlers/bondrail';
 
 type Event = NonNullable<NonNullable<TestIndexerProcessConfig['chains'][10143]>['simulate']>[number];
@@ -15,7 +16,7 @@ const account = '0x3333333333333333333333333333333333333333';
 const bond = '0x4444444444444444444444444444444444444444';
 const signer = '0x5555555555555555555555555555555555555555';
 const transaction = { hash: `0x${'ab'.repeat(32)}` };
-const block = { number: 70_000_000, timestamp: 1_800_000_000, hash: `0x${'cd'.repeat(32)}` };
+const block = { number: START_BLOCK, timestamp: 1_800_000_000, hash: `0x${'cd'.repeat(32)}` };
 function attested(nonce: bigint, srcAddress: `0x${string}` = registry): Event {
   return { contract: 'BondrailCreditRegistry', event: 'Attested', srcAddress, transaction,
     params: { account, signer, chainId: 10143n, periodStart: 1n, periodEnd: 100n + nonce,

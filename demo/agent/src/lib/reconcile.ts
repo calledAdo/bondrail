@@ -1,13 +1,19 @@
-import { createPublicClient, http, type Hex } from 'viem';
+import { createPublicClient, parseAbi, type Address, type Hex, type PublicClient } from 'viem';
+import { createRpcTransport } from '@bondrail/shared';
 import type { DurableStore } from '@bondrail/observer/store';
 import { receiptProvesPayment, type PaymentRecord } from '@bondrail/sdk/x402';
 export { receiptProvesPayment };
+type ReconciliationClient = Pick<PublicClient, 'getChainId' | 'getTransactionReceipt' | 'getBlockNumber' | 'readContract'>;
+const tokenAbi = parseAbi(['function authorizationState(address authorizer, bytes32 nonce) view returns (bool)']);
 export async function reconcile(
   store: DurableStore,
   key: string,
   transaction: Hex,
-  rpcURL: string,
+  rpcURLs: string | readonly string[],
   chainId: number,
+  client: ReconciliationClient = createPublicClient({
+    transport: createRpcTransport(typeof rpcURLs === 'string' ? [rpcURLs] : rpcURLs),
+  }),
 ) {
   if (!/^payment:0x[0-9a-f]{64}$/.test(key) || !/^0x[0-9a-fA-F]{64}$/.test(transaction))
     throw new Error('Invalid reconciliation identifiers');
@@ -17,7 +23,6 @@ export async function reconcile(
   if (p.state === 'complete') return { status: 'complete', transaction: p.settlement?.transaction };
   if (p.state !== 'settlement_pending' || p.result === undefined)
     throw new Error('Payment has no journaled result awaiting settlement');
-  const client = createPublicClient({ transport: http(rpcURL) });
   if ((await client.getChainId()) !== chainId || p.requirements.network !== `eip155:${chainId}`)
     throw new Error('RPC chain mismatch');
   const receipt = await client.getTransactionReceipt({ hash: transaction });
@@ -26,6 +31,9 @@ export async function reconcile(
   if (block < receipt.blockNumber + 1n) throw new Error('Wait for one confirmation');
   if (!receiptProvesPayment(p, receipt.logs))
     throw new Error('Receipt does not prove this exact authorized payment');
+  if (!await client.readContract({ address: p.requirements.asset as Address, abi: tokenAbi,
+    functionName: 'authorizationState', args: [p.payer as Address, p.nonce as Hex], blockNumber: receipt.blockNumber }))
+    throw new Error('Authorization nonce is not consumed');
   const settlement = {
     success: true,
     transaction,

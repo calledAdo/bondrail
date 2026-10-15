@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, zeroHash, type Address, type Hex, type TypedDataDomain } from 'viem';
+import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, HttpRequestError, WaitForTransactionReceiptTimeoutError, decodeFunctionData, keccak256, zeroHash, type Address, type Hex, type TypedDataDomain } from 'viem';
 import type { AddressInfo } from 'node:net';
+import { bondrailAccountAbi } from '@bondrail/sdk/abis';
+import type { DurableStore } from '@bondrail/observer/store';
 import { privateKeyToAccount } from 'viem/accounts';
 import { monadTestnet } from 'viem/chains';
 import type { PaymentPayload, PaymentRequirements } from '@x402/core/types';
@@ -14,10 +16,19 @@ const gasPayer = privateKeyToAccount(`0x${'02'.repeat(32)}`);
 const asset = '0x1111111111111111111111111111111111111111';
 const account = '0x2222222222222222222222222222222222222222';
 const factory = '0x3333333333333333333333333333333333333333';
-const tx = `0x${'ab'.repeat(32)}` as const;
+const signed = '0x1234' as const;
+const tx = keccak256(signed);
+function memoryStore(): DurableStore {
+  const values = new Map<string, string>();
+  return { get: async key => values.get(key) ?? null, cas: async (key, previous, next) => {
+    if ((values.get(key) ?? null) !== previous) return false;
+    values.set(key, next); return true;
+  } };
+}
 const now = 1_800_000_000;
 
 async function setup(options: {
+  store?: DurableStore;
   chainId?: number;
   walletChainId?: number;
   tokenDomain?: TypedDataDomain;
@@ -41,7 +52,8 @@ async function setup(options: {
   });
   const payload: PaymentPayload = { x402Version: 2, accepted: structuredClone(requirements), payload: { authorization, signature: await sign() } };
   const state = { isAccount: true, accountAsset: asset, used: false, balance: 10000n, chainReads: 0, reads: [] as string[],
-    simulationFails: false, receiptStatus: 'success', timeout: false, blockTime: BigInt(now), writes: [] as any[], simulations: [] as any[] };
+    simulationFails: false, receiptStatus: 'success', receiptHash: tx, receiptCalls: 0, rateFailures: 0, sendFails: false, timeout: false,
+    blockTime: BigInt(now), writes: [] as any[], simulations: [] as any[], prepared: [] as any[] };
   const publicClient = {
     getChainId: async () => { state.chainReads++; return chainId; },
     getBlock: async () => ({ timestamp: state.blockTime }),
@@ -68,18 +80,30 @@ async function setup(options: {
       if (state.simulationFails) throw new Error('execution reverted');
       return { request };
     },
-    waitForTransactionReceipt: async ({ hash }: { hash: string }) => {
-      assert.equal(hash, tx);
-      if (state.timeout) throw new Error('timeout waiting for receipt');
-      return { status: state.receiptStatus };
+    waitForTransactionReceipt: async (options: { hash: string; checkReplacement: boolean; timeout: number }) => {
+      assert.equal(options.hash, tx);
+      assert.equal(options.checkReplacement, false);
+      assert.equal(options.timeout, 20_000);
+      state.receiptCalls++;
+      if (state.rateFailures-- > 0) throw new HttpRequestError({ url: 'https://rpc.example', status: 429 });
+      if (state.timeout) throw new WaitForTransactionReceiptTimeoutError({ hash: tx });
+      return { status: state.receiptStatus, transactionHash: state.receiptHash };
     },
   } as unknown as FacilitatorOptions['publicClient'];
   const walletClient = { account: gasPayer, chain: { ...monadTestnet, id: options.walletChainId ?? chainId },
-    writeContract: async (request: unknown) => { state.writes.push(request); state.used = true; return tx; },
+    prepareTransactionRequest: async (request: unknown) => { state.prepared.push(request); return request; },
+    signTransaction: async () => signed,
+    sendRawTransaction: async (request: { serializedTransaction: Hex }) => {
+      assert.equal(request.serializedTransaction, signed);
+      state.writes.push(request); state.used = true;
+      if (state.sendFails) throw new Error('RPC connection lost after acceptance');
+      return tx;
+    },
   } as unknown as Exclude<FacilitatorOptions['walletClient'], Function>;
-  const service = await createFacilitator({ factory, asset, publicClient, ...options.overrides,
+  const store = options.store ?? memoryStore();
+  const service = await createFacilitator({ factory, asset, publicClient, store, ...options.overrides,
     walletClient: discoveredChainId => { assert.equal(discoveredChainId, chainId); return walletClient; }, now: () => now });
-  return { service, state, payload, requirements, authorization, sign };
+  return { service, state, payload, requirements, authorization, sign, store };
 }
 
 test('valid signature verifies without a write and settles via the account after simulation', async () => {
@@ -90,9 +114,13 @@ test('valid signature verifies without a write and settles via the account after
     success: true, transaction: tx, network: 'eip155:10143', payer: payer.address, amount: '10000',
   });
   assert.equal(f.state.writes.length, 1);
-  assert.equal(f.state.writes[0].address, account);
-  assert.equal(f.state.writes[0].functionName, 'settle');
-  assert.deepEqual(f.state.writes[0].args.slice(0, 5), [payer.address, 10000n, BigInt(now - 1), BigInt(now + 300), f.authorization.nonce]);
+  assert.equal(f.state.simulations[1].address, account);
+  assert.equal(f.state.simulations[1].functionName, 'settle');
+  assert.deepEqual(f.state.simulations[1].args.slice(0, 5), [payer.address, 10000n, BigInt(now - 1), BigInt(now + 300), f.authorization.nonce]);
+  assert.equal(f.state.prepared[0].to, account);
+  const decoded = decodeFunctionData({ abi: bondrailAccountAbi, data: f.state.prepared[0].data });
+  assert.equal(decoded.functionName, 'settle');
+  assert.deepEqual(decoded.args, f.state.simulations[1].args);
   assert.equal(f.state.simulations.length, 2);
 });
 
@@ -229,11 +257,11 @@ for (const [name, mutate] of rejects) {
   });
 }
 
-test('concurrent replay submits once, then rechecks nonce before the next write', async () => {
+test('concurrent replay submits once and confirms the same transaction', async () => {
   const f = await setup();
   const responses = await Promise.all([f.service.settle(f.payload, f.requirements), f.service.settle(f.payload, f.requirements)]);
-  assert.equal(responses.filter(r => r.success).length, 1);
-  assert.equal(responses[1].errorReason, 'authorization_used');
+  assert.equal(responses.filter(r => r.success).length, 2);
+  assert.equal(responses[1].transaction, tx);
   assert.equal(f.state.writes.length, 1);
 });
 
@@ -246,7 +274,65 @@ test('receipt timeout retains broadcast hash; reverted receipts never report suc
     assert.equal(result.success, false);
     assert.equal(result.transaction, tx);
     assert.equal(result.errorReason, timeout ? 'settlement_pending' : 'settlement_reverted');
+    assert.equal(f.state.receiptCalls, timeout ? 3 : 1);
   }
+});
+
+test('post-broadcast throttling polls the same hash and reports only a confirmed receipt', async () => {
+  const f = await setup();
+  f.state.rateFailures = 2;
+  assert.equal((await f.service.settle(f.payload, f.requirements)).success, true);
+  assert.equal(f.state.receiptCalls, 3);
+  assert.equal(f.state.writes.length, 1);
+});
+
+test('lost broadcast response still recovers by the hash persisted before send', async () => {
+  const store = memoryStore();
+  let journaled = false;
+  const f = await setup({ store: { get: store.get, cas: async (...args) => {
+    assert.equal(f.state.writes.length, 0);
+    assert.equal(JSON.parse(args[2]).transaction, tx);
+    journaled = true;
+    return store.cas(...args);
+  } } });
+  f.state.sendFails = true;
+  const result = await f.service.settle(f.payload, f.requirements);
+  assert.equal(journaled, true);
+  assert.equal(result.success, true);
+  assert.equal(result.transaction, tx);
+});
+
+test('pending replay and restart poll the saved hash even while nonce still reads unused', async () => {
+  const f = await setup();
+  f.state.timeout = true;
+  assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'settlement_pending');
+  f.state.used = false;
+  assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'settlement_pending');
+  assert.equal(f.state.writes.length, 1);
+  const restarted = await setup({ store: f.store });
+  assert.equal((await restarted.service.settle(restarted.payload, restarted.requirements)).success, true);
+  assert.equal(restarted.state.writes.length, 0);
+  assert.equal(restarted.state.prepared.length, 0);
+});
+
+test('journal failure prevents broadcast; a different authorization cannot reuse the nonce binding', async () => {
+  const unavailable = await setup({ store: { get: async () => null, cas: async () => { throw new Error('store unavailable'); } } });
+  assert.equal((await unavailable.service.settle(unavailable.payload, unavailable.requirements)).success, false);
+  assert.equal(unavailable.state.writes.length, 0);
+  const f = await setup();
+  await f.service.settle(f.payload, f.requirements);
+  f.authorization.validBefore = String(now + 200);
+  f.payload.payload.signature = await f.sign();
+  assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'authorization_already_bound');
+  assert.equal(f.state.writes.length, 1);
+});
+
+test('a receipt for a replacement or cancellation is not settlement success', async () => {
+  const f = await setup();
+  f.state.receiptHash = zeroHash;
+  const result = await f.service.settle(f.payload, f.requirements);
+  assert.equal(result.success, false);
+  assert.equal(result.errorReason, 'settlement_receipt_mismatch');
 });
 
 test('x402 resource server used by the agent discovers, verifies and settles over HTTP', async t => {

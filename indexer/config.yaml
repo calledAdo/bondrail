@@ -73,12 +73,6 @@ contracts:
 chains:
   - id: 10143
     start_block: 71189277
-    rpc:
-      - url: https://testnet-rpc.monad.xyz
-        for: sync
-        # Monad's public RPC caps eth_getLogs at 100 blocks.
-        initial_block_interval: 100
-        interval_ceiling: 100
     contracts:
       - name: BondrailFactory
         address: "0x94c86517a520e56f104c6c82b96632643b3f5d81"

@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createTestIndexer, type Address, type TestIndexerProcessConfig } from 'envio';
-import { FACTORY, INDEXED_ASSET } from '../src/deployment';
+import { FACTORY, INDEXED_ASSET, START_BLOCK } from '../src/deployment';
 import '../src/handlers/bondrail';
 
 type Event = NonNullable<NonNullable<TestIndexerProcessConfig['chains'][10143]>['simulate']>[number];
@@ -14,7 +14,7 @@ const otherAsset = '0x6666666666666666666666666666666666666666';
 const zero = `0x${'00'.repeat(20)}` as const;
 const nonce = (n: number) => `0x${n.toString(16).padStart(64, '0')}`;
 const transaction = { hash: `0x${'ab'.repeat(32)}` };
-const block = { number: 70_000_000, timestamp: 1_800_000_000, hash: `0x${'cd'.repeat(32)}` };
+const block = { number: START_BLOCK, timestamp: 1_800_000_000, hash: `0x${'cd'.repeat(32)}` };
 const created = (a: Address = account, asset: Address = INDEXED_ASSET): Event => ({ contract: 'BondrailFactory', event: 'AccountCreated', srcAddress: FACTORY,
   params: { issuer, account: a, asset } });
 const revenue = (collected = true, amount = 10n, a: Address = account): Event => ({ contract: 'BondrailAccount', event: 'Revenue', srcAddress: a,

@@ -12,7 +12,8 @@ export async function GET() {
       account = process.env.AGENT_BONDRAIL_ACCOUNT ?? process.env.AGENT_INITIAL_PAY_TO;
     if (!address(account)) throw new Error('AGENT_BONDRAIL_ACCOUNT missing');
     return manifestResponse(
-      bondrailManifest({ chainId: env.chainId, account, endpoints: [resourceURL(env, 'health')] }),
+      // Both URLs are committed by existing immutable policies; neither may be withdrawn.
+      bondrailManifest({ chainId: env.chainId, account, endpoints: [resourceURL(env), resourceURL(env, 'health')] }),
     );
   } catch {
     return Response.json({ error: 'manifest_unavailable' }, { status: 503 });

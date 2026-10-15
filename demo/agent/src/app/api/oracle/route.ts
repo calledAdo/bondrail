@@ -7,12 +7,12 @@ export async function GET(request: Request) {
   const url = new URL(request.url),
     question = url.searchParams.get('question');
   if (
-    !question ||
-    question.length > 1200 ||
-    url.searchParams.getAll('question').length !== 1 ||
+    question === '' ||
+    (question !== null && question.length > 1200) ||
+    url.searchParams.getAll('question').length > 1 ||
     [...url.searchParams.keys()].some((k) => k !== 'question')
   )
-    return Response.json({ error: 'Provide one question, at most 1200 characters' }, { status: 400 });
+    return Response.json({ error: 'Provide at most one nonempty question, at most 1200 characters' }, { status: 400 });
   try {
     const env = environment(),
       store = storeFromEnv(),

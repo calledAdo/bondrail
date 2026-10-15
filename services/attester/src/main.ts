@@ -2,7 +2,8 @@ import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-import { createPublicClient, createWalletClient, defineChain, http, isAddress, type Hex } from 'viem';
+import { createPublicClient, createWalletClient, defineChain, isAddress, type Hex } from 'viem';
+import { createRpcTransport, rpcUrlsFromEnv } from '@bondrail/shared';
 import { privateKeyToAccount } from 'viem/accounts';
 import { creditAttestationDomain, creditAttestationTypes } from '@bondrail/sdk/credit';
 import { buildAttestation, readIndexedInputs, type CreditInputs } from './attestation.ts';
@@ -19,12 +20,13 @@ async function main() {
     else throw new Error('usage: start [--fixture path] [--relay]');
   }
   if (fixture && relay) throw new Error('Fixture mode is dry-run only');
-  const rpc = process.env.RPC_URL;
+  const urls = rpcUrlsFromEnv(process.env.RPC_URL);
+  const transport = urls.length ? createRpcTransport(urls) : undefined;
   const chainId = Number(process.env.CHAIN_ID ?? '10143');
   if (!Number.isSafeInteger(chainId) || chainId <= 0) throw new Error('Invalid CHAIN_ID');
   const chain = defineChain({ id: chainId, name: 'Credit registry network', nativeCurrency: { name: 'Gas', symbol: 'GAS', decimals: 18 },
-    rpcUrls: { default: { http: rpc ? [rpc] : [] } } });
-  const client = rpc ? createPublicClient({ chain, transport: http(rpc) }) : undefined;
+    rpcUrls: { default: { http: urls } } });
+  const client = transport ? createPublicClient({ chain, transport }) : undefined;
   let inputs: CreditInputs;
   let issuedAt: number;
   if (fixture) {
@@ -68,7 +70,7 @@ async function main() {
     return;
   }
   if (!client || !signer || !signature) throw new Error('--relay requires RPC_URL and ATTESTER_PRIVATE_KEY');
-  const wallet = createWalletClient({ account: signer, chain, transport: http(rpc!) });
+  const wallet = createWalletClient({ account: signer, chain, transport: transport! });
   const { hash, recordedHashes } = await relayAttestation(client, wallet, inputs.registry,
     result.attestation, signature, BigInt(process.env.FACTORY_START_BLOCK ?? '0'));
   console.log(json({ mode: 'relayed', hash, recordedHashes, signer: signer.address, evidencePath }));

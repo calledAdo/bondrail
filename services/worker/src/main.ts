@@ -5,7 +5,6 @@ import {
   createPublicClient,
   createWalletClient,
   defineChain,
-  http,
   parseAbi,
   type Address,
   type Hex,
@@ -13,6 +12,7 @@ import {
 import { privateKeyToAccount } from 'viem/accounts';
 import { address } from '@bondrail/observer/protocol';
 import { storeFromEnv } from '@bondrail/observer/store';
+import { createRpcTransport, rpcUrlsFromEnv } from '@bondrail/shared';
 import { nextOperation } from './plan.js';
 const checkTriggers = process.env.WORKER_CHECK_TRIGGERS === '1';
 // Decode the original tuple when disabled, so existing deployments can still be maintained.
@@ -49,8 +49,9 @@ interface Target {
 }
 const chainId = Number(process.env.BONDRAIL_CHAIN_ID ?? 10143);
 if (chainId !== 10143 && chainId !== 31337) throw new Error('Worker forbids mainnet writes');
-const { BONDRAIL_RPC_URL, WORKER_TARGETS_FILE, WORKER_PRIVATE_KEY } = process.env;
-if (!BONDRAIL_RPC_URL || !WORKER_TARGETS_FILE) throw new Error('Worker RPC and targets file required');
+const { WORKER_TARGETS_FILE, WORKER_PRIVATE_KEY } = process.env;
+const rpcUrls = rpcUrlsFromEnv();
+if (!rpcUrls.length || !WORKER_TARGETS_FILE) throw new Error('Worker RPC and targets file required');
 const targets = JSON.parse(await readFile(WORKER_TARGETS_FILE, 'utf8')) as Target[];
 if (
   !Array.isArray(targets) ||
@@ -64,12 +65,13 @@ const chain = defineChain({
   id: chainId,
   name: chainId === 10143 ? 'Monad Testnet' : 'Bondrail Local',
   nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-  rpcUrls: { default: { http: [BONDRAIL_RPC_URL] } },
+  rpcUrls: { default: { http: rpcUrls } },
 });
+const rpcTransport = createRpcTransport(rpcUrls);
 const client = createPublicClient({
   chain,
-  // Public RPCs rate-limit (Monad testnet: 15 requests/s); retries back off.
-  transport: http(BONDRAIL_RPC_URL, { timeout: 10000, retryCount: 4, retryDelay: 400 }),
+  // Public and wallet requests share the process bucket, including every retry.
+  transport: rpcTransport,
 });
 let rpcChain: number;
 try {
@@ -97,7 +99,7 @@ const signer = privateKeyToAccount(WORKER_PRIVATE_KEY as Hex),
   wallet = createWalletClient({
     chain,
     account: signer,
-    transport: http(BONDRAIL_RPC_URL, { timeout: 10000, retryCount: 0 }),
+    transport: rpcTransport,
   });
 const store = storeFromEnv(),
   owner = randomUUID(),
@@ -176,6 +178,7 @@ try {
     if (!(await store.cas(key, previous, next))) throw new Error('Worker lease contention');
     lease = next;
     let writes = 0;
+    // Keep bonds sequential; the transport spaces each read even when RPC responses are fast.
     for (const target of targets) {
       if (controller.signal.aborted || writes >= 4 || Date.now() - start > 90000) break;
       try {
