@@ -4,6 +4,6 @@
   "private": true,
   "type": "module",
   "exports": { ".": "./src/index.ts", "./abis": "./src/abis.ts" },
-  "scripts": { "typecheck": "tsc --noEmit" },
+  "scripts": { "typecheck": "tsc --noEmit", "test": "tsx --test test/*.test.ts" },
   "dependencies": { "viem": "2.54.2" }
 }

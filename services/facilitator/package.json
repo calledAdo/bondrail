@@ -12,6 +12,8 @@
   "dependencies": {
     "@bondrail/sdk": "workspace:*",
     "@x402/core": "2.28.0",
-    "viem": "2.54.2"
+    "viem": "2.54.2",
+    "@bondrail/shared": "workspace:*",
+    "@bondrail/observer": "workspace:*"
   }
 }

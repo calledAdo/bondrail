@@ -151,6 +151,9 @@ importers:
 
   demo/agent:
     dependencies:
+      '@bondrail/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@bondrail/observer':
         specifier: workspace:*
         version: link:../../services/observer
@@ -215,6 +218,9 @@ importers:
 
   services/attester:
     dependencies:
+      '@bondrail/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@bondrail/scoring':
         specifier: workspace:*
         version: link:../../packages/scoring
@@ -227,6 +233,12 @@ importers:
 
   services/facilitator:
     dependencies:
+      '@bondrail/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
+      '@bondrail/observer':
+        specifier: workspace:*
+        version: link:../observer
       '@bondrail/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
@@ -245,6 +257,9 @@ importers:
 
   services/worker:
     dependencies:
+      '@bondrail/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@bondrail/observer':
         specifier: workspace:*
         version: link:../observer
