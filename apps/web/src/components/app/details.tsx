@@ -14,7 +14,7 @@ import { BondActions } from './bond-actions';
 import { BondSummary, BondTimeline } from './bond-summary';
 import { DecisionLinks, DecisionPanel, type BondIntent } from './bond-decisions';
 import { BondPlaceholders, BondSection } from './bond-section';
-import { ImpliedYieldPanel } from './implied-yield';
+import { ImpliedYieldPanel, WhatYouGet } from './implied-yield';
 import { nativeReviewLabel } from '@/lib/native-review';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
 
@@ -262,7 +262,7 @@ export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = f
     {refreshError && <p role="alert" className="text-sm">Refresh failed. Showing the last successful bond snapshot; reload before making a decision.</p>}
     <BondSection title="Bond summary"><BondSummary b={b} account={a} now={now} actions={<DecisionLinks b={b} now={now} onSelect={select} />} /></BondSection>
     <BondSection title="How this bond works"><BondTimeline b={b} now={now} /></BondSection>
-    <BondSection title="What you get"><ImpliedYieldPanel b={b} account={a} /></BondSection>
+    <BondSection title="What you get"><WhatYouGet b={b} account={a} now={now} /></BondSection>
     {a && <History a={a} />}
     <Health b={b} a={a} />
     <Terms b={b} />

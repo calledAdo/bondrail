@@ -23,5 +23,5 @@ export function useKuruPrice(market?: Address) {
   const ask = price(quotes?.[1]);
   // A one-sided/empty/crossed book has no usable midpoint. Never substitute par for a missing quote.
   const mid = bid !== null && ask !== null && bid <= ask ? (bid + ask) / 2 : null;
-  return { bid, ask, mid, refetch: read.refetch };
+  return { bid, ask, mid, loading: read.isLoading, error: read.isError, refetch: read.refetch };
 }
