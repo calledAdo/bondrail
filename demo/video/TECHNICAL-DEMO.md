@@ -25,8 +25,8 @@ LaunchLab is a team-run test business, explicitly described as such in its signe
 Recordings may omit waits and adjust playback duration. The film explicitly says edited timing and is not a latency benchmark. Cursor highlighting and camera motion are editorial; application values and transactions are not simulated. The Native payment uses the automated Node signer while recording the live bond page; issuance, deposit, activation and Kuru buy use actual UI controls.
 
 ```sh
-/tmp/slice-video-venv/bin/python demo/video/narrate_technical.py
-/tmp/slice-video-venv/bin/python demo/video/render_technical.py
+/tmp/bondrail-video-venv/bin/python demo/video/narrate_technical.py
+/tmp/bondrail-video-venv/bin/python demo/video/render_technical.py
 ```
 
 Final output: `output/technical/bondrail-technical-demo.mp4`, with matching SRT captions. Upload separately to a publicly accessible video host for submission.

@@ -3,7 +3,7 @@ title: BondrailBond
 description: The investors' vault and ERC-20 claim.
 ---
 
-Monad testnet; not audited. These terms apply to the next implementation; see [selected deployments](/docs/reference/deployments).
+Monad testnet; not audited. These terms apply to the current implementation; see [selected deployments](/docs/reference/deployments).
 
 ## Terms (fixed at creation)
 
@@ -33,7 +33,7 @@ Payments use the last checked share until another check. Rounding carry and the 
 
 Issuer self-payments count. Padding revenue to avoid a trigger costs real money because investors
 receive their share, but is possible. This counter is not wash-adjusted; plain transfers count when
-swept. The next deployment includes this implementation. Historical immutable bonds do not gain the feature.
+swept. The current deployment includes this implementation. Historical immutable bonds do not gain the feature.
 
 ## Lifecycle
 - **Funding:** `deposit` until full before the deadline; `withdraw` takes escrow back before that deadline; claims cannot transfer. A still-Funding bond can be cancelled after the deadline and holders call `refund`.

@@ -3,10 +3,10 @@ title: Contracts and facilitator
 description: Contract functions, events and errors from the SDK ABIs, plus the settlement service.
 ---
 
-<Callout type="warn">Monad testnet; not audited. These are next-source ABIs. Historical judged
+<Callout type="warn">Monad testnet; not audited. These are current ABIs. Historical judged
 contracts are not upgraded by this documentation. Use the [selected deployment](/docs/reference/deployments).</Callout>
 
-Source: [`contracts/src`](https://github.com/calledAdo/bondrail/tree/next/contracts/src). Amounts use the
+Source: [`contracts/src`](https://github.com/calledAdo/bondrail/tree/main/contracts/src). Amounts use the
 contract asset's base units unless a function specifies shares, seconds or basis points. Tables come
 from `@bondrail/sdk/abis`. Solidity consumers can import `@bondrail/contracts`.
 
@@ -53,4 +53,4 @@ address comes from `roles.facilitator` in the selected manifest on the [deployme
 
 POST bodies contain `{x402Version: 2, paymentPayload, paymentRequirements}`. See the
 [x402 guide](/docs/guides/x402) for funding, retries and reconciliation, and the
-[service source](https://github.com/calledAdo/bondrail/tree/next/services/facilitator).
+[service source](https://github.com/calledAdo/bondrail/tree/main/services/facilitator).

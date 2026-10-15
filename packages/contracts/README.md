@@ -2,7 +2,7 @@
 
 Solidity integration sources for Bondrail, version **0.1.0**. **Monad testnet prototype; not audited.**
 Use Solidity **0.8.28**, the Cancun EVM target, and OpenZeppelin **5.4.0**.
-Addresses belong to a deployment: use the [selected deployment](https://bondrail-next-web.vercel.app/docs/reference/deployments).
+Addresses belong to a deployment: use the [selected deployment](https://bondrail.vercel.app/docs/reference/deployments).
 
 ## Install with npm (Hardhat or Foundry)
 
@@ -32,7 +32,7 @@ Enable `viaIR` when compiling the full protocol implementations used by the loca
 ## Install directly with Foundry
 
 ```sh
-forge install calledAdo/bondrail@next
+forge install calledAdo/bondrail@main
 ```
 
 After the release tag exists, pin `forge install calledAdo/bondrail@contracts-v0.1.0` instead.
@@ -78,8 +78,8 @@ the reviewer must call `setNativeApproval(project, true)` for custom projects. T
 `setNativeTemplate(keccak256(creationCode), true)`; `deployNative(account, creationCode, args, salt)`
 deploys and binds approved code whose first constructor argument is the account. All raises still
 need valid terms, history and the factory's health checks. See the
-[Native guide](https://bondrail-next-web.vercel.app/docs/guides/native) and
-[trust model](https://bondrail-next-web.vercel.app/docs/trust-model).
+[Native guide](https://bondrail.vercel.app/docs/guides/native) and
+[trust model](https://bondrail.vercel.app/docs/trust-model).
 
 ## Call Bondrail from your contract
 

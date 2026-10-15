@@ -37,7 +37,7 @@ npx -y pnpm@10.32.0 --filter @bondrail/facilitator typecheck
 
 Tests use real EIP-712 signatures, mocked chain clients, and the agent's actual SDK client over local HTTP. Live Monad/USDC settlement remains a check after deployment.
 
-## Independent next deployment
+## Current deployment
 
 Use `BONDRAIL_DEPLOYMENT=main pnpm tsx scripts/service.ts facilitator` from the repository root to pin the selected factory, asset, RPC and scoped gas key. The [production runbook](../../docs/deployments/RUNBOOK.md) includes funding and production systemd units. `pnpm e2e:local` exercises this server with real EIP-3009 signatures on isolated anvil.
 

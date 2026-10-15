@@ -15,8 +15,8 @@ npm i @bondrail/contracts
 
 Use SDK **0.1.1 or later**; 0.1.0 had broken package exports. The Solidity package is prepared at **0.1.0**.
 If the version is not yet in the registry, install a locally packed tarball as described in the
-[SDK README](https://github.com/calledAdo/bondrail/tree/next/packages/sdk#readme) and
-[contracts README](https://github.com/calledAdo/bondrail/tree/next/packages/contracts#readme).
+[SDK README](https://github.com/calledAdo/bondrail/tree/main/packages/sdk#readme) and
+[contracts README](https://github.com/calledAdo/bondrail/tree/main/packages/contracts#readme).
 
 The ten SDK entry points below are ESM with bundled TypeScript declarations. Examples that write
 send transactions; reads and analytics do not. Replace configuration placeholders with your deployment.
@@ -245,10 +245,10 @@ import {IBondrailCreditRegistry} from "@bondrail/contracts/src/IBondrailCreditRe
 ```
 
 Use Solidity 0.8.28 and OpenZeppelin 5.4.0. The same imports work with npm or `forge install` using the
-[documented remappings](https://github.com/calledAdo/bondrail/tree/next/packages/contracts#readme).
+[documented remappings](https://github.com/calledAdo/bondrail/tree/main/packages/contracts#readme).
 The package is copied from canonical `contracts/src` at prepack; it also includes full implementations
 for local deployment and functions outside the minimal interfaces. The external
-[Foundry example](https://github.com/calledAdo/bondrail/tree/next/examples/native-project) deploys real
+[Foundry example](https://github.com/calledAdo/bondrail/tree/main/examples/native-project) deploys real
 local Bondrail contracts and routes a fee through `collect`.
 
 **Custom contracts need individual review before raising; reviewed templates deployed with
@@ -259,5 +259,5 @@ For vault calls, use the [entry/exit previews](/docs/guides/investing) and inspe
 
 `pnpm sdk:verify` builds, packs and imports all ten SDK entry points in an isolated plain-Node consumer.
 `pnpm contracts:verify` packs Solidity with npm, checks byte identity and interface layouts, and builds
-and tests an isolated Foundry consumer. The [release guide](https://github.com/calledAdo/bondrail/blob/next/RELEASING.md)
+and tests an isolated Foundry consumer. The [release guide](https://github.com/calledAdo/bondrail/blob/main/RELEASING.md)
 separates SDK, contracts and repository tags. Neither check publishes or creates a tag.

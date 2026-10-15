@@ -3,7 +3,7 @@ title: Credit vault
 description: Curated bond allocations, carried-cost valuation, income vesting and limited exit liquidity.
 ---
 
-<Callout type="warn">Monad testnet; not audited. The next manifest includes a `BondrailVault`.
+<Callout type="warn">Monad testnet; not audited. The current manifest includes a `BondrailVault`.
 See [selected deployment addresses](/docs/reference/deployments). The `/vault` app page is read-only;
 deposits and withdrawals are contract calls.</Callout>
 
@@ -89,6 +89,6 @@ market quote nor a liquidation floor. Consider issuer losses/correlation, curato
 reviewer/observer trust, delayed trigger checks/default reports, settlement pricing, vesting timing,
 token freezes, donations, rounding and dust. No principal or yield is guaranteed.
 
-The [design specification](https://github.com/calledAdo/bondrail/blob/next/docs/vault/DESIGN.md) gives
+The [design specification](https://github.com/calledAdo/bondrail/blob/main/docs/vault/DESIGN.md) gives
 the exact arithmetic; its original pre-deployment status is historical. The implementation is
-[`BondrailVault.sol`](https://github.com/calledAdo/bondrail/blob/next/contracts/src/BondrailVault.sol).
+[`BondrailVault.sol`](https://github.com/calledAdo/bondrail/blob/main/contracts/src/BondrailVault.sol).

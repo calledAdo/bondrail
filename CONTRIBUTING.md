@@ -124,3 +124,17 @@ act -n pull_request
 `act -n` checks the execution plan; it does not execute the checks. Run
 `pnpm check:all` as well. Review updated action SHAs against their upstream release
 tags, and keep the local scripts and job commands in sync.
+
+## Deployment fixtures and local E2E
+
+`BONDRAIL_DEPLOYMENT` defaults to `main`, selecting `docs/deployments/10143.json`
+for production Monad testnet. Named deployments use `<chainId>-<name>.json`.
+The archived `docs/deployments/archive/10143-slice-metropolis.json` is a read-only
+judged reference and must never be regenerated. Match app addresses and indexer
+configuration to the selected manifest. Envio production remains on `envio-next`.
+
+Run `pnpm e2e:local` for the full local contract/payment/vault/attestation/browser
+rehearsal. It owns `31337-e2e.json`, temporary keys and loopback services; both public
+manifests are checked unchanged. Install Playwright Chromium with
+`pnpm exec playwright install chromium` if Chromium/Chrome is unavailable.
+This is separate from `check:all` and makes no testnet transactions.

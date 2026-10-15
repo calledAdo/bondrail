@@ -1,3 +1,5 @@
+> Historical recordings below retain their original names. Current helper scripts generate Bondrail-named outputs; they do not rename or rebrand existing footage.
+
 # Bondrail demo: free local production
 
 **Envio sponsor demo:** `output/envio/bondrail-envio-demo.mp4` — 1:27, actual recorded payment followed by fresh HyperIndex query and live revenue/payer views. Michael narration and captions. See [ENVIO-DEMO.md](ENVIO-DEMO.md) for evidence and upload text. No new chain writes.
@@ -15,8 +17,8 @@ This directory builds a narrated, captioned 2:31 presentation video without a pa
 `output/explainer/bondrail-explainer.mp4`: 24.8 seconds, 1920×1080 at60fps, H.264/AAC, about1.9MB. Describes revenue-bond issuance, investor funding and repayment using original animated illustrations. Inspired by the structure of user-supplied `Downloads/useSpoke.mp4`; no reference assets or audio reused. Onscreen copy, original synthesized music/effects, no voiceover. Separate from the recorded app-operation demo; it does not replace that evidence video.
 
 - Direction: `EXPLAINER-DIRECTION.md`.
-- Render: `/tmp/slice-video-venv/bin/python demo/video/explainer.py`.
-- Verify: `/tmp/slice-video-venv/bin/python demo/video/verify_explainer.py`.
+- Render: `/tmp/bondrail-video-venv/bin/python demo/video/explainer.py`.
+- Verify: `/tmp/bondrail-video-venv/bin/python demo/video/verify_explainer.py`.
 - Storyboard: run renderer with `--preview`.
 - QA report, export contact sheet and poster are under `output/explainer/`.
 
@@ -36,8 +38,8 @@ Source and workflow:
 - `output/presentation/validation.json`: final verification results.
 
 ```sh
-/tmp/slice-video-venv/bin/python demo/video/narrate_presentation.py
-/tmp/slice-video-venv/bin/python demo/video/present.py
+/tmp/bondrail-video-venv/bin/python demo/video/narrate_presentation.py
+/tmp/bondrail-video-venv/bin/python demo/video/present.py
 ```
 
 `present.py --only=receipt` rerenders one scene. `present.py --finish` reassembles already rendered scenes with the current narration and music. Any narration change must be followed by rerendering its scene so burned captions match. The Native action's genuine before-state is held briefly to align its visible update with narration; edited timing is disclosed, and action playback itself is unretimed.
@@ -75,12 +77,12 @@ No Remotion dependency or commercial video service is required. This work did no
 ## Local setup used for this session
 
 ```sh
-UV_CACHE_DIR=/tmp/slice-uv-cache uv venv --python 3.12 /tmp/slice-video-venv
-UV_CACHE_DIR=/tmp/slice-uv-cache uv pip install --python /tmp/slice-video-venv/bin/python kokoro-onnx==0.6.1 soundfile==0.14.0 pillow==12.3.0 imageio-ffmpeg==0.6.0
-mkdir -p /tmp/slice-video-models
-curl -L --fail https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.int8.onnx -o /tmp/slice-video-models/kokoro-v1.0.int8.onnx
-curl -L --fail https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin -o /tmp/slice-video-models/voices-v1.0.bin
-/tmp/slice-video-venv/bin/python demo/video/narrate.py
+UV_CACHE_DIR=/tmp/bondrail-uv-cache uv venv --python 3.12 /tmp/bondrail-video-venv
+UV_CACHE_DIR=/tmp/bondrail-uv-cache uv pip install --python /tmp/bondrail-video-venv/bin/python kokoro-onnx==0.6.1 soundfile==0.14.0 pillow==12.3.0 imageio-ffmpeg==0.6.0
+mkdir -p /tmp/bondrail-video-models
+curl -L --fail https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/kokoro-v1.0.int8.onnx -o /tmp/bondrail-video-models/kokoro-v1.0.int8.onnx
+curl -L --fail https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-files-v1.0/voices-v1.0.bin -o /tmp/bondrail-video-models/voices-v1.0.bin
+/tmp/bondrail-video-venv/bin/python demo/video/narrate.py
 ```
 
 `BONDRAIL_VOICE_MODELS` overrides the model directory. Downloads and synthesis need no account. Tools under `/tmp` may need recreation after cleanup. The narration script reuses existing per-sentence WAVs; delete only the changed line's generated WAV when revising its text.
@@ -93,7 +95,7 @@ For a **new** capture, only after the read-only connection check succeeds (the c
 
 ```sh
 node demo/video/capture.mjs --record
-/tmp/slice-video-venv/bin/python demo/video/render.py
+/tmp/bondrail-video-venv/bin/python demo/video/render.py
 ```
 
 Recording is a real testnet operation: a one-USDC Native buy, 0.1-USDC Kuru buy and one-USDC CurveLab deposit, plus bounded token approvals where needed. It uses the existing `pumplab-organic-0` demo wallet, whose key remains in Node. An injected EIP-1193 provider forwards requests to that signer; this is not a mock connector or simulated transaction. The video explicitly labels automated testnet wallet use.
@@ -109,7 +111,7 @@ The existing live Oracle bond is never defaulted for this recording. The Watched
 Render from the completed capture:
 
 ```sh
-/tmp/slice-video-venv/bin/python demo/video/render.py
+/tmp/bondrail-video-venv/bin/python demo/video/render.py
 ```
 
 - `output/slice-metropolis-demo.mp4`: narrated, captioned 1920×1080 H.264/AAC final.

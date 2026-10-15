@@ -50,7 +50,7 @@ an independent `nativeApproved(project)` approval can still authorize that proje
 npm i @bondrail/contracts
 ```
 
-See the [package README](https://github.com/calledAdo/bondrail/tree/next/packages/contracts#readme) for
+See the [package README](https://github.com/calledAdo/bondrail/tree/main/packages/contracts#readme) for
 tarballs before publication, `forge install`, and npm/Git remappings. Both use this import:
 
 ```solidity
@@ -88,4 +88,4 @@ round to zero, so choose payment bounds and rounding deliberately.
 During an Active bond, `BondrailAccount._checkPayment` enforces `fee * 10000 >= gross * minFeeBps()`.
 The factory checks review/binding at issuance, deposits, activation and second release. These checks
 do not prove future demand or stop a business moving users elsewhere. See the [trust model](/docs/trust-model)
-and the [external Foundry example](https://github.com/calledAdo/bondrail/tree/next/examples/native-project).
+and the [external Foundry example](https://github.com/calledAdo/bondrail/tree/main/examples/native-project).

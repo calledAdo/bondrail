@@ -22,9 +22,9 @@ The CLI displays a secret-mapping naming warning, not a secret value. Output cap
 Files: `cre-preflight.mjs`, `cre-gas.mjs`, `capture-cre.mjs`, `cre.json`, `narrate_cre.py`, `render_cre.py`, `verify_cre.py`. Re-render only from existing capture/narration, without new writes:
 
 ```sh
-/tmp/slice-video-venv/bin/python demo/video/narrate_cre.py
-/tmp/slice-video-venv/bin/python demo/video/render_cre.py
-/tmp/slice-video-venv/bin/python demo/video/verify_cre.py
+/tmp/bondrail-video-venv/bin/python demo/video/narrate_cre.py
+/tmp/bondrail-video-venv/bin/python demo/video/render_cre.py
+/tmp/bondrail-video-venv/bin/python demo/video/verify_cre.py
 ```
 
 ## YouTube upload

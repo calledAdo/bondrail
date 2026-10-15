@@ -12,7 +12,7 @@
 - Default view is evidence-filtered with a visible "show all": healthy source, valid signed profile, account age >= N, more than one payer.
 - Investor metrics: multiple, coverage (verified trailing revenue x revenueBps x days to maturity / repayCap), est. payback, principal at risk now, Kuru price vs backingPerToken.
 - Raw vs verified revenue shown side by side; verified excludes issuer-funded payers.
-- Identity: EIP-712 profile signed by `account.issuer()`, stored in KV; offering notes commit to the `termsHash` in `BondCreated`; domain proof via `/.well-known/slice.json` (automatic for Watched agents).
+- Identity: EIP-712 profile signed by `account.issuer()`, stored in KV; offering notes commit to the `termsHash` in `BondCreated`; domain proof via `/.well-known/bondrail.json` (automatic for Watched agents).
 - Contract hardening: `deposit` checks source health; minimum account age before `createBond`. Redeploy.
 - Kuru market creation is an issuer step in `/console`.
 - Console terms builder suggests a cap from verified revenue and warns below 1.2x coverage; validates `_validateTerms` client-side.

@@ -4,7 +4,7 @@ description: Account-mediated settlement, proven payers, facilitator funding and
 ---
 
 <Callout type="warn">Monad testnet; not audited. Use the settlement-capable account implementation in
-the next deployment. Historical immutable accounts do not gain `settle` from a source update.</Callout>
+the current deployment. Historical immutable accounts do not gain `settle` from a source update.</Callout>
 
 ## Settle through the account
 
@@ -47,7 +47,7 @@ and every paid endpoint. See the [SDK examples](/docs/developers/sdk).
 
 ## Facilitator and gas budget
 
-The [facilitator](https://github.com/calledAdo/bondrail/tree/next/services/facilitator) is an HTTP service,
+The [facilitator](https://github.com/calledAdo/bondrail/tree/main/services/facilitator) is an HTTP service,
 not a fund-custody contract. `GET /supported`, `POST /verify`, `POST /settle` and `GET /health` expose its
 capabilities, validation, settlement and operational state. It pins the factory and token, discovers the
 token domain, verifies the 65-byte EOA signature, authorization bounds, account registration/asset,
@@ -58,7 +58,7 @@ Its separate gas wallet pays MON. The current code estimates gas with a 15% marg
 Those defaults cap one commitment at 0.075 MON; actual costs vary. The October 15 warm-call sample
 averaged 0.0284941505 MON; budget about 4 MON per 100 warm calls including reserve, then consult
 `/health`. This is a planning estimate, not a fixed price. See the
-[measured gas report](https://github.com/calledAdo/bondrail/blob/next/docs/deployments/FACILITATOR-GAS.md).
+[measured gas report](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/FACILITATOR-GAS.md).
 
 Health fields include `balanceNative`, `estimatedSettlementCostWei`, `settlementsRemaining`, `reservedWei`,
 `inFlightNonce` and `blockedReason`. A positive balance may still be insufficient. Use one writer/key/store
@@ -80,7 +80,7 @@ It requires a successful receipt plus one additional block and matches the token
 atomically marks the existing pending record complete; retry the original oracle request to retrieve
 its cached answer and `PAYMENT-RESPONSE`. Reconciliation sends no transaction and does not rerun work.
 It cannot repair a processing record without a saved result. Follow the
-[reconciliation runbook](https://github.com/calledAdo/bondrail/blob/next/docs/deployments/NEXT-RUNBOOK.md#recovering-settlement_pending-payments).
+[reconciliation runbook](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/RUNBOOK.md#recovering-settlement_pending-payments).
 
 ## Monitoring and guarded buyers
 

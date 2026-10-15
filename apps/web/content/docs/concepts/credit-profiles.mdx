@@ -3,7 +3,7 @@ title: Credit profiles
 description: Exact on-chain records and separately attested underwriting, with explicit coverage.
 ---
 
-<Callout type="warn">Monad testnet; not audited. The next manifest includes `BondrailCreditRegistry`.
+<Callout type="warn">Monad testnet; not audited. The current manifest includes `BondrailCreditRegistry`.
 Read its [selected address](/docs/reference/deployments). A profile is evidence for your own credit
 decision, not a borrowing entitlement or repayment guarantee.</Callout>
 
@@ -76,6 +76,6 @@ The helper reads both layers and the current attester at one block. Solidity len
 Pin the registry and check `factory()`, asset, coverage, freshness and signer against your own policy.
 Neither `creditLine` nor this example enforces a safe lending limit.
 
-The [credit design](https://github.com/calledAdo/bondrail/blob/next/docs/credit/DESIGN.md) documents the
+The [credit design](https://github.com/calledAdo/bondrail/blob/main/docs/credit/DESIGN.md) documents the
 attester's canonical evidence and backfill procedure. Its original pre-deployment status is historical;
-current behavior is in [`BondrailCreditRegistry.sol`](https://github.com/calledAdo/bondrail/blob/next/contracts/src/BondrailCreditRegistry.sol).
+current behavior is in [`BondrailCreditRegistry.sol`](https://github.com/calledAdo/bondrail/blob/main/contracts/src/BondrailCreditRegistry.sol).

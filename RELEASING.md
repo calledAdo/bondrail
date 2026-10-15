@@ -12,22 +12,14 @@ Keep package changelogs and versions aligned before choosing a release commit. P
 not automatically bump the other package or the repository. `forge install calledAdo/bondrail@<tag>`
 requires that Git tag to exist in the remote repository; preparing npm metadata does not create it.
 Use the Solidity package tag to pin a reviewed source snapshot. Until tags are created, development
-consumers can install `calledAdo/bondrail@next` or pin a commit, with the remappings in the contracts README.
+consumers can install `calledAdo/bondrail@main` or pin a commit, with the remappings in the contracts README.
 The repository vendors OpenZeppelin under `contracts/lib`; npm consumers receive its pinned dependency.
 
 Before any separately authorized release, on the selected commit:
 
 ```sh
-~/.foundry/bin/forge test --root contracts
-npx -y pnpm@10.32.0 contracts:verify
-npx -y pnpm@10.32.0 sdk:verify
-npx -y pnpm@10.32.0 build:apps
-npx -y pnpm@10.32.0 -r test
-npx -y pnpm@10.32.0 typecheck
-npx -y pnpm@10.32.0 exec tsc --noEmit
-npx -y pnpm@10.32.0 exec tsc -p scripts/tsconfig.json
-npx -y pnpm@10.32.0 exec tsc -p scripts/bench/tsconfig.json
-npx -y pnpm@10.32.0 --dir indexer exec tsc --noEmit
+pnpm check:all
+pnpm e2e:local
 ```
 
 Inspect `npm pack --dry-run` in each package. Contracts `prepack` regenerates sources and checks
@@ -36,6 +28,13 @@ and tests an external Foundry consumer. `prepublishOnly` runs that verifier; SDK
 own isolated plain-Node verifier. These checks never publish, deploy or create tags.
 
 Only after release approval should the operator create/push the appropriate tag and publish the
-corresponding package with public access. No tags or publications are created by Task 16.
-Never overwrite `docs/deployments/10143.json`: it identifies the Metropolis submission (judged).
-Use a named deployment manifest for any future deployment; package releases do not deploy contracts.
+corresponding package with public access. Package preparation creates no tags or publications.
+`docs/deployments/10143.json` is the current production identity (`main`). Use a fresh
+named manifest for a separate deployment; package releases do not deploy contracts.
+The judged `metropolis-submission` manifest is read-only at
+`docs/deployments/archive/10143-slice-metropolis.json`.
+
+The production app branch is `main`. Envio project `bondrail-next` remains on its
+existing **envio-next** release branch; an app/package release must not repoint or
+recreate it. Server renaming uses [the migration guide](docs/deployments/MIGRATION-2026-10.md),
+including storage/namespace preservation and rollback.

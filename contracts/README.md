@@ -32,7 +32,7 @@ payment entrypoints and an accounting invariant with day advances and trigger ch
 
 Not established by these tests: live Kuru market/custody compatibility, Monad testnet USDC/facilitator support, CRE DON operation, observer honesty, external economic demand or production audit assurance. Those remain integration gates outside this contract package.
 
-## Account-mediated x402 settlement — not yet deployed
+## Account-mediated x402 settlement
 
 Anyone can relay a payer-signed EIP-3009 `TransferWithAuthorization` through
 `BondrailAccount.settle(from, value, validAfter, validBefore, nonce, v, r, s)`. The account supplies itself
@@ -54,10 +54,11 @@ Use the SDK's `settleThroughAccount` or the [Bondrail-only facilitator](../servi
 The indexer correlates token and account events by chain/token/payer/nonce so each payment is attributed
 once, including batches. Rebuild the indexer's data when adopting its changed authorization identities
 and schema. CRE/manifest checks remain required for Watched businesses. Existing accounts are immutable
-clones of their original implementation: new settlement-capable deployments are required. No deployment
-JSON has been updated and live Monad/USDC settlement has not been exercised by this change.
+clones of their original implementation. The current [deployment manifest](../docs/deployments/10143.json)
+identifies the settlement-capable contracts; historical clones do not gain this function.
+The [gas report](../docs/deployments/FACILITATOR-GAS.md) records testnet settlement evidence.
 
-## Performance triggers — not yet deployed
+## Performance triggers
 
 At issuance, optionally set `triggerRevenue` (asset units), `triggerWindowDays` (1–30), and `stepUpBps`
 (strictly above `revenueBps`, at most 5000). All three must be zero to disable the feature, or all must
@@ -99,11 +100,11 @@ original immutable bonds, returning zero trigger terms for their original ABI.
 
 Demo setup defaults to zeros. To enable it for newly created demo bonds, set all of
 `TRIGGER_REVENUE_USDC`, `TRIGGER_DAYS`, and `STEP_UP_BPS` (e.g. `10`, `2`, `4000`).
-Existing clones cannot gain the feature; new bond/factory deployments are required, and the extended
-`createBond` tuple changes that function's selector. No deployment files have been changed, and no
-deployment or live worker transactions were performed. See [validation](../docs/bench/task05-validation.md).
+The current manifest includes the trigger-capable implementation. Historical clones cannot gain
+the feature, and the extended `createBond` tuple changes that function's selector.
+See the original implementation [validation](../docs/bench/task05-validation.md).
 
-## Bondrail Credit vault — not yet deployed
+## Bondrail Credit vault
 
 `BondrailVault(IERC20 asset, BondrailFactory factory, address owner, address curator)` is a standalone,
 non-upgradeable ERC-4626 vault; existing bond contracts are unchanged. Choose an exact-transfer,
@@ -128,8 +129,8 @@ The 36 vault tests cover valuation/pricing, vesting, limits, roles, liquidity, e
 reentrancy, donation inflation, dust and an independent realized-backing receipt oracle.
 Carried NAV is not immediately realizable: healthy repayment assumptions and rule-based impairments
 remain risks. See [design](../docs/vault/DESIGN.md) and [validation](../docs/vault/VALIDATION.md).
-No deployment was performed.
+The vault address is in the current [deployment manifest](../docs/deployments/10143.json).
 
-### BondrailCreditRegistry (not deployed)
+### BondrailCreditRegistry
 
 Standalone, factory-scoped credit views and EIP-712 attestations. BondrailFactory counts each successful issuance once in `bondsCreated(account)`; other issuance behavior is unchanged. Permissionless `recordBond` rejects duplicates/non-bonds and caps each account at 64. `onchainProfile` returns account counters, aggregate repayment counts/amounts, per-bond cap ratios, `bondsCreated` and `complete = (recorded count == bondsCreated)`. Display "Repayment record covers N of M bonds" and an incomplete warning, including when the 64-bond cap prevents full coverage. `attestedProfile` returns the latest payload, original signer and validity requiring the current attester plus unexpired time. Owner rotation of the attester takes two days. See [field semantics and trust](../docs/credit/DESIGN.md); coverage is scoped to this account/factory and does not prove independent customers. Stored attestations by a rotated-out signer remain visible but invalid.
