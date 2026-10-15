@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import { createPublicClient } from 'viem';
-import { createRpcTransport, rpcUrlsFromEnv, type RpcTransportOptions } from '../src/rpc.js';
+import { createRpcTransport, rpcUrlsFromEnv, type RpcTransportOptions } from '../src/rpc';
 
 type Call = { url: string; method: string; params: unknown; time: number };
 function fixture(name: string, respond: (call: Call, n: number) => Response | Promise<Response>, options: RpcTransportOptions = {}) {

@@ -1,7 +1,7 @@
 import { createServer } from 'node:http';
-import { Observer, loadRegistry } from './index.js';
-import { storeFromEnv } from './store.js';
-import { authorized } from './auth.js';
+import { Observer, loadRegistry } from './index';
+import { storeFromEnv } from './store';
+import { authorized } from './auth';
 import type { Hex } from 'viem';
 
 const { OBSERVER_REGISTRY, OBSERVER_PRIVATE_KEY, OBSERVER_API_TOKEN } = process.env;
