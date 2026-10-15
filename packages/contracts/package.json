@@ -1,0 +1,29 @@
+{
+  "name": "@bondrail/contracts",
+  "version": "0.1.0",
+  "description": "Solidity sources and interfaces for Bondrail revenue accounts, bonds, credit vaults and profiles.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/calledAdo/bondrail.git",
+    "directory": "packages/contracts"
+  },
+  "homepage": "https://github.com/calledAdo/bondrail/tree/next/packages/contracts#readme",
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node scripts/prepare.mjs",
+    "prepack": "npm run build",
+    "prepublishOnly": "node scripts/verify-pack.mjs"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.4.0"
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "name": "bondrail-native-project-example",
+  "private": true,
+  "description": "External Solidity consumer; intentionally outside the pnpm workspace."
+}
