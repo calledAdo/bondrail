@@ -20,12 +20,13 @@ Keys default to `~/.bondrail`, with named roles under `<name>/` and the deployer
 at the root. `BONDRAIL_KEY_DIR`, `BONDRAIL_KEY_PREFIX` and
 `BONDRAIL_DEPLOYER_KEY_FILE` can preserve an existing layout. The service launcher
 checks each role's address against the manifest before starting the service.
-Do not regenerate keys during a rename. See [migration](MIGRATION-2026-10.md).
+Do not regenerate keys during a rename. The October naming migration is complete;
+its [procedure and incident record](MIGRATION-2026-10.md) are retained as history.
 
 To generate local public configuration for the selected deployment (no chain writes):
 
 ```sh
-BONDRAIL_DEPLOYMENT=main OBSERVER_URL=http://127.0.0.1:8790/observe \
+BONDRAIL_DEPLOYMENT=main OBSERVER_URL=http://127.0.0.1:8792/observe \
   pnpm tsx demo/scripts/write-watch-config.ts --force
 BONDRAIL_DEPLOYMENT=main node indexer/gen-config.mjs 10143 --force
 ```
@@ -38,9 +39,13 @@ reviewed indexer release. Do not recreate or reconnect the existing cloud projec
 
 ## Server units and overrides
 
-Use `ops/bondrail-*.service` and `ops/bondrail-*.timer`. Each reads `/etc/bondrail.env`
-then its optional service-specific env file. Existing local-mode overrides for
-observer/worker/facilitator must keep `BONDRAIL_ENV=local`, `BONDRAIL_STORE=local`
+Use `ops/bondrail-*.service` and `ops/bondrail-*.timer`. Each application service reads
+`/etc/bondrail.env` then its optional service-specific env file. Units explicitly set
+`HOME=/root` and a PATH containing `/root/.cre/bin`, `/root/.bun/bin`, and standard
+system directories. The env files can override those defaults. Observer, worker,
+facilitator and attester also use home-relative role keys through the launcher;
+they need the same explicit home even though only covenant invokes CRE.
+Existing local-mode overrides for observer/worker/facilitator must keep `BONDRAIL_ENV=local`, `BONDRAIL_STORE=local`
 and the same durable `BONDRAIL_DATA_DIR`; this storage flag does not change chain 10143.
 Preserve the explicit namespace when using Redis. Do not copy example credentials
 or empty journals over live ones. Production local storage is a single-host setup
@@ -50,8 +55,14 @@ following a crash, never automatic deletion.
 The reporter is `scripts/report-covenant.ts --broadcast`, using the selected manifest,
 matching deployer, `.data/deployments/10143-main/cre-config.json`, and `/etc/bondrail.env`
 (`CRE_ENV_FILE` overrides the last path). It supplies the deployer only in the child
-environment. CRE secrets and provider config remain operator-managed. The 30-minute
-timer is bounded monitoring, not continuous coverage or DON consensus.
+environment. Before RPC or key access it requires an absolute `HOME` and a readable
+regular file at `$HOME/.cre/cre.yaml`. It reports the expected path if that check
+fails, without reading or printing credential contents. CRE still validates the
+login itself; a present file can contain an expired or invalid login. Restore login
+with `cre login` as the service user when necessary. Keep the operator's existing
+`HOME=/root` in `/etc/bondrail-covenant.env`; it agrees with the unit default.
+CRE secrets and provider config remain operator-managed. The 30-minute timer is
+bounded monitoring, not continuous coverage or DON consensus.
 
 ```sh
 systemctl is-active bondrail-observer.service bondrail-facilitator.service \
@@ -59,14 +70,79 @@ systemctl is-active bondrail-observer.service bondrail-facilitator.service \
 systemctl show bondrail-covenant.service bondrail-worker.service bondrail-attester.service \
   -p Result -p ExecMainStatus
 journalctl -u bondrail-covenant.service -u bondrail-worker.service --since '2 hours ago'
-curl -fsS http://127.0.0.1:8790/health
-# After the October migration, use 8792 (matching its override and CRE config).
+curl -fsS http://127.0.0.1:8792/health
 curl -fsS https://bondrail-next.64-227-40-35.sslip.io/health
 ```
 
 A oneshot can be inactive between successful runs: check its timer and last result.
 Compare observer signer and facilitator wallet/factory/asset/network to `10143.json`.
 Retain attestation evidence and worker/observer/facilitator journals in backups.
+
+## Scheduled jobs, failure alerts and status
+
+The 2026-10-16 migration uncovered **24 covenant failures in 12 hours**: systemd
+had no `HOME`, so CRE could not find `/root/.cre/cre.yaml` and reported
+`Credential validation failed … unable to retrieve organization info`. No reports
+means no default by design; it also meant covenant monitoring was off. The operator
+restored `HOME=/root` in `/etc/bondrail-covenant.env`. Do not interpret an absence of
+defaults, or a timer being active, as evidence that reports are succeeding.
+
+All five application services now specify `OnFailure=bondrail-alert@%n.service`.
+Install `ops/bondrail-alert@.service` alongside them when rolling out these changes;
+it runs `scripts/ops-alert.mjs` using Node alone, even if tsx/app dependencies fail.
+It logs `bondrail_service_failed` with host/unit/time before looking up the current
+exit result. The instance name includes the failed unit suffix, for example
+`bondrail-alert@bondrail-covenant.service.service`. The template deliberately has no
+`OnFailure` of its own, preventing recursive alerts. No daemon reload or server
+installation was performed by this source change.
+
+The handler reads optional `/etc/bondrail.env`. To deliver notifications, configure
+`ALERT_WEBHOOK_URL` there (keep the file mode 0600) with the operator's Slack,
+Discord, or other JSON webhook. Each alert invocation sends at most one POST with both
+`text` (Slack) and `content` (Discord). It includes service identity and exit details,
+never the journal, env contents, credential contents, or webhook URL. Unset means
+journal-only, logged as `bondrail_alert_webhook_skipped`. Delivery has a five-second
+timeout, no redirects or retries; errors log `bondrail_alert_webhook_failed` and
+fail the alert unit. Review those errors locally if the external receiver is down.
+
+```sh
+journalctl -t bondrail-alert --since '12 hours ago'
+journalctl -u bondrail-alert@bondrail-covenant.service.service --since '12 hours ago'
+cd /opt/bondrail
+node --import tsx scripts/ops-status.ts
+node --import tsx scripts/ops-status.ts --json
+# Optional alternate facilitator health endpoint, including the full /health path:
+BONDRAIL_FACILITATOR_HEALTH_URL=http://127.0.0.1:8789/health \
+  node --import tsx scripts/ops-status.ts --json
+```
+
+Run status on the host with permission to read the **system** journal (root or the
+appropriate journal group). It only reads systemd/journal and the facilitator's
+`/health`; it does not source `/etc/bondrail.env`, load signing keys, start jobs, or
+send transactions. The default health URL is `http://127.0.0.1:8789/health`.
+Each command/HTTP read has a five-second timeout; failures yield partial output
+with errors. Exit 0 means all checks are healthy; exit 1 means attention or unknown
+data; exit 2 means invalid arguments. JSON has `schemaVersion: 1`, `generatedAt`,
+`ok`, `historySource`, `timers[]`, and `facilitator`, suitable for a future dashboard.
+
+Each timer includes its enabled/active state, next/last trigger, service result and
+exit code, and **separate last successful completion and last failure timestamps**.
+Those two ISO timestamps come from stable systemd journal message IDs, so a later
+success does not erase the last failure. Trigger/next timestamps use systemd's host
+time format. A completed oneshot being inactive is normal. Missing journal history
+is `null`/unknown, never assumed success. Disabled/inactive timers, a failure since
+the last success, and success older than two schedule periods plus the 600-second
+job budget require attention (covenant 70 minutes, worker 30 minutes, attester
+12 hours 10 minutes). Facilitator output includes `balanceNative`,
+`settlementsRemaining`, `lowBalance`, and `blockedReason`; low funds, a blocked
+writer, or an unavailable/malformed health response also require attention.
+
+History only covers retained journal entries. Provision persistent journal storage
+and adequate retention through normal host administration if history must survive
+reboots; this command does not configure journald. Journal-only alerts require an
+operator to inspect them. A disabled timer or stopped host cannot emit a service
+failure: check status regularly and use an external availability check for host
+outages. Service alerts complement the facilitator's separate low-gas hook below.
 
 ## Facilitator gas budget and alerting
 

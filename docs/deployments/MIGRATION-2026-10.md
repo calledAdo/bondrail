@@ -1,7 +1,9 @@
-# October 2026 production naming migration
+# October 2026 production naming migration — completed
 
-This is an **operator procedure, not an executed migration**. Operator context dated
-2026-10-16: `bondrail.vercel.app` runs `main` with the former `10143-next.json`
+The operator reports this migration **completed on 2026-10-16**. The original
+procedure below is retained as history and recovery reference; do not rerun the
+naming cutover. Use [RUNBOOK.md](RUNBOOK.md) for current operations.
+`bondrail.vercel.app` runs `main` with the former `10143-next.json`
 contracts. The current identity is now `10143.json` (`deployment: main`). The judged
 manifest is archived byte-for-byte at `archive/10143-slice-metropolis.json`.
 The deleted Slice web/agent and server services must not be restored.
@@ -11,6 +13,26 @@ agent Redis data, Envio project **bondrail-next**, release branch **envio-next**
 GraphQL endpoint `https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql` unchanged.
 The old Envio Slice project is retained. This procedure needs no Vercel, Envio,
 npm, DNS or chain deployment action.
+
+## Incident discovered during migration
+
+The old `bondrail-next-covenant.service` and its canonical replacement
+`bondrail-covenant.service` did not set `HOME`. CRE could not find
+`/root/.cre/cre.yaml` and failed with
+`Credential validation failed … unable to retrieve organization info`.
+The timer failed **24 times in 12 hours without notice**. The protocol intentionally
+does not default a bond on missing reports, so monitoring was off without producing
+a default. The operator restored the server by adding `HOME=/root` to
+`/etc/bondrail-covenant.env`.
+
+Task 20 adds explicit unit HOME/PATH defaults, a credential-file preflight before
+reporting, shared service failure alerts, and `scripts/ops-status.ts` for retained
+timer success/failure history and facilitator gas health. These are source changes;
+their presence here does not assert that the operator has installed the new units
+or configured a webhook. The successful naming migration and its server HOME
+workaround are complete; rolling out these monitoring improvements is separate.
+
+## Original cutover procedure (historical)
 
 ## Cutover model and limits
 
@@ -37,8 +59,10 @@ promised for a single writer. Queue exhaustion/expiry explicitly returns 503.
 Do not call a failed or timed-out rehearsal zero downtime.
 
 The proxy commands below assume **Caddy at `/etc/caddy/Caddyfile`**. Confirm the
-actual service/config before executing; an Nginx alternative is below. No server
-inspection was performed for this task. Use a graceful reload, never a proxy restart.
+actual service/config before executing; an Nginx alternative is below. When this
+procedure was authored, no server inspection had been performed; this assumption
+does not establish which proxy the operator actually used. Use a graceful reload,
+never a proxy restart.
 Do not log payment signatures, bearer tokens, keys, or complete environment files.
 
 ## 1. Prepare and snapshot while the old services keep running
