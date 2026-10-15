@@ -256,6 +256,17 @@ pnpm contracts:test
 pnpm check
 ```
 
+Run `pnpm check` for every change: it runs workspace TypeScript checks, tests, and
+`pnpm build:apps`, which builds both `demo/agent` and `apps/web` in production mode using
+Next.js's default Turbopack bundler. A passing development server or typecheck alone does not
+verify production module resolution. For SDK or workspace-package changes, also run
+`pnpm sdk:verify` to build and import the packed SDK in an isolated plain-Node consumer.
+
+Source-consumed workspace packages (`shared`, `sdk`, `observer`, and `scoring`) use TypeScript
+bundler resolution. Use extensionless relative imports (or existing `.ts` imports where allowed)
+for TypeScript source; do not use `.js` specifiers for files that exist only as `.ts`.
+The SDK build emits JavaScript with resolvable `.js` specifiers for published consumers.
+
 Start Anvil in one terminal:
 
 ```sh
