@@ -1,8 +1,0 @@
-[Unit]
-Description=Schedule Bondrail next worker
-[Timer]
-OnCalendar=*:05/10
-Persistent=true
-Unit=bondrail-next-worker.service
-[Install]
-WantedBy=timers.target

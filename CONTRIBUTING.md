@@ -109,8 +109,9 @@ and has no bypass actors. Repository administrators manage this rule in
 **Settings → Rules → Rulesets**; updating the JSON file alone does not change the
 GitHub setting. CI itself has no permission to edit rules.
 
-The existing manually dispatched `covenant.yml` is an operational testnet report
-workflow with separate credentials. `ci.yml` and `check:all` do not invoke it.
+The retired Slice `covenant.yml` workflow was removed. Operational reporting uses
+[`ops/bondrail-covenant.service`](ops/bondrail-covenant.service); `ci.yml` and
+`check:all` never invoke it. See the [migration procedure](docs/deployments/MIGRATION-2026-10.md).
 
 ## Validate workflow changes
 

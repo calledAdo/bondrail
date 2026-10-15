@@ -24,7 +24,7 @@
     "sdk:pack": "pnpm --filter @bondrail/sdk pack --pack-destination packages/sdk",
     "e2e:local": "tsx scripts/e2e-local.ts",
     "scripts:typecheck": "tsc -p scripts/tsconfig.json",
-    "scripts:test": "node --test scripts/deployment-path.test.mjs",
+    "scripts:test": "node --test --test-timeout=30000 scripts/*.test.mjs",
     "sdk:verify": "node packages/sdk/scripts/verify-pack.mjs",
     "contracts:verify": "node packages/contracts/scripts/verify-pack.mjs"
   },

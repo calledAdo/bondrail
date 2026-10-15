@@ -1,3 +1,5 @@
+> Historical rollout procedure from 2026-10-15. Superseded by [the current runbook](../RUNBOOK.md) and [October migration](../MIGRATION-2026-10.md). Do not execute these historical commands. Relative links below reflect the original location.
+
 # Independent `next` deployment
 
 The original judged deployment is `docs/deployments/10143.json`. Keep that file, its addresses, Vercel projects, Envio project, Redis data and service units intact. This runbook creates `10143-next.json`, new roles and independent services. **Only the owner executes the testnet section.** The automated rehearsal sends transactions only to an anvil process it starts on loopback.

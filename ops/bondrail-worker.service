@@ -1,10 +1,11 @@
 [Unit]
-Description=Bondrail next worker (independent deployment)
+Description=Bondrail worker
 After=network-online.target
 [Service]
 Type=oneshot
-WorkingDirectory=/opt/bondrail-next
-EnvironmentFile=/etc/bondrail-next.env
+WorkingDirectory=/opt/bondrail
+EnvironmentFile=/etc/bondrail.env
+EnvironmentFile=-/etc/bondrail-worker.env
 ExecStart=/usr/bin/env node --import tsx scripts/service.ts worker
 TimeoutStartSec=600
 MemoryMax=700M

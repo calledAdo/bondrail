@@ -1,0 +1,13 @@
+[Unit]
+Description=Bondrail covenant
+After=network-online.target
+Requires=bondrail-observer.service
+After=bondrail-observer.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bondrail
+EnvironmentFile=/etc/bondrail.env
+EnvironmentFile=-/etc/bondrail-covenant.env
+ExecStart=/usr/bin/env node --import tsx scripts/report-covenant.ts --broadcast
+TimeoutStartSec=600
+MemoryMax=700M

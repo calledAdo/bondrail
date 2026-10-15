@@ -1,13 +1,16 @@
 [Unit]
-Description=Bondrail next facilitator (independent deployment)
+Description=Bondrail facilitator
 After=network-online.target
 [Service]
 Type=simple
-WorkingDirectory=/opt/bondrail-next
-EnvironmentFile=/etc/bondrail-next.env
+WorkingDirectory=/opt/bondrail
+EnvironmentFile=/etc/bondrail.env
+EnvironmentFile=-/etc/bondrail-facilitator.env
 ExecStart=/usr/bin/env node --import tsx scripts/service.ts facilitator
 TimeoutStartSec=600
 MemoryMax=700M
+TimeoutStopSec=180
+KillMode=mixed
 Restart=on-failure
 RestartSec=5
 [Install]

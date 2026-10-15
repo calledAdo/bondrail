@@ -26,7 +26,7 @@ Each new settlement response waits at most 20 seconds for a receipt at 1.5-secon
 
 On the October 15 next snapshot, actual warm settlements averaged **0.0284941505 MON**, with no mined reverts. A 190k estimate with this margin costs about **0.022287 MON** at 102 gwei; an RPC estimate of 279,369 costs about **0.03277005 MON** after the margin. Allow **~4 MON per 100 warm calls including reserve**, and consult `/health` before a run. Estimates may already be padded; do not promise a reduction from adding a margin. The [chain evidence and gas budget](../../docs/deployments/FACILITATOR-GAS.md) explain these numbers and the 0.075 MON absolute per-transaction commitment ceiling.
 
-The agent returns an explicit retryable 503 for an empty-hash funding/busy/fee-cap refusal and preserves its generated result for the same signed request. An outer timeout can still leave a mined payment pending: use the [authenticated agent reconcile endpoint](../../docs/deployments/NEXT-RUNBOOK.md#recovering-settlement_pending-payments) to prove a saved settlement receipt and release the cached result. A nonce already used outside the facilitator journal is refused.
+The agent returns an explicit retryable 503 for an empty-hash funding/busy/fee-cap refusal and preserves its generated result for the same signed request. An outer timeout can still leave a mined payment pending: use the [authenticated agent reconcile endpoint](../../docs/deployments/RUNBOOK.md#recovering-settlement_pending-payments) to prove a saved settlement receipt and release the cached result. A nonce already used outside the facilitator journal is refused.
 
 Anyone can submit the signature directly to USDC first. The recipient stays fixed, but account settlement then reverts with a used nonce. These funds require `sweep()` and do not establish a proven on-chain payer. For public operation, configure HTTPS and request/gas-budget limits at the gateway: valid signed micropayments can spend facilitator gas, and simulation cannot eliminate inclusion races. Keep this key separate from issuer, observer, and milestone keys.
 
@@ -39,6 +39,6 @@ Tests use real EIP-712 signatures, mocked chain clients, and the agent's actual 
 
 ## Independent next deployment
 
-Use `BONDRAIL_DEPLOYMENT=next pnpm tsx scripts/service.ts facilitator` from the repository root to pin the selected factory, asset, RPC and scoped gas key. The [next runbook](../../docs/deployments/NEXT-RUNBOOK.md) includes funding and independent systemd units. `pnpm e2e:local` exercises this server with real EIP-3009 signatures on isolated anvil.
+Use `BONDRAIL_DEPLOYMENT=main pnpm tsx scripts/service.ts facilitator` from the repository root to pin the selected factory, asset, RPC and scoped gas key. The [production runbook](../../docs/deployments/RUNBOOK.md) includes funding and production systemd units. `pnpm e2e:local` exercises this server with real EIP-3009 signatures on isolated anvil.
 
 For a separate Vercel Preview, the optional `api/[action].ts` facade and `vercel.json` forward only `/supported`, `/health`, `/verify` and `/settle` to `FACILITATOR_UPSTREAM_URL` (a dedicated HTTPS origin). Keep one persistent writer behind that origin; the Preview stores no gas key. Both raw request streams and Vercel-parsed bodies are supported. The facade has unit coverage; remote Vercel deployment is owner-run.
