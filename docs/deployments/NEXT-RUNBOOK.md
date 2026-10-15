@@ -63,7 +63,7 @@ export TRIGGER_BOND=pumplab TRIGGER_REVENUE_USDC=0.01 TRIGGER_DAYS=1 STEP_UP_BPS
 export VAULT_BOND=pumplab VAULT_ALLOCATE_USDC=0.5 VAULT_DEPOSIT_USDC=2
 export WALLETS=3 PER_WALLET_USDC=0.3 PER_PAYER_USDC=0.2
 export AGENT_PUBLIC_URL=https://agent-next.example.com
-export AGENT_URL="$AGENT_PUBLIC_URL/api/oracle"
+export AGENT_URL="$AGENT_PUBLIC_URL/api/oracle" # optional for issuance; must be listed in the manifest
 export X402_FACILITATOR_URL=https://facilitator-next.example.com
 # Set INDEXER_URL after provisioning the independent Envio endpoint.
 ```
@@ -130,7 +130,8 @@ Vercel requires this exact commit and the new public manifest at build time (the
 curl -fsS "$X402_FACILITATOR_URL/supported"
 curl -fsS "$AGENT_PUBLIC_URL/api/health"
 curl -fsS "$AGENT_PUBLIC_URL/.well-known/bondrail.json"
-curl -sS -D - -o /dev/null "$AGENT_URL"          # must be 402, payTo in header = next account
+curl -sS -D - -o /dev/null "$AGENT_PUBLIC_URL/api/oracle" # must be 402, payTo = next account
+curl -sS -D - -o /dev/null "$AGENT_PUBLIC_URL/api/oracle?question=health" # same payment terms
 pnpm tsx demo/scripts/traffic-launchpad.ts pumplab organic 1
 pnpm tsx demo/scripts/traffic-launchpad.ts curvelab organic 1
 TRAFFIC_STRICT=1 pnpm tsx demo/scripts/traffic-agent.ts 20 5
@@ -139,6 +140,10 @@ pnpm tsx demo/scripts/setup-demo.ts --force
 ```
 
 PumpLab is now funded (including the vault allocation) and Active; CurveLab is Funding with an open raise. Oracle Agent is funded and waits for a fresh compliant CRE report. All three bonds are recorded in the registry. Rerunning setup reuses records, skips activation when already active, and does not repeat the vault deposit/allocation. `TRIGGER_*` only affects the selected `TRIGGER_BOND` at issuance; it cannot change an existing bond.
+
+Watched issuance now requires an unpaid preflight before `createBond`: setup fetches the manifest and every policy endpoint, plus additional same-origin manifest endpoints, and uses the exact classifier from `@bondrail/observer/protocol` shared by CRE/observer. Only **Compliant** permits issuance. Failure prints the observer reason, such as `manifest_endpoint_withdrawn`, `payto_changed` or `unavailable`; fix the deployed agent/configuration and rerun setup. `AGENT_URL`, when supplied, must exactly match a manifest entry. Without it, setup derives the endpoint from `AGENT_PUBLIC_URL`'s manifest, preferring the canonical `/api/oracle`. For traffic, use the base `/api/oracle` URL. `--skip-preflight` is reserved for local tests (chain 31337 **and** `BONDRAIL_ENV=local`); it only skips endpoint classification, still requires a valid manifest selection, is never default, and is rejected on testnet.
+
+The agent manifest keeps both `/api/oracle` and `/api/oracle?question=health` to preserve existing immutable policies. Both return 402 unpaid with the same account/asset/price; a paid base request answers "health". In the live next rollout, bond `0x66A9aAfad577A6319645F4E2E2daAad42a987343` committed to the base URL while the old manifest listed only the query URL. Repair this by deploying the updated **next agent** with both resources, then obtain a fresh compliant CRE report. The existing bond's policy hash cannot be changed; rerunning setup does not rewrite it. If activation lacks a fresh compliant report, `scripts/activate-watched.ts` prints the current observer classification and reason before stopping. This diagnostic is a new unpaid check, not the historical on-chain report's reason (the chain stores only its result), and cannot replace a CRE report.
 
 ## Separate Envio project / `envio-next` branch
 

@@ -8,7 +8,7 @@
     "manifestUrl": "https://REPLACE-AGENT-HOST/.well-known/bondrail.json",
     "endpoints": [
       {
-        "url": "https://REPLACE-AGENT-HOST/api/oracle?question=health",
+        "url": "https://REPLACE-AGENT-HOST/api/oracle",
         "minAmount": "10000"
       }
     ],
