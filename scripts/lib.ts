@@ -14,6 +14,7 @@ import {
   type PublicClient,
 } from 'viem';
 import { generatePrivateKey, privateKeyToAccount, type PrivateKeyAccount } from 'viem/accounts';
+import type { WatchPolicy } from '@bondrail/observer/protocol';
 import { monadTestnet, bondrailLocal } from '../packages/shared/src/index.ts';
 
 export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
@@ -155,7 +156,7 @@ export type DeploymentFile = {
   bondImplementation: Address;
   accountImplementation: Address;
   issuers: Record<string, IssuerRecord>;
-  watchPolicy?: unknown;
+  watchPolicy?: WatchPolicy;
 };
 export function readDeployment(): DeploymentFile {
   const d = JSON.parse(fs.readFileSync(deploymentFile, 'utf8')) as DeploymentFile;
