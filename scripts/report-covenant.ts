@@ -3,10 +3,12 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import os from 'node:os';
 import { setTimeout as delay } from 'node:timers/promises';
+import { assertCreCredentials } from './cre-credentials.ts';
 import { account, assertChain, chainId, DEPLOYMENT, key, readDeployment, ROOT } from './lib.ts';
 async function main() {
   if (chainId !== 10143) throw new Error('Reporter requires chain 10143');
   if (!process.argv.includes('--broadcast')) throw new Error('Owner must pass --broadcast to send CRE reports');
+  assertCreCredentials();
   await assertChain();
   const d = readDeployment();
   const options = { fallbackFile: path.join(os.homedir(), '.zeitgeist/testnet-deployer.key') };

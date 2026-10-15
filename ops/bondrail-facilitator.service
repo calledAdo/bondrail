@@ -4,6 +4,8 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/bondrail
+Environment=HOME=/root
+Environment=PATH=/root/.cre/bin:/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 EnvironmentFile=/etc/bondrail.env
 EnvironmentFile=-/etc/bondrail-facilitator.env
 ExecStart=/usr/bin/env node --import tsx scripts/service.ts facilitator
