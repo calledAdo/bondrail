@@ -2,7 +2,7 @@
 
 > **Metropolis judges:** the submitted version is the tag
 > [`metropolis-submission`](https://github.com/calledAdo/bondrail/tree/metropolis-submission) (commit `2f8d3e5`,
-> 11 Oct 2026). Its live deployment (https://slice-flame.vercel.app) is unchanged. Commits after the 13 Oct deadline,
+> 11 Oct 2026). Its live app (https://bondrail.vercel.app) and contracts are unchanged. Commits after the 13 Oct deadline,
 > which the organisers exclude from judging, continue the product: see [`BUILD_LOG.md`](BUILD_LOG.md) and
 > [`docs/deployments/NEXT-RUNBOOK.md`](docs/deployments/NEXT-RUNBOOK.md).
 
