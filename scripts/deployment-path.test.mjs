@@ -51,6 +51,8 @@ test('existing manifests require explicit force and remain intact on refusal', (
 });
 
 test('named roles get fresh paths while the deployer remains shared; explicit overrides are respected', () => {
+  assert.equal(roleKeyPath('observer', {}, '/operator'), '/operator/.bondrail/observer.key');
+  assert.equal(roleKeyPath('deployer', {}, '/operator'), '/operator/.bondrail/deployer.key');
   const env = { BONDRAIL_DEPLOYMENT: 'staging', BONDRAIL_KEY_DIR: '/tmp/test-keys' };
   assert.equal(roleKeyPath('reviewer', env), '/tmp/test-keys/staging/reviewer.key');
   assert.equal(roleKeyPath('deployer', env), '/tmp/test-keys/deployer.key');

@@ -11,7 +11,7 @@ const context = await browser.newContext({viewport:{width:1600,height:900},color
 try {
  const page = await context.newPage(); const started = Date.now(); const marks=[];
  const mark = label => marks.push({label,at:(Date.now()-started)/1000});
- await page.goto('https://slice-flame.vercel.app/',{waitUntil:'domcontentloaded'});
+ await page.goto('https://bondrail.vercel.app/',{waitUntil:'domcontentloaded'});
  await page.getByRole('heading',{level:1}).waitFor();
  await page.evaluate(()=>document.fonts.ready);
  await page.waitForTimeout(1200);mark('hero-ready');

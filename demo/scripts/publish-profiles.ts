@@ -18,7 +18,7 @@ const profiles = {
     key: 'agent-issuer',
     name: 'Oracle Agent',
     description: 'A paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.',
-    website: 'https://slice-agent.vercel.app',
+    website: 'https://bondrail-next-agent.vercel.app',
     x: '',
     useOfFunds: 'Model inference credits and hosting for the next six months.',
   },

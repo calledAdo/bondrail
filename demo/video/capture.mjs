@@ -15,7 +15,7 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const OUT = path.join(HERE, 'output');
 fs.mkdirSync(path.join(OUT, 'raw'), { recursive: true });
 const d = JSON.parse(fs.readFileSync(path.join(HERE, `../../docs/deployments/${process.env.BONDRAIL_CHAIN_ID ?? '10143'}${deploymentSuffix}.json`)));
-const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://slice-flame.vercel.app';
+const LIVE = process.env.BONDRAIL_VIDEO_APP ?? 'https://bondrail.vercel.app';
 const RPC = process.env.BONDRAIL_VIDEO_RPC ?? 'https://testnet-rpc.monad.xyz';
 const keyText = fs.readFileSync(roleKeyPath('pumplab-organic-0'), 'utf8').trim();
 const account = privateKeyToAccount(keyText.startsWith('0x') ? keyText : `0x${keyText}`);
