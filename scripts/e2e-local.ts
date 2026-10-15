@@ -73,6 +73,8 @@ async function main() {
   // Override caller values; temporary role keys can never resolve to the operator's key stores.
   Object.assign(process.env, {
     BONDRAIL_CHAIN_ID: '31337', BONDRAIL_DEPLOYMENT: 'e2e', BONDRAIL_RPC_URL: rpc, BONDRAIL_RPC_URLS: rpc,
+    // The local adapter scans chain state per query; it does not share a public-provider IP budget.
+    BONDRAIL_RPC_RPS: '100', BONDRAIL_RPC_CONCURRENCY: '2',
     BONDRAIL_KEY_DIR: keys, BONDRAIL_KEY_PREFIX: 'e2e', BONDRAIL_DEPLOYER_KEY_FILE: path.join(keys, 'unused.key'),
     BONDRAIL_MIN_HISTORY: '60', BONDRAIL_ENV: 'local', BONDRAIL_STORE: 'local',
     RAISE_USDC: '2', CAP_USDC: '2.4', STAKE_USDC: '0.5', FUNDING_DAYS: '4', MATURITY_DAYS: '9',
@@ -215,7 +217,7 @@ async function main() {
   assert.deepEqual(readDeployment().issuers, d.issuers);
   pass('Demo and full deploy reruns retain accounts/bonds/allocation');
   const { child: idx } = start('indexer', process.execPath, ['--import', 'tsx', 'scripts/dev-indexer.ts']);
-  await ready('indexer', indexer, idx);
+  await ready('indexer', `${indexer}/health`, idx);
   const snapshot = await (await fetch(indexer)).json() as { data: { Bond: unknown[]; Payment: { source: string }[] } };
   assert.equal(snapshot.data.Bond.length, 3);
   assert(snapshot.data.Payment.some(p => p.source === 'x402'));

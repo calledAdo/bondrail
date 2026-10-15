@@ -157,6 +157,13 @@ http
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Headers', 'content-type');
     if (req.method === 'OPTIONS') return void res.end();
+    // Readiness must not queue a full chain scan on every probe. Data queries below still
+    // read real state and expose RPC failures to the caller.
+    if (req.method === 'GET' && req.url === '/health') {
+      res.setHeader('content-type', 'application/json');
+      res.end(JSON.stringify({ status: 'ready', chainId }));
+      return;
+    }
     try {
       const data = await snapshot();
       // The attester uses account-scoped keyset queries. Implement just those variables;
