@@ -1,0 +1,13 @@
+[Unit]
+Description=Bondrail failure alert for %i
+# No OnFailure here: delivery failures must not recursively trigger alerts.
+[Service]
+Type=oneshot
+Environment=HOME=/root
+Environment=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=-/etc/bondrail.env
+ExecStart=/usr/bin/env node /opt/bondrail/scripts/ops-alert.mjs %i
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=bondrail-alert
+TimeoutStartSec=15
