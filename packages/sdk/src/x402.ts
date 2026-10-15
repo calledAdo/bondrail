@@ -270,7 +270,7 @@ export function httpFacilitator(url: string, chainId: number): Facilitator {
   let server: x402ResourceServer | undefined;
   const ready = async () => {
     if (!server) {
-      server = new x402ResourceServer(new HTTPFacilitatorClient({ url, timeoutMs: 15000 })).register(
+      server = new x402ResourceServer(new HTTPFacilitatorClient({ url, timeoutMs: 90_000 })).register(
         `eip155:${chainId}`,
         new ExactEvmScheme(),
       );
