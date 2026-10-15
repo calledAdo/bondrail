@@ -289,27 +289,37 @@ const settlementAbi = parseAbi([
   'event AuthorizationUsed(address indexed authorizer,bytes32 indexed nonce)',
 ]);
 
-/** True when a settlement receipt shows this exact authorization moving the exact amount to payTo. */
+/** Require token movement/nonce consumption and the account's atomic settle event in one receipt. */
 export function receiptProvesPayment(
   p: PaymentRecord,
   logs: readonly { address: Address; data: Hex; topics: readonly Hex[] }[],
 ): boolean {
   let transfer = false,
-    authorization = false;
+    authorization = false,
+    settled = false;
   for (const log of logs) {
+    if (log.address.toLowerCase() === p.requirements.payTo.toLowerCase()) {
+      try {
+        const event = decodeEventLog({ abi: bondrailAccountAbi, data: log.data, topics: [...log.topics] as [Hex, ...Hex[]] });
+        if (event.eventName === 'Settled') settled ||=
+          event.args.payer.toLowerCase() === p.payer.toLowerCase() &&
+          event.args.nonce.toLowerCase() === p.nonce.toLowerCase() &&
+          event.args.value === BigInt(p.requirements.amount);
+      } catch { /* Unrelated account event. */ }
+    }
     if (log.address.toLowerCase() !== p.requirements.asset.toLowerCase()) continue;
     try {
       const event = decodeEventLog({ abi: settlementAbi, data: log.data, topics: [...log.topics] as [Hex, ...Hex[]] });
       if (event.eventName === 'Transfer')
         transfer ||=
-          event.args.from.toLowerCase() === p.payer &&
+          event.args.from.toLowerCase() === p.payer.toLowerCase() &&
           event.args.to.toLowerCase() === p.requirements.payTo.toLowerCase() &&
           event.args.value === BigInt(p.requirements.amount);
       if (event.eventName === 'AuthorizationUsed')
-        authorization ||= event.args.authorizer.toLowerCase() === p.payer && event.args.nonce.toLowerCase() === p.nonce;
+        authorization ||= event.args.authorizer.toLowerCase() === p.payer.toLowerCase() && event.args.nonce.toLowerCase() === p.nonce.toLowerCase();
     } catch {
       /* Unrelated token event. */
     }
   }
-  return transfer && authorization;
+  return transfer && authorization && settled;
 }
