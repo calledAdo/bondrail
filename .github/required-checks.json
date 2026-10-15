@@ -1,0 +1,27 @@
+{
+  "name": "CI required on main and next",
+  "target": "branch",
+  "enforcement": "active",
+  "bypass_actors": [],
+  "conditions": {
+    "ref_name": {
+      "include": ["refs/heads/main", "refs/heads/next"],
+      "exclude": []
+    }
+  },
+  "rules": [
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "contracts", "integration_id": 15368 },
+          { "context": "typescript", "integration_id": 15368 },
+          { "context": "packages", "integration_id": 15368 },
+          { "context": "apps", "integration_id": 15368 }
+        ]
+      }
+    }
+  ]
+}

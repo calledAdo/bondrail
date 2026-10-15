@@ -1,5 +1,7 @@
 # Bondrail
 
+[![CI](https://github.com/calledAdo/bondrail/actions/workflows/ci.yml/badge.svg?branch=next)](https://github.com/calledAdo/bondrail/actions/workflows/ci.yml?query=branch%3Anext)
+
 > **Metropolis judges:** the submitted version is the tag
 > [`metropolis-submission`](https://github.com/calledAdo/bondrail/tree/metropolis-submission) (commit `2f8d3e5`,
 > 11 Oct 2026). Its live app (https://bondrail.vercel.app) and contracts are unchanged. Commits after the 13 Oct deadline,
@@ -319,26 +321,26 @@ Tailwind CSS, Fumadocs, Envio HyperIndex, Chainlink CRE, x402, Kuru, and Mera.
 
 ## Run locally
 
-Requirements: Node.js 22, pnpm 10.32.0, and [Foundry](https://getfoundry.sh). CRE work additionally requires
+Requirements: Node.js 24, pnpm 10.32.0, and [Foundry 1.8.4](https://getfoundry.sh). CRE work additionally requires
 [Bun](https://bun.sh) and the [CRE CLI](https://docs.chain.link/cre).
 
 ```sh
 git clone https://github.com/calledAdo/bondrail.git
 cd bondrail
-pnpm install
-pnpm contracts:build
-pnpm contracts:test
-pnpm check
+pnpm check:all
 ```
 
-Run `pnpm check` for every change: it runs workspace TypeScript checks, tests, and
-`pnpm build:apps`, which builds both `demo/agent` and `apps/web` in production mode using
-Next.js's default Turbopack bundler. A passing development server or typecheck alone does not
-verify production module resolution. For SDK or workspace-package changes, also run
-`pnpm sdk:verify` to build and import the packed SDK in an isolated plain-Node consumer. For Solidity or
-package changes, run `pnpm contracts:verify`: npm pack, byte-identity and ABI checks, then an external
-Foundry build/test. Its [example](examples/native-project) is outside the workspace build. Full release
-checks, including extra tsc projects, are in [RELEASING.md](RELEASING.md).
+Run `pnpm check:all` before submitting a change. It installs both workspaces with frozen lockfiles,
+checks Solidity sizes and tests, runs every TypeScript project and the standalone indexer checks,
+verifies both package tarballs, and builds `demo/agent` and `apps/web` for production. GitHub Actions
+runs the same checks in four parallel jobs on pushes and PRs to `main`/`next`.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for individual commands, required merge checks, the existing
+Solidity formatting exception, and expected durations. Release preparation is in [RELEASING.md](RELEASING.md).
+
+`pnpm check` remains a faster workspace-only check. Production builds use Next.js's default
+Turbopack bundler; a passing development server or typecheck alone does not verify production
+module resolution. Package verification also exercises an isolated plain-Node SDK consumer and
+an [external Foundry consumer](examples/native-project).
 
 Source-consumed workspace packages (`shared`, `sdk`, `observer`, and `scoring`) use TypeScript
 bundler resolution. Use extensionless relative imports (or existing `.ts` imports where allowed)
