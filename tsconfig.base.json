@@ -12,6 +12,14 @@
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "allowImportingTsExtensions": true
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "@bondrail/sdk": [
+        "./packages/sdk/src/index.ts"
+      ],
+      "@bondrail/sdk/*": [
+        "./packages/sdk/src/*"
+      ]
+    }
   }
 }

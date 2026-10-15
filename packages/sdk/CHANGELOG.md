@@ -1,8 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Fix: package exports pointed at sources not included in the package (0.1.0 is broken; use 0.1.1)
+
 ## 0.1.0
 
-Initial package prepared for release; not yet published.
+Initial release (published with broken exports; use 0.1.1).
 
 - Bondrail contract ABIs and typed account/bond clients.
 - x402 resource handling, account-mediated settlement, manifests and buyer guards.
