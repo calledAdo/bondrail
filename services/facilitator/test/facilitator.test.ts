@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, HttpRequestError, WaitForTransactionReceiptTimeoutError, decodeFunctionData, keccak256, zeroHash, type Address, type Hex, type TypedDataDomain } from 'viem';
+import { BaseError, ContractFunctionRevertedError, ContractFunctionZeroDataError, HttpRequestError, WaitForTransactionReceiptTimeoutError, TransactionReceiptNotFoundError, decodeFunctionData, keccak256, zeroHash, type Address, type Hex, type TypedDataDomain } from 'viem';
 import type { AddressInfo } from 'node:net';
 import { bondrailAccountAbi } from '@bondrail/sdk/abis';
 import type { DurableStore } from '@bondrail/observer/store';
@@ -53,10 +53,18 @@ async function setup(options: {
   const payload: PaymentPayload = { x402Version: 2, accepted: structuredClone(requirements), payload: { authorization, signature: await sign() } };
   const state = { isAccount: true, accountAsset: asset, used: false, balance: 10000n, chainReads: 0, reads: [] as string[],
     simulationFails: false, receiptStatus: 'success', receiptHash: tx, receiptCalls: 0, rateFailures: 0, sendFails: false, timeout: false,
+    gasBalance: 10n ** 18n, gasEstimate: 190_000n, minedNonce: 0, pendingNonce: 0, receiptMined: false,
     blockTime: BigInt(now), writes: [] as any[], simulations: [] as any[], prepared: [] as any[] };
   const publicClient = {
     getChainId: async () => { state.chainReads++; return chainId; },
-    getBlock: async () => ({ timestamp: state.blockTime }),
+    getBlock: async () => ({ timestamp: state.blockTime, baseFeePerGas: 100_000_000_000n }),
+    getBalance: async () => state.gasBalance,
+    estimateGas: async () => state.gasEstimate,
+    getTransactionCount: async ({ blockTag }: { blockTag: string }) => blockTag === 'pending' ? state.pendingNonce : state.minedNonce,
+    getTransactionReceipt: async () => {
+      if (!state.receiptMined) throw new TransactionReceiptNotFoundError({ hash: tx });
+      return { status: state.receiptStatus, transactionHash: state.receiptHash };
+    },
     readContract: async ({ address, functionName }: { address: Address; functionName: string }) => {
       state.reads.push(functionName);
       if (['eip712Domain', 'name', 'version'].includes(functionName)) assert.equal(address, asset);
@@ -87,6 +95,7 @@ async function setup(options: {
       state.receiptCalls++;
       if (state.rateFailures-- > 0) throw new HttpRequestError({ url: 'https://rpc.example', status: 429 });
       if (state.timeout) throw new WaitForTransactionReceiptTimeoutError({ hash: tx });
+      state.receiptMined = true; state.minedNonce = state.pendingNonce = 1;
       return { status: state.receiptStatus, transactionHash: state.receiptHash };
     },
   } as unknown as FacilitatorOptions['publicClient'];
@@ -102,7 +111,7 @@ async function setup(options: {
   } as unknown as Exclude<FacilitatorOptions['walletClient'], Function>;
   const store = options.store ?? memoryStore();
   const service = await createFacilitator({ factory, asset, publicClient, store, ...options.overrides,
-    walletClient: discoveredChainId => { assert.equal(discoveredChainId, chainId); return walletClient; }, now: () => now });
+    log: () => undefined, walletClient: discoveredChainId => { assert.equal(discoveredChainId, chainId); return walletClient; }, now: () => now });
   return { service, state, payload, requirements, authorization, sign, store };
 }
 
@@ -274,25 +283,29 @@ test('receipt timeout retains broadcast hash; reverted receipts never report suc
     assert.equal(result.success, false);
     assert.equal(result.transaction, tx);
     assert.equal(result.errorReason, timeout ? 'settlement_pending' : 'settlement_reverted');
-    assert.equal(f.state.receiptCalls, timeout ? 3 : 1);
+    assert.equal(f.state.receiptCalls, 1);
   }
 });
 
 test('post-broadcast throttling polls the same hash and reports only a confirmed receipt', async () => {
   const f = await setup();
   f.state.rateFailures = 2;
+  assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'settlement_pending');
+  assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'settlement_pending');
   assert.equal((await f.service.settle(f.payload, f.requirements)).success, true);
   assert.equal(f.state.receiptCalls, 3);
-  assert.equal(f.state.writes.length, 1);
+  assert.equal(f.state.writes.length, 3);
 });
 
 test('lost broadcast response still recovers by the hash persisted before send', async () => {
   const store = memoryStore();
   let journaled = false;
   const f = await setup({ store: { get: store.get, cas: async (...args) => {
-    assert.equal(f.state.writes.length, 0);
-    assert.equal(JSON.parse(args[2]).transaction, tx);
-    journaled = true;
+    if (args[0].startsWith('facilitator:') && !JSON.parse(args[2]).result) {
+      assert.equal(f.state.writes.length, 0);
+      assert.equal(JSON.parse(args[2]).attempts[0].transaction, tx);
+      journaled = true;
+    }
     return store.cas(...args);
   } } });
   f.state.sendFails = true;
@@ -302,16 +315,16 @@ test('lost broadcast response still recovers by the hash persisted before send',
   assert.equal(result.transaction, tx);
 });
 
-test('pending replay and restart poll the saved hash even while nonce still reads unused', async () => {
+test('pending replay and restart rebroadcast the saved bytes even while nonce still reads unused', async () => {
   const f = await setup();
   f.state.timeout = true;
   assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'settlement_pending');
   f.state.used = false;
   assert.equal((await f.service.settle(f.payload, f.requirements)).errorReason, 'settlement_pending');
-  assert.equal(f.state.writes.length, 1);
+  assert.equal(f.state.writes.length, 2);
   const restarted = await setup({ store: f.store });
   assert.equal((await restarted.service.settle(restarted.payload, restarted.requirements)).success, true);
-  assert.equal(restarted.state.writes.length, 0);
+  assert.equal(restarted.state.writes.length, 1);
   assert.equal(restarted.state.prepared.length, 0);
 });
 
@@ -343,6 +356,18 @@ test('x402 resource server used by the agent discovers, verifies and settles ove
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const client = httpFacilitator(url, 10143);
   assert.equal((await client.verify(f.payload, f.requirements)).isValid, true);
+  f.state.gasBalance = 1n;
+  const refusal = await client.settle(f.payload, f.requirements);
+  assert.equal(refusal.success, false);
+  assert.equal(refusal.transaction, '');
+  assert.equal(refusal.errorReason, 'insufficient_gas_funds');
+  assert.equal(f.state.writes.length, 0);
+  assert.equal(f.state.prepared.length, 0);
+  const health = await fetch(`${url}/health`);
+  assert.equal(health.status, 200);
+  assert.equal(health.headers.get('cache-control'), 'no-store');
+  assert.equal((await health.json()).settlementsRemaining, '0');
+  f.state.gasBalance = 10n ** 18n;
   const result = await client.settle(f.payload, f.requirements);
   assert.equal(result.success, true);
   assert.equal(result.transaction, tx);

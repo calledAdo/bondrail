@@ -10,6 +10,8 @@ import type { TransferAuthorization } from '@bondrail/sdk/x402';
 import type { DurableStore } from '@bondrail/observer/store';
 import { isTransientRpcError } from '@bondrail/shared';
 import { setTimeout as delay } from 'node:timers/promises';
+import { defaultGasPolicy, validateGasPolicy, type GasPolicy } from './gas.js';
+import { settlementSender, type GasEvent } from './settlement.js';
 
 export const authorizationTypes = {
   TransferWithAuthorization: [
@@ -36,14 +38,18 @@ type GasWallet = WalletClient<Transport, Chain, Account>;
 export interface FacilitatorOptions {
   factory: Address;
   asset: Address;
-  /** Retain across restarts; an authorization is permanently bound to one signed transaction. */
+  /** Retain across restarts; an authorization is bound to one calldata payload and wallet nonce. */
   store: DurableStore;
-  publicClient: Pick<PublicClient, 'getChainId' | 'getBlock' | 'readContract' | 'simulateContract' | 'waitForTransactionReceipt'>;
+  publicClient: Pick<PublicClient, 'getChainId' | 'getBlock' | 'readContract' | 'simulateContract' | 'waitForTransactionReceipt' |
+    'estimateGas' | 'getBalance' | 'getTransactionCount' | 'getTransactionReceipt'>;
   /** A factory lets server startup configure the gas wallet from the cached RPC chain ID. */
   walletClient: GasWallet | ((chainId: number) => GasWallet);
   domainName?: string;
   domainVersion?: string;
   now?: () => number;
+  gasPolicy?: GasPolicy;
+  log?: (event: GasEvent) => void;
+  onLowBalance?: (event: GasEvent) => Promise<void>;
 }
 
 async function tokenDomain(o: FacilitatorOptions, chainId: number): Promise<TypedDataDomain> {
@@ -159,10 +165,12 @@ export async function createFacilitator(o: FacilitatorOptions) {
       }
     }
   }
-  // Serialize writes for this gas wallet, including concurrent retries of the same authorization.
-  // The durable hash also prevents a different transaction across retries/restarts. One process per gas key.
-  let queue: Promise<unknown> = Promise.resolve();
+  const sender = settlementSender({ chainId, client: o.publicClient, wallet: walletClient, store: o.store,
+    policy: validateGasPolicy(o.gasPolicy ?? defaultGasPolicy), now,
+    log: o.log ?? (event => console.error(JSON.stringify(event))), onLowBalance: o.onLowBalance });
   return {
+    health: sender.health,
+    recover: sender.recover,
     supported(): SupportedResponse {
       return {
         kinds: [{ x402Version: 2, scheme: 'exact', network, extra: { assetTransferMethod: 'eip3009' } }],
@@ -188,39 +196,20 @@ export async function createFacilitator(o: FacilitatorOptions) {
               BigInt(authorization.validBefore), authorization.nonce, 27 + yParity, r, s] });
           const binding = `${authorization.to.toLowerCase()}:${keccak256(data)}`;
           const key = `facilitator:${chainId}:${o.asset.toLowerCase()}:${payer.toLowerCase()}:${authorization.nonce.toLowerCase()}`;
-          let previous = await o.store.get(key);
-          if (!previous) {
+          const result = await sender.submit(key, binding, async () => {
             await checked(payload, requirements);
-            const request = await walletClient.prepareTransactionRequest({
-              account: walletClient.account, to: authorization.to, data,
-            });
-            const serializedTransaction = await walletClient.signTransaction(request);
-            const hash = keccak256(serializedTransaction);
-            // Persist BEFORE sending: even a lost send response or a crash has a known hash.
-            if (await o.store.cas(key, null, JSON.stringify({ binding, transaction: hash }))) {
-              transaction = hash;
-              // An RPC rejection can follow acceptance. Receipt lookup is authoritative.
-              await walletClient.sendRawTransaction({ serializedTransaction }).catch(() => undefined);
-            } else previous = await o.store.get(key);
-          }
-          if (previous) {
-            const saved = JSON.parse(previous) as { binding: string; transaction: Hex };
-            if (saved.binding !== binding) throw new Error('authorization_already_bound');
-            if (!bytes32(saved.transaction)) throw new Error('invalid_settlement_journal');
-            transaction = saved.transaction;
-          }
-          if (!transaction) throw new Error('settlement_journal_conflict');
-          await confirmed(transaction);
+            return { to: authorization.to, data, validBefore: Number(authorization.validBefore) };
+          }, confirmed);
+          transaction = result.transaction;
+          if (result.errorReason) throw new Error(result.errorReason);
           return { success: true, transaction, network, payer, amount: authorization.value };
         } catch (e) {
-          // Never submit again from this authorization. Keep its hash for authenticated reconciliation.
+          // A nonempty hash is an ambiguous or mined outcome; never claim that it was uncharged.
           return { success: false, transaction: transaction ?? '', network, payer,
             errorReason: transaction && reason(e) === 'chain_validation_failed' ? 'settlement_pending' : reason(e) };
         }
       };
-      const result = queue.then(run);
-      queue = result.catch(() => undefined);
-      return result;
+      return run();
     },
   };
 }
