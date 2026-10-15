@@ -88,6 +88,13 @@ export type BondView = {
   maturity: number;
   createdAt: number;
   depositAllowed?: boolean;
+  activationTime?: number;
+  collectionClosedAt?: number;
+  settleAfter?: number;
+  defaultedAt?: number;
+  policyHash?: `0x${string}`;
+  source?: Address;
+  minOperatingPeriod?: number;
   /** Evidence and investor metrics, computed from the account's verified revenue. */
   multiple: number;
   coverage: number | null;
@@ -226,7 +233,7 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
     await Promise.allSettled(
       (d.Bond as any[]).map(async (b): Promise<BondView> => {
         const address = b.id as Address;
-        const [terms, name, symbol, backing, allowed] = await Promise.all([
+        const [terms, name, symbol, backing, allowed, extra] = await Promise.all([
           readBondTerms(client, address),
           client.readContract({ address, abi: bondAbi, functionName: 'name' }),
           client.readContract({ address, abi: bondAbi, functionName: 'symbol' }),
@@ -236,6 +243,8 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
                 .readContract({ address: deployment.factory, abi: factoryAbi, functionName: 'depositAllowed', args: [address] })
                 .catch(() => undefined)
             : Promise.resolve(undefined),
+          client.multicall({ contracts: (['activationTime', 'collectionClosedAt', 'settleAfter', 'defaultedAt', 'policyHash', 'source'] as const)
+            .map(functionName => ({ address, abi: bondAbi, functionName })) }).catch(() => []),
         ]);
         const acct = accountMap.get(b.account);
         const asset = acct?.asset ?? fallback;
@@ -300,6 +309,13 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
           maturity,
           createdAt: Number(b.createdAt),
           depositAllowed: allowed as boolean | undefined,
+          activationTime: extra[0]?.result === undefined ? undefined : Number(extra[0].result),
+          collectionClosedAt: extra[1]?.result === undefined ? undefined : Number(extra[1].result),
+          settleAfter: extra[2]?.result === undefined ? undefined : Number(extra[2].result),
+          defaultedAt: extra[3]?.result === undefined ? undefined : Number(extra[3].result),
+          policyHash: extra[4]?.result as `0x${string}` | undefined,
+          source: extra[5]?.result as Address | undefined,
+          minOperatingPeriod: Number(terms.minOperatingPeriod),
           multiple: raise > 0 ? cap / raise : 0,
           coverage,
           paybackDays: perDay > 0 ? remaining / perDay : null,
@@ -340,9 +356,6 @@ export function marketTab(b: BondView): 'raising' | 'trading' | 'record' {
 export const HIDING_FLAGS = ['No signed profile', 'Source unhealthy', 'Unrecognised asset', 'Fewer than two attributed payers'];
 export const listed = (b: BondView) => !b.flags.some((f) => HIDING_FLAGS.includes(f));
 
-export const fmt = (n: number, a: Asset, digits = 2) =>
-  /USD/i.test(a.symbol)
-    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: n !== 0 && Math.abs(n) < 1 ? 4 : digits }).format(n)
-    : `${new Intl.NumberFormat('en-US', { maximumFractionDigits: 4 }).format(n)} ${a.symbol}`;
+export { fmt } from './format';
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 export const days = (d: number) => (d >= 1 ? `${Math.round(d)}d` : `${Math.max(1, Math.round(d * 24))}h`);
