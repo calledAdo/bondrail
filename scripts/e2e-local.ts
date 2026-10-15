@@ -20,8 +20,10 @@ const logs = path.join(root, '.data/e2e-local');
 const keys = fs.mkdtempSync(path.join(os.tmpdir(), 'bondrail-e2e-'));
 const children: ChildProcess[] = [];
 const checks: { check: string; result: string }[] = [];
-const protectedFile = path.join(root, 'docs/deployments/10143.json');
-const protectedBytes = fs.readFileSync(protectedFile);
+const protectedFiles = ['10143.json', 'archive/10143-slice-metropolis.json'].map(file => {
+  const absolute = path.join(root, 'docs/deployments', file);
+  return { file: absolute, bytes: fs.readFileSync(absolute) };
+});
 const generatedFiles = ['apps/web/next-env.d.ts', 'apps/web/tsconfig.json'].map(p => ({ file: path.join(root, p), bytes: fs.readFileSync(path.join(root, p)) }));
 fs.mkdirSync(logs, { recursive: true });
 const pass = (check: string) => { checks.push({ check, result: 'PASS' }); console.log(`PASS ${check}`); };
@@ -70,8 +72,8 @@ async function main() {
   const indexer = `http://127.0.0.1:${indexerPort}`;
   // Override caller values; temporary role keys can never resolve to the operator's key stores.
   Object.assign(process.env, {
-    BONDRAIL_CHAIN_ID: '31337', BONDRAIL_DEPLOYMENT: 'next', BONDRAIL_RPC_URL: rpc,
-    BONDRAIL_KEY_DIR: keys, BONDRAIL_KEY_PREFIX: 'next', BONDRAIL_DEPLOYER_KEY_FILE: path.join(keys, 'unused.key'),
+    BONDRAIL_CHAIN_ID: '31337', BONDRAIL_DEPLOYMENT: 'e2e', BONDRAIL_RPC_URL: rpc, BONDRAIL_RPC_URLS: rpc,
+    BONDRAIL_KEY_DIR: keys, BONDRAIL_KEY_PREFIX: 'e2e', BONDRAIL_DEPLOYER_KEY_FILE: path.join(keys, 'unused.key'),
     BONDRAIL_MIN_HISTORY: '60', BONDRAIL_ENV: 'local', BONDRAIL_STORE: 'local',
     RAISE_USDC: '2', CAP_USDC: '2.4', STAKE_USDC: '0.5', FUNDING_DAYS: '4', MATURITY_DAYS: '9',
     TRIGGER_BOND: 'pumplab', TRIGGER_REVENUE_USDC: '0.01', TRIGGER_DAYS: '1', STEP_UP_BPS: '4000',
@@ -85,7 +87,7 @@ async function main() {
     NEXT_TELEMETRY_DISABLED: '1', BONDRAIL_WEB_DIST_DIR: '.next-e2e',
   });
   // Rehearsal owns this ignored local manifest; never delete or replace a public-chain manifest.
-  for (const suffix of ['', '.pending']) fs.rmSync(path.join(root, `docs/deployments/31337-next.json${suffix}`), { force: true });
+  for (const suffix of ['', '.pending']) fs.rmSync(path.join(root, `docs/deployments/31337-e2e.json${suffix}`), { force: true });
   await run('forge-build', path.join(os.homedir(), '.foundry/bin/forge'), ['build', '--root', 'contracts']);
   const { child: anvil } = start('anvil', path.join(os.homedir(), '.foundry/bin/anvil'),
     ['--host', '127.0.0.1', '--port', String(rpcPort), '--chain-id', '31337', '--silent']);
@@ -263,16 +265,17 @@ async function main() {
     await page.screenshot({ path: path.join(logs, 'browser-failure.png'), fullPage: true });
     throw error;
   } finally { await browser.close(); }
-  pass('Web production build from 31337-next; browser reads all bonds, vault NAV and attestation without page errors');
-  assert.deepEqual(fs.readFileSync(protectedFile), protectedBytes);
-  pass('Judged deployment manifest unchanged; only isolated anvil used');
+  pass('Web production build from 31337-e2e; browser reads all bonds, vault NAV and attestation without page errors');
+  for (const { file, bytes } of protectedFiles) assert.deepEqual(fs.readFileSync(file), bytes);
+  pass('Current and judged deployment manifests unchanged; only isolated anvil used');
   const addresses = Object.entries({ USDC: d.asset, factory: d.factory, covenant: d.covenant, registry: d.creditRegistry, vault: d.vault,
     PumpLab: pump.source, 'PumpLab account': pump.account, 'PumpLab bond': pump.bond, 'Agent account': agent.account, 'Agent bond': agent.bond,
     'CurveLab account': curve.account, 'CurveLab bond': curve.bond });
   console.table(addresses.map(([contract, address]) => ({ contract, address })));
   console.table(checks);
-  const result = { deployment: 'docs/deployments/31337-next.json', addresses: Object.fromEntries(addresses), checks,
-    protectedSha256: createHash('sha256').update(protectedBytes).digest('hex'), completedAt: new Date().toISOString() };
+  const result = { deployment: 'docs/deployments/31337-e2e.json', addresses: Object.fromEntries(addresses), checks,
+    protectedSha256: Object.fromEntries(protectedFiles.map(({ file, bytes }) =>
+      [path.relative(root, file), createHash('sha256').update(bytes).digest('hex')])), completedAt: new Date().toISOString() };
   fs.writeFileSync(path.join(logs, 'result.json'), JSON.stringify(result, null, 2) + '\n');
   console.log(`E2E LOCAL PASS (${checks.length} checks). Logs: ${logs}. Services stop automatically.`);
 }
@@ -285,7 +288,8 @@ async function cleanup() {
   }
   fs.rmSync(keys, { recursive: true, force: true });
   for (const { file, bytes } of generatedFiles) if (!fs.readFileSync(file).equals(bytes)) fs.writeFileSync(file, bytes);
-  assert.deepEqual(fs.readFileSync(protectedFile), protectedBytes, 'Judged manifest must remain untouched');
+  for (const { file, bytes } of protectedFiles)
+    assert.deepEqual(fs.readFileSync(file), bytes, `Public manifest must remain untouched: ${file}`);
 }
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => { void cleanup().finally(() => process.exit(1)); });
 main().catch((error: unknown) => { console.error(error instanceof Error ? error.stack : error); process.exitCode = 1; }).finally(cleanup);

@@ -16,7 +16,7 @@ const manifest = deploymentPath(path.resolve(here, '..'), chainId, name);
 const dep = JSON.parse(fs.readFileSync(manifest, 'utf8'));
 if (String(dep.chainId) !== chainId || (dep.deployment ?? 'main') !== name) throw new Error('Deployment identity mismatch');
 const startBlock = dep.startBlock ?? 0;
-// A separate checkout for envio-next keeps generated source/config away from the live project.
+// Production Envio stays on its existing envio-next release branch; generation here is local only.
 const output = path.resolve(process.env.BONDRAIL_INDEXER_DIR ?? here);
 for (const file of ['config.yaml', 'src/deployment.ts']) assertWritable(path.join(output, file));
 fs.mkdirSync(path.join(output, 'src'), { recursive: true });
@@ -94,7 +94,7 @@ chains:
         address: "${dep.covenant}"
       - name: USDC
         address: "${dep.asset}"
-      # Not deployed unless an explicit registry address is supplied.
+      # Registry from the selected manifest, or an explicit address override.
       - name: BondrailCreditRegistry${creditRegistry ? `\n        address: "${creditRegistry}"` : ''}
       - name: BondrailAccount
       - name: BondrailBond
