@@ -11,7 +11,9 @@ import { cn } from '@/lib/cn';
 import { creditLine, defaultCreditTerms } from '@bondrail/sdk/credit';
 import { RegistryCreditProfile } from './credit-profile';
 import { BondActions } from './bond-actions';
-import { Trade } from './trade';
+import { BondSummary, BondTimeline } from './bond-summary';
+import { DecisionLinks, DecisionPanel, type BondIntent } from './bond-decisions';
+import { BondPlaceholders, BondSection } from './bond-section';
 import { ImpliedYieldPanel } from './implied-yield';
 import { nativeReviewLabel } from '@/lib/native-review';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
@@ -239,79 +241,35 @@ function Back() {
 }
 
 export function BondPage({ address }: { address: string }) {
-  const { data, loading, error, configured } = useProtocol();
-  if (!configured) return <Empty title="No indexer configured" />;
-  if (loading) return <div className="h-96 animate-pulse rounded-xl border border-foreground/10" />;
-  if (error) return <Empty title="Couldn't reach the indexer">{error.message}</Empty>;
-  const b = data!.bonds.find((x) => x.address.toLowerCase() === address.toLowerCase());
-  if (!b) return <Empty title="No bond at this address">It may not be indexed yet.</Empty>;
-  const a = data!.accounts.find((x) => x.address === b.account);
-  return (
-    <div className="space-y-8">
-      <Back />
-      <header className="flex flex-wrap items-end justify-between gap-6">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-1.5">
-            <TierBadge tier={b.tier} />
-            <PhaseBadge phase={b.phase} defaulted={b.defaulted} />
-            {b.triggered && b.phase === 'Active' && <Badge tone="warn">Triggered</Badge>}
-            <Badge>repays in {b.asset.symbol}</Badge>
-          </div>
-          <h1 className="text-4xl font-semibold">{b.name}</h1>
-          <p className="text-sm text-foreground/70">
-            Share {b.baseRevenueShare}%
-            {b.triggerWindowDays > 0 && <> · steps up to {b.stepUpShare}% if revenue &lt; {fmt(b.triggerRevenue, b.asset)} over {b.triggerWindowDays} days</>}
-          </p>
-          {b.triggerWindowDays > 0 && (
-            <p className="text-xs text-foreground/60">
-              Current share: {b.revenueShare}%. Checks start after {b.triggerWindowDays} complete UTC days
-              following the activation day. The activation day and current day are excluded; issuer self-payments count.
-            </p>
-          )}
-          <p className="font-mono text-xs text-foreground/60">
-            {b.symbol} ·{' '}
-            <a href={explorer('address', b.address)} target="_blank" rel="noreferrer" className="hover:underline">
-              {short(b.address)} <ExternalLink className="inline size-3" />
-            </a>{' '}
-            · account <Link href={`/accounts/${b.account}`} className="hover:underline">{short(b.account)}</Link>
-          </p>
-        </div>
-      </header>
-      {b.flags.length > 0 && (
-        <p className="flex items-start gap-2 rounded-xl border border-orange-500/30 p-4 text-sm text-orange-500">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {b.flags.join(' · ')}
-        </p>
-      )}
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="space-y-6">
-          <Panel>
-            <dl className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
-              <Figure label={b.phase === 'Funding' ? 'Raised' : 'Repaid'} value={fmt(b.phase === 'Funding' ? b.raised : b.collected, b.asset)} hint={`of ${fmt(b.phase === 'Funding' ? b.raise : b.effectiveCap, b.asset)}`} />
-              <Figure label="Backing per claim" value={b.backingPerToken.toFixed(4)} hint="redeemable now" />
-              <Figure label="Coverage" value={b.coverage === null ? '–' : `${b.coverage.toFixed(2)}×`} hint="projected repayment ÷ remaining cap" />
-              <Figure label="Principal at risk" value={`${b.atRiskPct.toFixed(0)}%`} hint="released to the business" />
-            </dl>
-            <Ribbon b={b} />
-          </Panel>
-          <ImpliedYieldPanel b={b} account={a} />
-          {a && <History a={a} />}
-          <Health b={b} a={a} />
-          <Terms b={b} />
-          {a && <Payers a={a} />}
-        </div>
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          {b.kuru && (b.phase === 'Active' || b.phase === 'Closing') && (
-            <Panel title="Trade on Kuru">
-              <Trade b={b} />
-            </Panel>
-          )}
-          <Panel title={b.phase === 'Funding' ? 'Fund this bond' : b.phase === 'Closed' ? 'Redeem claims' : b.phase === 'Cancelled' ? 'Refund claims' : 'Your claims'}>
-            <BondActions b={b} account={a} onDone={() => undefined} />
-          </Panel>
-        </aside>
-      </div>
-    </div>
-  );
+  const { data, loading, error, configured, refetch } = useProtocol();
+  const b = data?.bonds.find(x => x.address.toLowerCase() === address.toLowerCase());
+  if (!b) return <div className="space-y-6"><Back /><BondPlaceholders
+    error={!configured ? 'No indexer configured.' : loading ? undefined : error ? 'The bond data could not be reached.' : 'No bond is indexed at this address yet.'}
+    retry={() => void refetch()} /></div>;
+  const a = data?.accounts.find(x => x.address.toLowerCase() === b.account.toLowerCase());
+  return <BondDetailView key={b.address} b={b} a={a} refreshError={!!error} />;
+}
+
+/** Shared by the live route and development-only deterministic review fixtures. */
+export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = false }: { b: BondView; a?: AccountView; now?: number; refreshError?: boolean }) {
+  const [intent, setIntent] = useState<BondIntent | null>(null);
+  function select(value: BondIntent) {
+    setIntent(value);
+    requestAnimationFrame(() => document.getElementById('bond-actions')?.scrollIntoView({ block: 'start' }));
+  }
+  return <div className="space-y-6" data-testid="bond-page">
+    <Back />
+    {refreshError && <p role="alert" className="text-sm">Refresh failed. Showing the last successful bond snapshot; reload before making a decision.</p>}
+    <BondSection title="Bond summary"><BondSummary b={b} account={a} now={now} actions={<DecisionLinks b={b} now={now} onSelect={select} />} /></BondSection>
+    <BondSection title="How this bond works"><BondTimeline b={b} now={now} /></BondSection>
+    <BondSection title="What you get"><ImpliedYieldPanel b={b} account={a} /></BondSection>
+    {a && <History a={a} />}
+    <Health b={b} a={a} />
+    <Terms b={b} />
+    {a && <Payers a={a} />}
+    <BondSection title="What you can do now"><DecisionPanel b={b} account={a} now={now} intent={intent} onSelect={select} /></BondSection>
+    <BondActions b={b} account={a} mode="maintenance" onDone={() => undefined} />
+  </div>;
 }
 
 /** What this history supports: the largest raise at standard terms, priced only on attributed revenue. */

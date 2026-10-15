@@ -11,6 +11,8 @@ import { fmt, type AccountView, type BondView } from '@/lib/protocol';
 import { earlyRedemptionEstimate } from '@/lib/bond-yield';
 import { bondrailCreditRegistryAbi } from '@bondrail/sdk/abis';
 import { cn } from '@/lib/cn';
+import { depositPauseReason } from '@/lib/bond-decision';
+import { TermsText } from './term';
 import { confirmedIn, receiptTimed } from '@/lib/tx';
 
 type Call = { address: Address; abi: Abi; functionName: string; args?: unknown[] };
@@ -31,7 +33,7 @@ function Button({ children, onClick, disabled, primary }: { children: React.Reac
   );
 }
 
-export function BondActions({ b, account, onDone }: { b: BondView; account?: AccountView; onDone: () => void }) {
+export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: BondView; account?: AccountView; onDone: () => void; mode?: 'all' | 'investor' | 'maintenance'; intent?: string }) {
   const { address, chainId } = useAccount();
   const client = usePublicClient();
   const { data: wallet } = useWalletClient();
@@ -62,7 +64,8 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
   const value = /^\d+(\.\d+)?$/.test(amount) && (amount.split('.')[1]?.length ?? 0) <= d ? parseUnits(amount, d) : 0n;
   // What redeem pays, exactly as BondrailBond.redeem computes it: tokens × pool / supply.
   const proceeds = pool === undefined || !supply ? 0n : value >= supply ? pool : (value * pool) / supply;
-  const early = b.phase === 'Active' || b.phase === 'Closing';
+  const early = b.phase === 'Active';
+  const paused = depositPauseReason(b, now);
   const canRedeem = ready && !reads.isError && value > 0n && claims !== undefined && value <= claims
     && supply !== undefined && value <= supply && proceeds > 0n && (!early || value < supply);
   const estimate = earlyRedemptionEstimate({ ...b,
@@ -124,7 +127,7 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
 
   return (
     <div className="space-y-6">
-      {!address ? (
+      {mode !== 'maintenance' && <>{!address ? (
         <p className="text-sm text-foreground/60">Connect a wallet to fund, redeem or manage this bond.</p>
       ) : (
         <dl className="grid grid-cols-2 gap-3 text-sm">
@@ -140,7 +143,7 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
       )}
 
       {/* Investors */}
-      {(b.phase === 'Funding' || b.phase === 'Active' || b.phase === 'Closing' || b.phase === 'Closed' || b.phase === 'Cancelled') && (
+      {(b.phase === 'Funding' || b.phase === 'Active' || b.phase === 'Closed' || b.phase === 'Cancelled') && (
         <div className="space-y-3">
           <label className="block space-y-1.5">
             <span className="text-xs text-foreground/60">Amount ({b.phase === 'Funding' ? b.asset.symbol : 'claims'})</span>
@@ -154,19 +157,19 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
           </label>
           {b.phase === 'Funding' && (
             <>
-              {b.depositAllowed === false && <p className="text-xs text-orange-500">Deposits are paused: the source is not healthy right now.</p>}
-              {(allowance ?? 0n) < value ? (
+              {paused && <p className="text-sm text-foreground/80">Deposits paused: {paused}.</p>}
+              {!paused && intent !== 'withdraw' && ((allowance ?? 0n) < value ? (
                 <Button primary disabled={!ready || value === 0n} onClick={() => send('Approve', { address: b.asset.address, abi: erc20Abi as Abi, functionName: 'approve', args: [b.address, value] })}>
                   Approve {b.asset.symbol}
                 </Button>
               ) : (
-                <Button primary disabled={!ready || value === 0n || b.depositAllowed === false} onClick={() => send('Deposit', { address: b.address, abi: bondAbi as Abi, functionName: 'deposit', args: [value] })}>
+                <Button primary disabled={!ready || value === 0n || !!paused || value > (cash ?? 0n) || Number(formatUnits(value, d)) > b.raise - b.raised} onClick={() => send('Deposit', { address: b.address, abi: bondAbi as Abi, functionName: 'deposit', args: [value] })}>
                   Deposit
                 </Button>
-              )}
+              ))}
               {(claims ?? 0n) > 0n && (
                 <>
-                  <Button disabled={!ready || value === 0n || value > (claims ?? 0n)} onClick={() => send('Withdraw', { address: b.address, abi: bondAbi as Abi, functionName: 'withdraw', args: [value, address] })}>
+                  <Button disabled={!ready || value === 0n || value > (claims ?? 0n) || now >= b.fundingDeadline} onClick={() => send('Withdraw', { address: b.address, abi: bondAbi as Abi, functionName: 'withdraw', args: [value, address] })}>
                     Withdraw
                   </Button>
                   <p className="text-xs text-foreground/60">
@@ -176,7 +179,7 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
               )}
             </>
           )}
-          {(b.phase === 'Active' || b.phase === 'Closing' || b.phase === 'Closed') && (
+          {(b.phase === 'Active' || b.phase === 'Closed') && (
             <>
               {value > 0n && (
                 <dl className="space-y-1 rounded-lg border border-foreground/10 p-3 text-xs">
@@ -188,7 +191,7 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
                     ] as const
                   ).map(([k, v]) => (
                     <div key={k} className="flex justify-between gap-4">
-                      <dt className="text-foreground/60">{k}</dt>
+                      <dt className="text-foreground/60"><TermsText>{k}</TermsText></dt>
                       <dd className="font-mono tabular">{v}</dd>
                     </div>
                   ))}
@@ -201,7 +204,7 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
               >
                 {proceeds === 0n && value > 0n ? 'Nothing to redeem yet' : early ? 'Redeem early' : 'Redeem'}
               </Button>
-              {early && <p className="text-xs text-foreground/60">Early redemption burns claims for current backing and gives up their future receipts.</p>}
+              {early && <p className="text-xs text-foreground/60"><TermsText>Early redemption burns claims for current backing and gives up their future receipts.</TermsText></p>}
               {value > (claims ?? 0n) && address && <p className="text-xs text-orange-500">Enter no more than your claim balance.</p>}
               {confirming && early && (
                 <EarlyRedemptionConfirmation key={quoteKey}
@@ -216,13 +219,15 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
             </>
           )}
           {b.phase === 'Cancelled' && (
-            <Button primary disabled={!ready || value === 0n} onClick={() => send('Refund', { address: b.address, abi: bondAbi as Abi, functionName: 'refund', args: [value, address] })}>
+            <Button primary disabled={!ready || value === 0n || value > (claims ?? 0n)} onClick={() => send('Refund', { address: b.address, abi: bondAbi as Abi, functionName: 'refund', args: [value, address] })}>
               Refund
             </Button>
           )}
         </div>
       )}
 
+      </>}
+      {mode !== 'investor' && <>
       {/* Issuer */}
       {isIssuer && factory && (
         <div className="space-y-3 border-t border-foreground/10 pt-5">
@@ -304,6 +309,7 @@ export function BondActions({ b, account, onDone }: { b: BondView; account?: Acc
         )}
       </details>
 
+      </>}
       {status && (
         <p role={status.error ? 'alert' : 'status'} className={cn('text-sm', status.error ? 'text-red-500' : 'text-foreground/70')}>
           {status.text}{' '}

@@ -342,7 +342,7 @@ export function useProtocol() {
     refetchInterval: 10_000,
     queryFn: () => load(client!),
   });
-  return { data: q.data, loading: q.isLoading, error: q.error as Error | null, configured: !!INDEXER_URL };
+  return { data: q.data, loading: q.isLoading, error: q.error as Error | null, configured: !!INDEXER_URL, refetch: q.refetch };
 }
 
 /** Market tabs: primary (raising), secondary (trading), and the pipeline / history. */

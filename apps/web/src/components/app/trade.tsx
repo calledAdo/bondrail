@@ -52,13 +52,13 @@ const ZERO = '0x0000000000000000000000000000000000000000' as Address;
 
 type Quote = { side: 'buy' | 'sell'; amount: string; out: bigint; at: number };
 
-export function Trade({ b }: { b: BondView }) {
+export function Trade({ b, initialSide = 'buy' }: { b: BondView; initialSide?: 'buy' | 'sell' }) {
   const market = b.kuru!.market as Address;
   const prices = useKuruPrice(market);
   const { address, chainId } = useAccount();
   const client = usePublicClient();
   const { data: wallet } = useWalletClient();
-  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [side, setSide] = useState<'buy' | 'sell'>(initialSide);
   const [amount, setAmount] = useState('');
   const [quote, setQuote] = useState<Quote>();
   const [busy, setBusy] = useState(false);
