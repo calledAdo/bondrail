@@ -54,7 +54,9 @@ Set these values for **every command** below (also used in `/etc/bondrail-next.e
 
 ```sh
 export BONDRAIL_DEPLOYMENT=next BONDRAIL_CHAIN_ID=10143
-export BONDRAIL_RPC_URL=https://rpc-testnet.monadinfra.com
+export BONDRAIL_RPC_URL=https://testnet-rpc.monad.xyz
+# Prefer the dedicated provider configuration below before running paid traffic.
+export BONDRAIL_RPC_RPS=2 BONDRAIL_RPC_CONCURRENCY=2
 export BONDRAIL_KEY_PREFIX=next
 export BONDRAIL_MIN_HISTORY=600
 export RAISE_USDC=2 CAP_USDC=2.4 STAKE_USDC=0.5
@@ -88,6 +90,52 @@ Fresh-role funding for the exact commands below is computed from `deploy.ts`, `s
 USDC arithmetic: `3×0.5 + (2−0.5)+2 + 2 + 6×0.3 + 5×0.2 = 9.8`. The vault's allocation is included in its deposit, not counted twice. CurveLab's **2-USDC open raise remains unfunded**; funding it later needs another 2 USDC from investors. At 1% fees, Native traffic produces small but real revenue; principal backing remains in PumpLab. Claims have a 2.4-USDC full-release cap; activation releases 50%, so the initial effective cap is 1.2.
 
 MON arithmetic: `3×1 + 0.5 + 0.2 + 6×0.3 + 3×0.2 + 2×0.5 = 7.1`. These are balance targets, not gas estimates. Reruns can replenish gas spent since the prior run. Actual fee costs depend on RPC gas prices and gas limits (Monad charges the limit); 20 MON is an operating reserve, not a guaranteed ceiling. Stop and replenish if simulations/funding report insufficient funds. Longer operation, additional traffic and CRE reports need ongoing gas. Obtain Circle test USDC at the asset address recorded by the deployment; never substitute a lookalike token.
+
+## RPC budget and provider configuration
+
+Monad's public `https://testnet-rpc.monad.xyz` endpoint limits **15 requests/second per IP**. The 1 GB host runs both `next` and the judged deployment, so all their processes, CRE, indexers, and operator scripts share this public allowance. A per-process limiter cannot coordinate separate processes or deployments. Six requests/second in four processes is already over budget. `https://rpc-testnet.monadinfra.com` is **not a drop-in alternative**: some methods and batched requests return HTTP 403 “Restricted JSON RPC method”.
+
+`createRpcTransport` in `@bondrail/shared` is used by facilitator, worker, attester, scripts through `scripts/lib.ts`, and agent receipt reconciliation. The observer only probes unpaid web endpoints and signs locally; it has no RPC client. CRE and indexers have separate RPC configuration and must be included in the host budget.
+
+| Setting | Default | Behavior |
+| --- | --- | --- |
+| `BONDRAIL_RPC_URLS` | unset | Ordered, comma-separated URLs; overrides the singular setting. All must serve the same chain. |
+| `BONDRAIL_RPC_URL` | caller's existing default | Single-URL fallback; facilitator's legacy `FACILITATOR_RPC_URL` and attester's `RPC_URL` remain supported after these two shared settings. |
+| `BONDRAIL_RPC_RPS` | `6` | Process-wide token bucket, capacity **1**: paced starts, no idle burst. All public/wallet clients, URLs, retries and failover consume the same budget. |
+| `BONDRAIL_RPC_CONCURRENCY` | `2` | At most two in-flight HTTP requests per process. If transports request different limits, the lowest wins. |
+
+Six RPS leaves headroom below the public 15-RPS limit for a single busy service; concurrency two avoids tying up a small host while a request is slow. These defaults are **not** a shared-host aggregate guarantee. The next host example uses **2 RPS per process** as a conservative starting point. Count every active process on the IP, include judged-service traffic, keep the sum comfortably below 15, and avoid overlapping manual scripts with timer jobs. Without measuring the judged deployment's demand, even two RPS is not a guarantee. Worker bonds and their reads remain sequential and the transport spaces every request.
+
+Requests are never JSON-RPC batched. HTTP 429 and RPC messages containing “limited” or “rate” trigger exponential backoff with jitter: 500 ms base, five-second cap, two retries per URL (three total attempts), then the next URL. The process pauses queued requests during backoff. Transport/network timeouts and HTTP 5xx also retry/fail over; ordinary reverts do not. Each HTTP attempt times out after ten seconds. HTTP 403 “Restricted” permanently excludes that URL for the failing method for the process lifetime; other methods still try the ordered primary. Failover sends identical raw signed transaction bytes. It does not prepare a new transaction.
+
+For production-like paid traffic, use a dedicated provider key, for example Alchemy's **Monad testnet** endpoint, with provider capacity sized for the aggregate workload:
+
+```sh
+# Server-only environment; provision the real key through the owner's credential process.
+export BONDRAIL_RPC_URLS='https://monad-testnet.g.alchemy.com/v2/YOUR_KEY,https://testnet-rpc.monad.xyz'
+export BONDRAIL_RPC_RPS=6 BONDRAIL_RPC_CONCURRENCY=2
+```
+
+A public fallback still shares the IP limit when the dedicated primary fails. Use a second dedicated endpoint if public capacity cannot cover that case. Configure these variables in `/etc/bondrail-next.env`, operator script shells, and the agent's server environment; restart only the next services after an owner configuration change. `scripts/export-env.ts agent|facilitator` preserves the ordered URLs and budget. Exported server files can contain provider keys: keep them private, and use a separate restricted browser RPC credential for the web's `NEXT_PUBLIC_*` settings. Configure CRE's provider separately. No provider or service configuration is changed merely by committing this code.
+
+## Recovering `settlement_pending` payments
+
+The facilitator stores the locally signed transaction hash durably **before** broadcasting, keyed by chain, token, payer and authorization nonce. It polls only that hash, with up to three bounded 20-second receipt waits, and reports success only for a successful receipt. Transient failures get another wait; cancellation/replacement transactions cannot prove success. A repeated `/settle`, even after restart or authorization expiry, reuses the journaled hash and does not prepare another transaction. Keep the facilitator Redis namespace and journal across restarts. A crash after journaling but before send can leave an unbroadcast hash; investigate it rather than deleting the entry or issuing a replacement authorization.
+
+An agent HTTP 202 includes the `paymentKey`; preserve the original signed request. Obtain the transaction hash from the facilitator `/settle` response, its durable journal (`facilitator:<chainId>:<lowercase asset>:<lowercase payer>:<lowercase nonce>` inside its store namespace), or the gas wallet's transaction history. Wait for the successful receipt and one additional block. With the **next agent's** admin token configured in your shell:
+
+```sh
+export PAYMENT_KEY='payment:0x...64-hex-digits...'
+export SETTLEMENT_TX='0x...64-hex-digits...'
+curl --fail-with-body -sS "$AGENT_PUBLIC_URL/api/admin/reconcile" \
+  -H "Authorization: Bearer $AGENT_ADMIN_TOKEN" \
+  -H 'Content-Type: application/json' \
+  --data "{\"paymentKey\":\"$PAYMENT_KEY\",\"transaction\":\"$SETTLEMENT_TX\"}"
+```
+
+A 200 response `{ "status": "complete", "transaction": "0x..." }` means the agent checked its configured chain, the successful/confirmed receipt, the exact token `Transfer` and `AuthorizationUsed` logs, the account's exact `Settled(payer,value,nonce)` event, and the token's `authorizationState(payer,nonce)` at that receipt block. It atomically changes the existing `settlement_pending` journal entry to `complete`, preserving the generated answer. Retry the **original signed oracle request** to retrieve that cached answer and `PAYMENT-RESPONSE`; reconciliation does not run the model or send a transaction.
+
+HTTP 401 means the admin token is wrong/missing. HTTP 409 leaves the record pending: check chain/provider configuration, confirmations, hash, nonce and account event, then retry reconciliation after the underlying issue resolves. A token transfer without the account `Settled` event, a reverted receipt, or an unused nonce cannot be marked paid. This endpoint does not repair `processing` records without a journaled result.
 
 ## Owner deployment and initial traffic
 
