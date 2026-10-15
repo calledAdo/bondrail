@@ -234,16 +234,27 @@ dedicated subpaths.
 ## Building and packing
 
 `tsup` emits ESM plus bundled declarations into `dist/`; it embeds private observer/scoring helpers.
-viem and the public x402 packages remain external. Workspace exports resolve `src/` directly.
-`pnpm pack` applies `publishConfig.exports` so the tarball resolves only `dist/`, and converts workspace
-dev dependency ranges to ordinary versions. Consumers have no private runtime dependency.
+viem and the public x402 packages remain external. All package exports, `main` and `types` point at
+`dist/` directly, so both npm and pnpm produce a usable manifest. Consumers have no private runtime
+dependency. Version 0.1.0 has broken exports; use 0.1.1 or later.
 
-Use the root `sdk:pack` script (pnpm 10.32.0); `prepack` rebuilds the distribution. Do not use bare
-`npm pack` on the source directory: npm does not apply pnpm's `publishConfig.exports` override.
-To inspect the resulting release archive without publishing:
+Workspace development needs no SDK build: `tsconfig.base.json` and the web app's `paths` map SDK
+imports to sources. `tsc`, `tsx` and both Next.js bundlers read these mappings; the Next apps also
+list the SDK in `transpilePackages`. The root `tsconfig.json` extends the scripts config so root
+`tsx` / `node --import tsx` commands and their child processes use the same mappings. No custom
+Node export conditions or published source paths are needed.
+
+Use the root `sdk:pack` script (pnpm 10.32.0) or `npm pack` in this directory; `prepack` rebuilds
+the distribution. To verify the actual npm tarball without publishing:
 
 ```sh
-npm pack --dry-run /absolute/path/to/packages/sdk/bondrail-sdk-0.1.0.tgz
+pnpm sdk:verify
 ```
+
+This builds, runs `npm pack --ignore-scripts` (the build already ran), checks every manifest target,
+then installs the tarball and viem in a fresh temporary project outside the workspace and imports
+all ten entry points with plain Node. Temporary files are removed afterward. Registry access is
+required for the isolated install. `prepublishOnly` runs this same check for npm and pnpm;
+publishing with `--ignore-scripts` bypasses lifecycle safeguards.
 
 MIT licensed. No release or deployment is performed by the build or pack scripts.

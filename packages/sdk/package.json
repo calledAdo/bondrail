@@ -60,7 +60,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/*.test.ts",
     "build": "tsup",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "prepublishOnly": "node scripts/verify-pack.mjs"
   },
   "dependencies": {
     "@x402/core": "2.28.0",
