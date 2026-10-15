@@ -10,6 +10,7 @@ import { deployment } from './wallet';
 import type { KuruRecord, ProfileRecord } from './profile';
 import { indexedCreditMetrics } from '@bondrail/sdk/credit';
 import { readBondTerms } from '@bondrail/sdk/client';
+import { nativeReviewStatus, type NativeReview } from './native-review';
 
 export const INDEXER_URL = process.env.NEXT_PUBLIC_INDEXER_URL || '';
 export const KNOWN_ASSETS = new Set([deployment.token?.toLowerCase()].filter(Boolean) as string[]);
@@ -28,6 +29,7 @@ export type AccountView = {
   tier?: Tier;
   project?: Address;
   reviewed: boolean;
+  nativeReview: NativeReview;
   asset: Asset;
   revenue: number;
   verified: number;
@@ -156,6 +158,22 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
   const assetFor = (account: string) => assets.get(assetOf.get(account) ?? '') ?? fallback;
   const unit = (v: unknown, a: Asset) => Number(BigInt((v as string) ?? 0)) / 10 ** a.decimals;
 
+  // The indexer's projectApproved combines both approval paths. Read the factory to distinguish
+  // current template approval from an individual review, including revocation and RPC failures.
+  const reviews = new Map<string, NativeReview>();
+  await Promise.all(issuers.filter(i => i.tier === 0 && i.project).map(async i => {
+    if (!deployment.factory) return;
+    const read = { address: deployment.factory, abi: factoryAbi };
+    const [individual, template] = await Promise.all([
+      client.readContract({ ...read, functionName: 'nativeApproved', args: [i.project] }).catch(() => undefined),
+      client.readContract({ ...read, functionName: 'templateOf', args: [i.project] }).catch(() => undefined),
+    ]);
+    const approved = template && !/^0x0{64}$/i.test(template)
+      ? await client.readContract({ ...read, functionName: 'nativeTemplate', args: [template] }).catch(() => undefined)
+      : undefined;
+    reviews.set(i.id, nativeReviewStatus(individual, template, approved));
+  }));
+
   const accounts: AccountView[] = issuers.map((i) => {
     const asset = assetFor(i.id);
     const payers: Payer[] = (d.PayerTotal as any[])
@@ -181,7 +199,8 @@ async function load(client: NonNullable<ReturnType<typeof usePublicClient>>): Pr
       issuer: i.issuer,
       tier: i.tier === 0 ? 'Native' : i.tier == null ? undefined : 'Watched',
       project: i.project ?? undefined,
-      reviewed: !!i.projectApproved,
+      reviewed: reviews.get(i.id) === 'template' || reviews.get(i.id) === 'individual',
+      nativeReview: reviews.get(i.id) ?? 'unknown',
       asset,
       revenue: unit(i.grossRevenue, asset),
       verified: unit(credit.attributedRevenue, asset),

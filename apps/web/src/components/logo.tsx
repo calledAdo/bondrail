@@ -10,9 +10,9 @@ export function LogoMark({ className = 'size-5' }: { className?: string }) {
 }
 
 /** Official outlined wordmark; no font substitution or altered spacing. */
-export function Logo() {
+export function Logo({ className = 'w-36' }: { className?: string }) {
   return (
-    <span className="inline-flex w-36 shrink-0 items-center" role="img" aria-label="Bondrail">
+    <span className={`inline-flex shrink-0 items-center ${className}`} role="img" aria-label="Bondrail">
       {/* Static SVG assets preserve the supplied identity geometry. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/brand/bondrail-lockup-light.svg" width={504} height={122} alt="" className="block h-auto w-full dark:hidden" />

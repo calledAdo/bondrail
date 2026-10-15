@@ -71,8 +71,8 @@ export function Split() {
         <Beam container={box} from={account} to={bond} curvature={10} delay={0.6} color={bondrail} width={3} />
       </div>
       <figcaption className="mx-auto max-w-xl text-center text-sm text-foreground/60">
-        Revenue is recorded onchain. Native payments route the bond’s share in the same transaction;
-        paid API receipts use a separate collection transaction.
+        Native fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator
+        split in the same transaction. Plain transfers still need sweep to book and split them.
       </figcaption>
     </figure>
   );

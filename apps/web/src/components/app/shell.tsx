@@ -53,7 +53,7 @@ export function WalletButton() {
         disabled={isPending || !safeNetwork}
         title={address && !wrong ? 'Copy wallet address' : undefined}
         className={cn(
-          'inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors duration-300 disabled:opacity-50',
+          'inline-flex h-9 items-center gap-2 whitespace-nowrap rounded-lg px-3 text-sm font-medium transition-colors duration-300 disabled:opacity-50',
           address ? 'border border-foreground/15 hover:bg-foreground/5' : 'bg-primary text-primary-foreground hover:bg-primary/90',
         )}
       >
@@ -106,9 +106,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <header className="sticky top-0 z-40 border-b border-foreground/10 bg-background/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-8 px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4 sm:gap-8 sm:px-6">
           <Link href="/" aria-label="Bondrail home">
-            <Logo />
+            <Logo className="w-24 sm:w-36" />
           </Link>
           <nav aria-label="Main" className="hidden items-center gap-6 text-sm md:flex">
             {NAV.map(([href, label]) => (

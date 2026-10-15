@@ -13,6 +13,7 @@ import { RegistryCreditProfile } from './credit-profile';
 import { BondActions } from './bond-actions';
 import { Trade } from './trade';
 import { ImpliedYieldPanel } from './implied-yield';
+import { nativeReviewLabel } from '@/lib/native-review';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
 
 const explorer = (kind: 'address' | 'tx', v: string) => `${chain.blockExplorers?.default.url}/${kind}/${v}`;
@@ -127,10 +128,16 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
     return (
       <Panel title="Source" aside={<TierBadge tier="Native" />}>
         <p className="text-sm text-foreground/70">
-          Built on Bondrail: every fee moves through the account, which is fixed into the project&apos;s code. There is no other fee path.
+          Native projects route fees through their bound account. Review covers that code path; it does not guarantee future revenue.
         </p>
         <p className={cn('mt-3 text-sm', a?.reviewed ? 'text-foreground' : 'text-orange-500')}>
-          {a?.reviewed ? 'Reviewed: the disclosed reviewer checked that every fee goes through BondrailEarner.' : 'Awaiting review: history accrues, but the project cannot raise until its code is reviewed.'}
+          {nativeReviewLabel[a?.nativeReview ?? 'unknown']}.
+        </p>
+        <p className="mt-2 text-xs text-foreground/60">
+          {a?.nativeReview === 'template' ? 'The factory deployed approved creation code; this project did not need an individual review.'
+            : a?.nativeReview === 'individual' ? 'The disclosed reviewer approved this project individually.'
+            : !a || a.nativeReview === 'unknown' ? 'Current factory approval could not be verified.'
+            : 'No current approval: new deposits and releases are blocked. Existing repayment continues.'}
         </p>
         {b.minFeeBps > 0 && <p className="mt-3 text-sm text-foreground/70">Fee floor while live: {(b.minFeeBps / 100).toFixed(2)}% of each payment.</p>}
       </Panel>
@@ -197,7 +204,7 @@ function Terms({ b }: { b: BondView }) {
   const rows: [string, string][] = [
     ['Raise', fmt(b.raise, b.asset)],
     ['Repayment cap', `${fmt(b.cap, b.asset)} (${b.multiple.toFixed(2)}×)`],
-    ['Base revenue share', `${b.baseRevenueShare}% of each payment`],
+    ['Base revenue share', `${b.baseRevenueShare}% of booked revenue`],
     ...(b.triggerWindowDays > 0 ? [
       ['Revenue trigger', `Below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC days`],
       ['Stepped-up share', `${b.stepUpShare}%`],
@@ -298,8 +305,8 @@ export function BondPage({ address }: { address: string }) {
               <Trade b={b} />
             </Panel>
           )}
-          <Panel title="Act">
-            <BondActions b={b} onDone={() => undefined} />
+          <Panel title={b.phase === 'Funding' ? 'Fund this bond' : b.phase === 'Closed' ? 'Redeem claims' : b.phase === 'Cancelled' ? 'Refund claims' : 'Your claims'}>
+            <BondActions b={b} account={a} onDone={() => undefined} />
           </Panel>
         </aside>
       </div>
@@ -356,11 +363,11 @@ export function AccountPage({ address }: { address: string }) {
       <header className="space-y-3">
         <div className="flex flex-wrap gap-1.5">
           {a.tier && <TierBadge tier={a.tier} />}
-          {a.tier === 'Native' && <Badge tone={a.reviewed ? 'neutral' : 'warn'}>{a.reviewed ? 'Reviewed' : 'Awaiting review'}</Badge>}
+          {a.tier === 'Native' && <Badge tone={a.reviewed ? 'neutral' : 'warn'}>{nativeReviewLabel[a.nativeReview]}</Badge>}
           <Badge>earns in {a.asset.symbol}</Badge>
         </div>
         <h1 className="text-4xl font-semibold">Credit profile</h1>
-        <p className="font-mono text-xs text-foreground/60">
+        <p className="break-all font-mono text-xs text-foreground/60">
           <a href={explorer('address', a.address)} target="_blank" rel="noreferrer" className="hover:underline">
             {a.address}
           </a>{' '}
@@ -399,7 +406,7 @@ export function AccountPage({ address }: { address: string }) {
           </Panel>
           <Panel title="Collected for investors">
             <p className="font-mono text-2xl tabular">[{fmt(a.toInvestors, a.asset)}]</p>
-            <p className="mt-1 text-xs text-foreground/60">across all bonds, split inside each payment</p>
+            <p className="mt-1 text-xs text-foreground/60">Revenue sent to bond pools across all bonds. Native fees and Bondrail-facilitated account settlements split immediately; plain transfers split when swept. This is not the amount redeemed by holders.</p>
           </Panel>
         </aside>
       </div>
