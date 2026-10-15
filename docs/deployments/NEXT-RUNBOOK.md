@@ -82,7 +82,7 @@ Fresh-role funding for the exact commands below is computed from `deploy.ts`, `s
 | `reviewer` | 0 | 0.2 | Template approval |
 | `attester` | 0 | 0.2 | Registry attestation |
 | `curator` | 0 | 0.2 | Vault allocation |
-| `facilitator` | 0 | 0.5 | Pays settlement gas |
+| `facilitator` | 0 | 0.5 script seed; **4 recommended operating target** | Pays settlement gas; seed alone is insufficient for the two traffic runs |
 | `worker` | 0 | 0.5 | Maintenance / trigger checks |
 | `observer`, `milestone` | 0 | 0 | Signatures only |
 | **Deployer starting wallet** | **9.8 minimum; provision 12** | **7.1 role top-ups + deployment/report gas; provision 20** | Shared deployer, fresh recipients |
@@ -90,6 +90,35 @@ Fresh-role funding for the exact commands below is computed from `deploy.ts`, `s
 USDC arithmetic: `3×0.5 + (2−0.5)+2 + 2 + 6×0.3 + 5×0.2 = 9.8`. The vault's allocation is included in its deposit, not counted twice. CurveLab's **2-USDC open raise remains unfunded**; funding it later needs another 2 USDC from investors. At 1% fees, Native traffic produces small but real revenue; principal backing remains in PumpLab. Claims have a 2.4-USDC full-release cap; activation releases 50%, so the initial effective cap is 1.2.
 
 MON arithmetic: `3×1 + 0.5 + 0.2 + 6×0.3 + 3×0.2 + 2×0.5 = 7.1`. These are balance targets, not gas estimates. Reruns can replenish gas spent since the prior run. Actual fee costs depend on RPC gas prices and gas limits (Monad charges the limit); 20 MON is an operating reserve, not a guaranteed ceiling. Stop and replenish if simulations/funding report insufficient funds. Longer operation, additional traffic and CRE reports need ongoing gas. Obtain Circle test USDC at the asset address recorded by the deployment; never substitute a lookalike token.
+
+## Facilitator gas budget and alerting
+
+The script's 0.5 MON facilitator seed is only a rehearsal seed. The [October 15 chain diagnosis](./FACILITATOR-GAS.md) found 32 successful mined settlements, no reverts, and **0.0284941505 MON per warm settlement after the top-up**. The 0.341929806 MON spend funded **12** settlements, although only three HTTP successes were reported. Pending HTTP responses may already be paid.
+
+Monad charges the submitted gas limit. New quotes use estimate ×1.15 (rounded up), a 500,000 gas cap, latest base fee +2 gwei tip, 10% base-fee headroom and a 150 gwei max-fee cap. At 100 gwei base, an estimate of 190k costs ~0.022287 MON; repeating the observed 279,369 RPC estimate with the margin costs ~0.03277005 MON and requires ~0.0359828 MON funding at the initial 112 gwei cap. RPC estimates may already include padding. Budget **~4 MON including reserve for 100 warm settlements**; all-cap commitments would need 7.5 MON plus reserve. Count every consumer sharing the key. The two twenty-call runs below need more than the 0.5 MON seed.
+
+Before paid traffic, top up the facilitator to its chosen operating target through the owner's funding process. A fresh 4 MON target adds 3.5 MON to the script's 7.1 MON role-funding total (**10.6 MON**, before deployment/report gas); the script is not changed to transfer this automatically. Check:
+
+```sh
+curl -fsS "$X402_FACILITATOR_URL/health"
+```
+
+Watch `balanceNative`, `estimatedSettlementCostWei`, `settlementsRemaining`, `reservedWei`, `inFlightNonce`, and `blockedReason`. The estimate is conservative at restart (500k gas), then follows the last quoted settlement. It subtracts the maximum outstanding-attempt commitment before counting available settlements. Positive balance does not guarantee affordability. `/settle` refuses an initially unaffordable transaction **before signing/journaling/sending** as `insufficient_gas_funds` with an empty hash. The agent returns a retryable 503 with `charged:false`; retry its **same signed request**, which reuses the cached generated answer. A response carrying a hash remains ambiguous even if recovery later runs out of gas.
+
+Configure the writer's `/etc/bondrail-next.env` using the settings in `services/facilitator/.env.example` (defaults shown):
+
+```sh
+FACILITATOR_GAS_MARGIN_BPS=11500
+FACILITATOR_MAX_GAS=500000
+FACILITATOR_MAX_FEE_GWEI=150
+FACILITATOR_PRIORITY_FEE_GWEI=2
+FACILITATOR_STUCK_SECONDS=30
+FACILITATOR_LOW_BALANCE_SETTLEMENTS=10
+# Optional operator-owned HTTPS JSON receiver:
+# FACILITATOR_LOW_BALANCE_WEBHOOK_URL=https://alerts.example.com/facilitator-gas
+```
+
+The writer checks recovery/balance every 15 seconds, logs `facilitator_low_gas_balance` below ten remaining settlements and optionally posts the health fields to that hook, at most once per five minutes per process. The request has a five-second timeout; failure logs `low_balance_alert_failed`. Configure the receiver to page the operator. No hook is contacted by installing this code or by its mocked tests. Retain gateway request limits: the gas cap bounds individual transactions, not total public demand.
 
 ## RPC budget and provider configuration
 
@@ -120,9 +149,13 @@ A public fallback still shares the IP limit when the dedicated primary fails. Us
 
 ## Recovering `settlement_pending` payments
 
-The facilitator stores the locally signed transaction hash durably **before** broadcasting, keyed by chain, token, payer and authorization nonce. It polls only that hash, with up to three bounded 20-second receipt waits, and reports success only for a successful receipt. Transient failures get another wait; cancellation/replacement transactions cannot prove success. A repeated `/settle`, even after restart or authorization expiry, reuses the journaled hash and does not prepare another transaction. Keep the facilitator Redis namespace and journal across restarts. A crash after journaling but before send can leave an unbroadcast hash; investigate it rather than deleting the entry or issuing a replacement authorization.
+The facilitator now journals signed bytes and a wallet slot (`facilitator-wallet:<chainId>:<lowercase gas address>`) before sending, then mirrors the authorization record. Keep the existing namespace and one writer per gas key. A new request never advances beyond an unresolved nonce. Startup and the 15-second monitor repair a crash before send and rebroadcast identical bytes. A stalled transaction gets a same-nonce/calldata fee bump after 30 seconds, bounded by the configured cap and available balance. Near authorization expiry it gets a bounded zero-value self-transfer cancellation; cancellation is **not** payment. Only successful receipts for saved settlement attempts can complete a payment. All attempt hashes are checked, so an older one may still prove success.
 
-An agent HTTP 202 includes the `paymentKey`; preserve the original signed request. Obtain the transaction hash from the facilitator `/settle` response, its durable journal (`facilitator:<chainId>:<lowercase asset>:<lowercase payer>:<lowercase nonce>` inside its store namespace), or the gas wallet's transaction history. Wait for the successful receipt and one additional block. With the **next agent's** admin token configured in your shell:
+If `blockedReason` is `gas_fee_cap_exceeded` or `insufficient_gas_funds`, fund the wallet or review the fee cap deliberately. Recovery cannot override either budget. `wallet_busy` prevents new authorizations while a known slot resolves. If there is **no wallet slot** but pending nonce exceeds latest, `wallet_nonce_blocked` refuses new work: pause other writers, locate the transaction at the latest nonce using the original sender/journal or the provider's mempool tools, and have the operator replace/cancel that exact nonce with sufficient funding and both fees bumped. Do not fill later nonces, erase journals, or reuse the key in a second namespace. No such unknown pending transaction was present in this diagnosis (latest=pending=32).
+
+Legacy `{binding,transaction}` entries keep their receipt-only behavior, including the three bounded 20-second waits. Their signed bytes/nonce were never saved, so an unbroadcast legacy hash cannot be repaired automatically by this code. Investigate it with the original request, RPC transaction/receipt and sender records. Do not delete it or issue another authorization simply because `/settle` says pending.
+
+An agent HTTP 202 includes the `paymentKey`; preserve the original signed request. Obtain the transaction hash from the facilitator `/settle` response, its durable journal (`facilitator:<chainId>:<lowercase asset>:<lowercase payer>:<lowercase nonce>` inside its store namespace), or the gas wallet's transaction history (v2 journal: `attempts[].transaction`, final `result.transaction`). Wait for the successful receipt and one additional block. With the **next agent's** admin token configured in your shell:
 
 ```sh
 export PAYMENT_KEY='payment:0x...64-hex-digits...'
@@ -160,6 +193,7 @@ sudo install -m 644 ops/next/bondrail-next-*.service ops/next/bondrail-next-*.ti
 sudo systemctl daemon-reload
 sudo systemctl enable --now bondrail-next-facilitator.service
 curl -fsS http://127.0.0.1:8789/supported
+curl -fsS http://127.0.0.1:8789/health
 ```
 
 Expose that service at a **new HTTPS origin** (e.g. `https://facilitator-origin-next.example.com`) with a reverse proxy to `127.0.0.1:8789`; allow a 120-second response timeout. Run only one persistent facilitator process for its gas key. Do not restart/reconfigure the live facilitator.
@@ -170,7 +204,7 @@ Create three separate Vercel projects with the following root directories and **
 | --- | --- |
 | `bondrail-next-web` / `apps/web` | All values from `scripts/export-env.ts web` after issuance/indexer setup: `BONDRAIL_DEPLOYMENT=next`, `NEXT_PUBLIC_CHAIN_ID=10143`, RPC, indexer, USDC, factory, vault, registry and both featured bond addresses. Separate `KV_REST_API_URL`, `KV_REST_API_TOKEN` for signed profiles; optional `NANSEN_API_KEY`. Leave `DRIP_PRIVATE_KEY` unset unless provisioning a fresh dedicated drip key. |
 | `bondrail-next-agent` / `demo/agent` | All values from `.data/agent-next.env`; `BONDRAIL_ENV=testnet`, `BONDRAIL_STORE=redis`, `BONDRAIL_STORE_NAMESPACE=bondrail-10143-next-agent`, separate `REDIS_REST_URL`, `REDIS_REST_TOKEN`, fresh `AGENT_ADMIN_TOKEN` (32+ random characters), `MODEL_API_KEY`, `MODEL_BASE_URL`, `MODEL_ID`. `AGENT_INITIAL_PAY_TO` is the **next agent account** and `X402_FACILITATOR_URL` the **next facade**. |
-| `bondrail-next-facilitator` / `services/facilitator` | `FACILITATOR_UPSTREAM_URL=https://facilitator-origin-next.example.com/`. Framework Other; supplied `vercel.json` serves `/supported`, `/verify`, `/settle`. This facade forwards to the single persistent next writer; **no private key on Vercel**. The host writer receives its `FACILITATOR_FACTORY`, `FACILITATOR_ASSET`, RPC and scoped gas key via `scripts/service.ts`. |
+| `bondrail-next-facilitator` / `services/facilitator` | `FACILITATOR_UPSTREAM_URL=https://facilitator-origin-next.example.com/`. Framework Other; supplied `vercel.json` serves `/supported`, `/health`, `/verify`, `/settle`. This facade forwards to the single persistent next writer; **no private key on Vercel**. The host writer receives its `FACILITATOR_FACTORY`, `FACILITATOR_ASSET`, RPC and scoped gas key via `scripts/service.ts`. |
 
 Vercel requires this exact commit and the new public manifest at build time (the docs render selected addresses). The owner publishes these commits/manifests through their usual review/deploy process. There is no push or remote deployment in the rehearsal. For a CLI Preview from each configured project, use `vercel deploy` without `--prod`; assign only the new `*-next` aliases. Refresh the agent's Preview deployment after changing its initial environment. A previously initialized Redis config overrides `AGENT_INITIAL_PAY_TO`, so start with empty next storage and check the served manifest.
 
