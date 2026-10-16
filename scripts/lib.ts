@@ -137,6 +137,8 @@ export type DeploymentFile = {
   deployer?: Address;
   creditRegistry?: Address;
   vault?: Address;
+  vaultFactory?: Address;
+  vaultFactoryStartBlock?: string;
   attester?: Address;
   curator?: Address;
   templateHash?: Hex;

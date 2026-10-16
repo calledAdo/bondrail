@@ -115,6 +115,33 @@ async function main() {
   await script('deploy-resume', 'scripts/deploy.ts', ['--force']);
   assert.equal(readDeployment().factory, d.factory);
   pass('Overwrite refused; --force resumes identical contracts');
+  await script('vault-factory-plan', 'scripts/deploy-vault-factory.ts', ['--register-existing']);
+  assert.equal(readDeployment().vaultFactory, undefined);
+  await script('vault-factory-deploy', 'scripts/deploy-vault-factory.ts', ['--execute', '--force', '--register-existing']);
+  d = readDeployment();
+  assert(d.vaultFactory && d.vaultFactoryStartBlock);
+  await script('vault-factory-resume', 'scripts/deploy-vault-factory.ts', ['--execute', '--force', '--register-existing']);
+  assert.equal(readDeployment().vaultFactory, d.vaultFactory);
+  const factoryReceipt = await write(account('deployer'), d.vaultFactory, artifact('BondrailVaultFactory').abi, 'createVault', [
+    d.asset, 'Patient revenue', 'brPATIENT', account('curator').address, account('deployer').address,
+    { description: 'Patient capital for new revenue raises', metadataHash: keccak256(stringToHex('patient-capital')) },
+  ]);
+  const created = factoryReceipt.logs.flatMap(log => {
+    try { const e = decodeEventLog({ abi: artifact('BondrailVaultFactory').abi, data: log.data, topics: log.topics });
+      return e.eventName === 'VaultCreated' ? [(e.args as unknown as { vault: Address }).vault] : []; } catch { return []; }
+  });
+  assert.equal(created.length, 1);
+  const secondVault = created[0];
+  assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'vaultCount'), 2n);
+  const firstStrategy = await read(d.vaultFactory, 'BondrailVaultFactory', 'strategy', [d.vault]);
+  const secondStrategy = await read(d.vaultFactory, 'BondrailVaultFactory', 'strategy', [secondVault]);
+  assert.notEqual(firstStrategy.description, secondStrategy.description);
+  await write(account('deployer'), d.asset, artifact('MockERC3009').abi, 'approve', [secondVault, 2_000_000n]);
+  await write(account('deployer'), secondVault, artifact('BondrailVault').abi, 'deposit', [2_000_000n, account('deployer').address]);
+  await write(account('deployer'), secondVault, artifact('BondrailVault').abi, 'withdraw', [100_000n, account('deployer').address, account('deployer').address]);
+  assert.equal(await read(secondVault, 'BondrailVault', 'totalAssets'), 1_900_000n);
+  pass('Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw');
+
   await script('accounts', 'demo/scripts/setup-demo.ts', ['--force']);
   d = readDeployment();
   assert.equal(Object.keys(d.issuers).length, 3);
@@ -170,6 +197,12 @@ async function main() {
   assert.equal(await read(d.vault!, 'BondrailVault', 'totalAssets'), 2_000_000n);
   assert.equal(await read(d.vault!, 'BondrailVault', 'entryAssets'), 2_000_000n);
   pass('History warp, three recorded bonds, CurveLab open raise; vault allocates in Funding and NAV = 2 USDC');
+  await write(account('curator'), secondVault, artifact('BondrailVault').abi, 'allocate', [curve.bond, 400_000n]);
+  assert.equal(await read(secondVault, 'BondrailVault', 'costBasis', [curve.bond]), 400_000n);
+  await write(account('curator'), secondVault, artifact('BondrailVault').abi, 'withdrawFromRaise', [curve.bond, 100_000n]);
+  assert.equal(await read(secondVault, 'BondrailVault', 'costBasis', [curve.bond]), 300_000n);
+  pass('Second vault allocates to eligible Funding bond and withdraws from raise within hard limits');
+
   // Local-only report from the configured observer over actual HTTP manifest + offer.
   const policy = d.watchPolicy as WatchPolicy;
   const manifest = await fetch(policy.manifestUrl);

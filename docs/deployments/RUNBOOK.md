@@ -223,3 +223,60 @@ curl --fail-with-body -sS "$AGENT_PUBLIC_URL/api/admin/reconcile" \
 A 200 response `{ "status": "complete", "transaction": "0x..." }` means the agent checked its configured chain, the successful/confirmed receipt, the exact token `Transfer` and `AuthorizationUsed` logs, the account's exact `Settled(payer,value,nonce)` event, and the token's `authorizationState(payer,nonce)` at that receipt block. It atomically changes the existing `settlement_pending` journal entry to `complete`, preserving the generated answer. Retry the **original signed oracle request** to retrieve that cached answer and `PAYMENT-RESPONSE`; reconciliation does not run the model or send a transaction.
 
 HTTP 401 means the admin token is wrong/missing. HTTP 409 leaves the record pending: check chain/provider configuration, confirmations, hash, nonce and account event, then retry reconciliation after the underlying issue resolves. A token transfer without the account `Settled` event, a reverted receipt, or an unused nonce cannot be marked paid. This endpoint does not repair `processing` records without a journaled result.
+
+## Phase C — vault factory (operator procedure; not executed in Task 23)
+
+The existing vault is immutable. The new factory deploys named vaults with `new`, preserving
+constructor-bound factory/asset/owner, fixed 25% per-bond cap, 16 holdings, 20% idle buffer at allocation,
+and the two-day curator replacement delay. Optional tighter mandates are not implemented. Strategy
+text is disclosure, not an adapter filter: both eligible Native and Watched bonds are accepted.
+
+Use the pinned Solidity 0.8.28/via-IR/200-run build. Legacy registration deploys a reference original
+vault to compare **exact runtime code hashes**, including immutable values and compiler metadata;
+matching getters alone cannot pass. Registration can succeed once, only by the factory owner, and
+emits the same `VaultCreated` event. Budget for the reference deployment gas. A different build fails
+closed; do not weaken this check. Every asset must have code and a working `decimals()` as for accounts;
+the existing vault additionally requires decimals <=249. Exact transfers and non-rebasing assets remain
+required. Token admission is not asset vetting.
+
+```sh
+# Review first: no key reads, transactions, or manifest writes in plan mode.
+export BONDRAIL_CHAIN_ID=10143
+export BONDRAIL_DEPLOYMENT=main
+export BONDRAIL_RPC_URL=https://testnet-rpc.monad.xyz
+export BONDRAIL_KEY_DIR=/absolute/operator/key-directory
+export BONDRAIL_KEY_PREFIX=''
+forge build --root contracts
+pnpm tsx scripts/deploy-vault-factory.ts --register-existing
+
+# Operator only, after approving the plan. Never run this as part of acceptance.
+# deployer.key must match the intended immutable factory owner.
+pnpm tsx scripts/deploy-vault-factory.ts --execute --force --register-existing
+# Safe resume: same command verifies protocol/owner and skips completed registration.
+
+# Regenerate local indexer configuration after the manifest gains vaultFactory/start block.
+# This does not release or modify a hosted indexer.
+node indexer/gen-config.mjs 10143 --force
+pnpm --dir indexer codegen
+pnpm --dir indexer typecheck
+```
+
+The script preserves existing manifest fields, saves `vaultFactory` and `vaultFactoryStartBlock`
+immediately after deployment, and resumes registration. Keep the existing `vault` address as the default.
+The manifest's original `startBlock` is retained so legacy deposits can be indexed from inception.
+Set web `NEXT_PUBLIC_VAULT_FACTORY_ADDRESS` to the new manifest address when separately releasing the app.
+
+To create a vault after the factory exists (operator supplies the addresses; metadata hash is optional):
+
+```sh
+cast send "$VAULT_FACTORY" \
+  'createVault(address,string,string,address,address,(string,bytes32))' \
+  "$ASSET" 'Patient revenue' 'brPATIENT' "$CURATOR" "$OWNER" \
+  '(Patient capital for revenue bonds,0x0000000000000000000000000000000000000000000000000000000000000000)' \
+  --rpc-url "$BONDRAIL_RPC_URL" --account operator
+```
+
+Local acceptance runs `PATH="$HOME/.foundry/bin:$PATH" pnpm e2e:local`. It creates temporary role keys,
+starts an isolated Anvil on 127.0.0.1/31337, deploys the registry, registers the original vault, creates a
+second strategy, deposits, withdraws, allocates and withdraws from a raise. Public manifests are checked
+byte-for-byte and services/temporary keys are cleaned up. No remote factory deployment was performed.
