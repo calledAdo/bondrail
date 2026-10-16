@@ -10,7 +10,10 @@
     "test": "node --test scripts/*.test.mjs",
     "prepare:assets": "node scripts/prepare.mjs",
     "verify:chain": "node scripts/verify-chain.mjs",
-    "evidence": "node scripts/export-evidence.mjs"
+    "evidence": "node scripts/export-evidence.mjs",
+    "concepts:stills": "node scripts/concepts-render.mjs --stills",
+    "concepts:render": "node scripts/concepts-render.mjs",
+    "concepts:verify": "node scripts/concepts-verify.mjs"
   },
   "dependencies": {
     "@bondrail/sdk": "0.2.0",

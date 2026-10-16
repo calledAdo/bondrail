@@ -44,6 +44,7 @@ demo/video/**/*.mkv
 demo/video/**/*.wav
 demo/video/**/*.mov
 demo/video/*.mp4
+demo/video/output/concepts/
 
 # SDK release artifacts (generated locally, never published by build)
 packages/sdk/dist/

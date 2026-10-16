@@ -1,0 +1,19 @@
+{
+  "fps": 30,
+  "seconds": 76,
+  "transitionFrames": 18,
+  "beats": [
+    {"id":"reprise","start":0,"end":2.4,"label":"Bondrail, continued","lines":["Revenue flows back."],"accent":"Revenue","dark":false},
+    {"id":"hook","start":2.4,"end":6,"label":"The next chapter","lines":["What happens","after the bond?"],"accent":"after","dark":true},
+    {"id":"stages","start":6,"end":16,"label":"Staged release","lines":["Capital in stages.","The rest is earned."],"accent":"stages","dark":false},
+    {"id":"trigger","start":16,"end":24,"label":"Performance trigger","lines":["If revenue slips,","investors’ share","steps up."],"accent":"steps up","dark":true},
+    {"id":"vaults","start":24,"end":32,"label":"Vaults","lines":["Back one business.","Or deposit once,","across many."],"accent":"across many","dark":false},
+    {"id":"explain","start":32,"end":41,"label":"Every bond explains itself","lines":["Know what","you own."],"accent":"you own","dark":false},
+    {"id":"record","start":41,"end":49,"label":"Track record","lines":["Repay on time.","Raise again."],"accent":"Raise again","dark":false},
+    {"id":"builders","start":49,"end":56,"label":"npm i @bondrail/sdk","lines":["Revenue routes","from day one."],"accent":"day one","dark":true},
+    {"id":"different","start":56,"end":64,"label":"What makes Bondrail different?","lines":["Capital in stages.","Repaid from revenue.","Every bond explains itself."],"accent":"","dark":true},
+    {"id":"rhythm","start":64,"end":70,"label":"","lines":["Businesses set the terms.","Investors fund them.","Revenue repays them."],"accent":"","dark":true},
+    {"id":"close","start":70,"end":76,"label":"","lines":["Revenue bonds for onchain businesses.","bondrail.vercel.app · @useBondrail","Live on Monad testnet"],"accent":"","dark":true}
+  ],
+  "reviewSeconds": [1.4,4.4,9.5,14,21,29,37,46.5,53,62,69,74]
+}
