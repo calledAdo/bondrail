@@ -93,5 +93,7 @@
     "parserVersion": "bondrail-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,
     "freshnessSeconds": 90
-  }
+  },
+  "vaultFactoryStartBlock": "71423044",
+  "vaultFactory": "0x11bcdba6d344c61f6f7c7a9f64ee87ba8a7fc7d2"
 }
