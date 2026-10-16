@@ -227,21 +227,35 @@ type LatestCreditAttestation {
   attestation: CreditAttestation!
 }
 
-# Registry membership and current disclosed mandate; RPC valuation is pinned to indexed blocks.
+# Event-derived registry, mandate and running totals. Unknown legacy metadata stays null until registration.
 type Vault {
   id: ID!
   chainId: Int! @index
   registry: String! @index
-  asset: String! @index
-  curator: String!
-  owner: String!
-  name: String!
-  symbol: String!
-  strategy: String!
-  metadataHash: String!
+  asset: String @index
+  curator: String
+  owner: String
+  name: String
+  symbol: String
+  strategy: String
+  metadataHash: String
   pendingCurator: String
   curatorChangeAfter: BigInt
   createdAt: BigInt!
+  totalSupply: BigInt!
+  deposited: BigInt!
+  withdrawn: BigInt!
+  depositedShares: BigInt!
+  withdrawnShares: BigInt!
+  allocated: BigInt!
+  collected: BigInt!
+  raiseWithdrawn: BigInt!
+  income: BigInt!
+  lockedIncome: BigInt! # last checkpoint, NOT currently unvested income
+  holdings: [String!]! # curator-tracked bonds, not unsolicited claim transfers
+  realizedPrice: BigInt # raw assets * 1e18 / raw shares, rounded down
+  realizedPriceKind: String # Deposit | Withdraw
+  realizedPriceTimestamp: BigInt
 }
 
 type VaultActivity {
@@ -257,6 +271,8 @@ type VaultActivity {
   timestamp: BigInt!
   block: BigInt!
   txHash: String!
+  realizedPrice: BigInt # Deposit/Withdraw only; raw assets * 1e18 / raw shares
+  lockedIncome: BigInt # IncomeCheckpointed only
 }
 
 # Mint/burn/transfer accounting; remaining deposit cost follows transferred shares pro rata.
@@ -270,18 +286,41 @@ type VaultPosition {
   withdrawn: BigInt!
 }
 
-# Last observed block in each UTC day, plus a sample on quiet days (300-block cadence).
-# Never synthesize intermediate days or read latest state for a historical block.
+# Tracked allocation cost, cleared on full raise withdrawal or collection.
+# Claims are allocated Funding claims (1:1 assets), not unsolicited token receipts.
+type VaultHolding {
+  id: ID! # vault-bond
+  vault: String! @index
+  bond: String! @index
+  claims: BigInt!
+  costBasis: BigInt!
+  allocated: BigInt!
+  collected: BigInt!
+  raiseWithdrawn: BigInt!
+  active: Boolean!
+}
+
+# UTC-day event sums with closing event-derived supply and last checkpoint's locked income.
+# Price is the LAST Deposit/Withdraw ratio THAT DAY; null without either, never carried forward.
+# Quiet days have no rows. These values are not NAV, idle cash or live entry/exit quotes.
 type VaultDailySnapshot {
   id: ID!
   vault: String! @index
   day: Int! @index
   timestamp: BigInt!
   block: BigInt!
-  entryPrice: BigInt!
-  exitPrice: BigInt!
-  nav: BigInt!
-  entryNav: BigInt!
-  idle: BigInt!
+  eventCount: Int!
+  deposited: BigInt!
+  withdrawn: BigInt!
+  depositedShares: BigInt!
+  withdrawnShares: BigInt!
+  allocated: BigInt!
+  collected: BigInt!
+  raiseWithdrawn: BigInt!
+  income: BigInt!
+  lockedIncome: BigInt!
   totalSupply: BigInt!
+  realizedPrice: BigInt
+  realizedPriceKind: String
+  realizedPriceTimestamp: BigInt
 }

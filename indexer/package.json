@@ -9,17 +9,17 @@
     "start": "envio start",
     "typecheck": "tsc --noEmit",
     "config:testnet": "node gen-config.mjs 10143",
-    "test": "node --import tsx --test test/*.test.ts"
+    "test": "node --import tsx --import ./test/offline.ts --test --test-timeout=30000 test/*.test.ts"
   },
   "dependencies": {
-    "envio": "3.14.0",
-    "viem": "2.54.2"
+    "envio": "3.14.0"
   },
   "packageManager": "pnpm@10.32.0",
   "engines": {
     "node": ">=22.15.0"
   },
   "devDependencies": {
+    "viem": "2.54.2",
     "typescript": "5.9.3",
     "@types/node": "22.15.30",
     "tsx": "4.20.6"

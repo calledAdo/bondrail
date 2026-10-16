@@ -95,7 +95,7 @@ export function useVaultHistory(addresses: readonly string[]) {
   return useQuery({ queryKey: ['vault-history', chain.id, INDEXER_URL, addresses], enabled: !!INDEXER_URL && addresses.length > 0, staleTime: 60_000,
     queryFn: () => vaultIndex<{ VaultDailySnapshot: VaultSnapshot[] }>(`query VaultHistory($vaults: [String!]!, $day: Int!) {
       VaultDailySnapshot(where: {vault: {_in: $vaults}, day: {_gte: $day}}, order_by: {day: asc}) {
-        id vault day timestamp block entryPrice exitPrice nav entryNav idle totalSupply
+        id vault day timestamp block realizedPrice realizedPriceKind realizedPriceTimestamp totalSupply
       }
     }`, { vaults: addresses.map(a => a.toLowerCase()), day: Math.floor(Date.now() / 86400000) - 29 }),
   });

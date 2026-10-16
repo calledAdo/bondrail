@@ -11,9 +11,6 @@ importers:
       envio:
         specifier: 3.14.0
         version: 3.14.0(typescript@5.9.3)
-      viem:
-        specifier: 2.54.2
-        version: 2.54.2(typescript@5.9.3)
     devDependencies:
       '@types/node':
         specifier: 22.15.30
@@ -24,6 +21,9 @@ importers:
       typescript:
         specifier: 5.9.3
         version: 5.9.3
+      viem:
+        specifier: 2.54.2
+        version: 2.54.2(typescript@5.9.3)
 
 packages:
 

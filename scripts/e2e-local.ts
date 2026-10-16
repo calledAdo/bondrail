@@ -16,6 +16,7 @@ import { classify, encodeObservationReport, observationDomain, observationTypes,
 import { chromium } from '@playwright/test';
 import { webEnvironment } from './web-env.ts';
 import { verifyVaultBrowser } from './vault-browser.ts';
+import { localVaultIndex } from './local-vault-index.ts';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const logs = path.join(root, '.data/e2e-local');
@@ -153,8 +154,7 @@ async function main() {
     } finally { await client.request({ method: 'anvil_setCode' as never, params: [d.vault, originalCode] as never }); }
     assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'vaultCount'), 0n);
     assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'existingRegistered'), false);
-    fs.mkdirSync(path.join(root, 'docs/ux/phase-c'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'docs/ux/phase-c/registration-preflight.json'), JSON.stringify({ match, mismatch, methods: [...new Set(preflightMethods)], registryUnchanged: true }, null, 2) + '\n');
+    fs.writeFileSync(path.join(logs, 'registration-preflight.json'), JSON.stringify({ match, mismatch, methods: [...new Set(preflightMethods)], registryUnchanged: true }, null, 2) + '\n');
   } finally { await new Promise<void>((resolve, reject) => preflightProxy.close(error => error ? reject(error) : resolve())); }
   pass('Registration preflight uses only eth_call: matching runtime passes, metadata mismatch fails with both hashes, registry unchanged');
   await script('vault-factory-resume', 'scripts/deploy-vault-factory.ts', ['--execute', '--force', '--register-existing']);
@@ -283,6 +283,24 @@ async function main() {
   assert(exitNav >= 1_750_000n && exitNav < entryNav);
   assert.equal(await read(d.vault!, 'BondrailVault', 'maxWithdraw', [account('vault-depositor').address]), 1_500_000n);
   pass(`Low-revenue trigger fires; share 40%; exit NAV ${exitNav}, entry NAV ${entryNav}; withdrawals idle-capped`);
+  // A second actual execution day supplies a trend; quiet-day NAV samples are no longer history.
+  await write(account('deployer'), secondVault, artifact('BondrailVault').abi, 'withdraw', [1n, account('deployer').address, account('deployer').address]);
+  const eventHistory = await localVaultIndex(new Proxy(client, { get(target, key, receiver) {
+    if (key === 'readContract') return () => { throw new Error('Vault history must not call eth_call'); };
+    return Reflect.get(target, key, receiver);
+  } }), d);
+  for (const rows of Object.values(eventHistory)) assert.equal(new Set(rows.map(r => r.id)).size, rows.length, 'Event entity IDs must be unique across legacy and registered addresses');
+  const vaultHistory = eventHistory.Vault.find(v => v.id === d.vault!.toLowerCase());
+  assert.equal(vaultHistory.totalSupply, String(await read(d.vault!, 'BondrailVault', 'totalSupply')));
+  assert.equal(vaultHistory.deposited, '2000000');
+  assert.equal(eventHistory.VaultDailySnapshot.filter(s => s.vault === d.vault!.toLowerCase() && s.realizedPrice !== null).length, 1);
+  const cost = eventHistory.VaultHolding.find(h => h.vault === secondVault.toLowerCase() && h.bond === curve.bond!.toLowerCase());
+  assert.equal(cost.costBasis, '300000');
+  const observations = eventHistory.VaultDailySnapshot.filter(s => s.vault === secondVault.toLowerCase() && s.realizedPrice !== null);
+  assert.equal(observations.length, 2);
+  assert(observations.every(s => s.realizedPrice === '1000000000000'));
+  assert(eventHistory.VaultDailySnapshot.every(s => !('nav' in s) && !('exitPrice' in s)));
+  pass('Vault history uses logs/headers only: event supply, allocation basis and two realized execution days');
   await script('setup-resume', 'demo/scripts/setup-demo.ts', ['--force']);
   assert.deepEqual(readDeployment().issuers, d.issuers);
   await script('deploy-after-demo', 'scripts/deploy.ts', ['--force']);
@@ -341,7 +359,7 @@ async function main() {
     assert.match(await page.locator('body').innerText(), /1 of 1/);
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.join(logs, 'credit.png'), fullPage: true });
-    await verifyVaultBrowser({ browser, origin: `http://127.0.0.1:${webPort}`, rpc, deployment: d, investor: vaultInvestor, curator: account('curator').address, output: path.join(root, 'docs/ux/phase-c') });
+    await verifyVaultBrowser({ browser, origin: `http://127.0.0.1:${webPort}`, rpc, deployment: d, investor: vaultInvestor, curator: account('curator').address, output: path.join(logs, 'vault-browser') });
   } catch (error) {
     fs.writeFileSync(path.join(logs, 'browser-failure.txt'), await page.locator('body').innerText());
     await page.screenshot({ path: path.join(logs, 'browser-failure.png'), fullPage: true });

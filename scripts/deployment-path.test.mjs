@@ -3,11 +3,11 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { execFileSync } from 'node:child_process';
 import { deploymentPath, deploymentName, writeJson, roleKeyPath } from './deployment-path.mjs';
 
-test('default main manifest and indexer config select current Bondrail contracts', () => {
+test('default main manifest and indexer config select current Bondrail contracts', async () => {
   const root = fileURLToPath(new URL('..', import.meta.url));
   const deployment = JSON.parse(fs.readFileSync(deploymentPath(root, 10143, 'main'), 'utf8'));
   assert.equal(deployment.deployment, 'main');
@@ -24,12 +24,20 @@ test('default main manifest and indexer config select current Bondrail contracts
     const env = { ...process.env, BONDRAIL_INDEXER_DIR: output };
     for (const name of ['BONDRAIL_DEPLOYMENT', 'CREDIT_REGISTRY_ADDRESS', 'MONAD_RPC']) delete env[name];
     execFileSync(process.execPath, ['indexer/gen-config.mjs', '10143'], { cwd: root, env });
-    for (const file of ['config.yaml', 'src/deployment.ts']) {
-      assert.equal(fs.readFileSync(path.join(output, file), 'utf8'), fs.readFileSync(path.join(root, 'indexer', file), 'utf8'));
-    }
+    // Checked-in config can intentionally predate a deployment addition. Validate freshly
+    // generated addresses and blocks against the selected manifest, not that older snapshot.
+    const generated = await import(pathToFileURL(path.join(output, 'src/deployment.ts')).href);
+    assert.equal(generated.FACTORY, deployment.factory.toLowerCase());
+    assert.equal(generated.COVENANT, deployment.covenant.toLowerCase());
+    assert.equal(generated.CREDIT_REGISTRY, deployment.creditRegistry?.toLowerCase());
+    assert.equal(generated.VAULT_FACTORY, deployment.vaultFactory?.toLowerCase());
+    assert.equal(generated.INDEXED_ASSET, deployment.asset.toLowerCase());
+    assert.equal(generated.START_BLOCK, Number(deployment.startBlock ?? 0));
+    assert.equal(generated.VAULT_FACTORY_START_BLOCK, Number(deployment.vaultFactoryStartBlock ?? deployment.startBlock ?? 0));
     const config = fs.readFileSync(path.join(output, 'config.yaml'), 'utf8');
-    for (const address of [deployment.factory, deployment.covenant, deployment.creditRegistry]) assert(config.includes(address));
+    for (const address of [deployment.factory, deployment.covenant, deployment.asset, deployment.creditRegistry, deployment.vaultFactory].filter(Boolean)) assert(config.includes(address));
     assert(config.includes(String(deployment.startBlock)));
+    if (deployment.vaultFactory) assert(config.includes(`start_block: ${deployment.vaultFactoryStartBlock ?? deployment.startBlock ?? 0}`));
   } finally { fs.rmSync(output, { recursive: true }); }
 });
 

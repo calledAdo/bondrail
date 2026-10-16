@@ -1,13 +1,12 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { formatUnits } from 'viem';
 import { type VaultView } from '@bondrail/sdk/vault';
 import { useVaultCards, useVaultDirectory, useVaultHistory } from '@/lib/vaults';
 import { chain, deployment, safeNetwork } from '@/lib/wallet';
 import { short } from '@/lib/protocol';
 import type { VaultSnapshot } from '@/lib/vault-data';
-import { isTeamVault, vaultDisclosure } from '@/lib/vault-data';
+import { isTeamVault, realizedVaultHistory, vaultDisclosure } from '@/lib/vault-data';
 import { Badge, Empty, Figure, Panel } from './ui';
 import { Term } from './term';
 import { vaultControl, vaultMoney } from './vault-actions';
@@ -24,15 +23,16 @@ export function VaultDisclosure({ vault }: { vault: VaultView }) {
   </div>;
 }
 export function VaultTrend({ snapshots, vault }: { snapshots: VaultSnapshot[]; vault: VaultView }) {
-  const rows = snapshots.filter(s => s.vault.toLowerCase() === vault.address.toLowerCase()).sort((a, b) => a.day - b.day).slice(-30);
-  if (rows.length < 2) return <p className="text-xs text-foreground/70">30-day exit price · {rows.length ? 'one daily observation; trend builds over time' : 'history not available yet'}</p>;
-  const points = rows.map(r => Number(formatUnits(BigInt(r.exitPrice), vault.assetDecimals)));
+  const rows = realizedVaultHistory(snapshots, vault);
+  if (rows.length < 2) return <p className="text-xs text-foreground/70">30-day realized price at deposits/withdrawals · {rows.length ? 'one daily observation; trend builds over time' : 'history not available yet'}</p>;
+  const points = rows.map(r => Number(r.price));
   const low = Math.min(...points), high = Math.max(...points), span = high - low || Math.max(high * 0.05, 0.000001);
   const first = rows[0].day, last = rows.at(-1)!.day;
   const coordinates = points.map((y, i) => `${4 + (rows[i].day - first) / Math.max(last - first, 1) * 272},${44 - (y - low) / span * 36}`).join(' ');
   return <figure className="space-y-2">
-    <svg viewBox="0 0 280 52" className="h-14 w-full text-foreground/70" role="img" aria-label={`Exit price: ${points[0]} to ${points.at(-1)} ${vault.assetSymbol}; ${rows.length} daily observations`}><polyline points={coordinates} fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /></svg>
-    <figcaption className="flex flex-wrap justify-between gap-1 text-xs text-foreground/70"><span>30-day exit price · {rows.length} observations</span><span>{points[0]} → {points.at(-1)} {vault.assetSymbol}</span></figcaption>
+    <svg viewBox="0 0 280 52" className="h-14 w-full text-foreground/70" role="img" aria-label={`Realized price at deposits/withdrawals: ${points[0]} to ${points.at(-1)} ${vault.assetSymbol}; ${rows.length} daily observations`}><polyline points={coordinates} fill="none" stroke="currentColor" strokeWidth="1.5" vectorEffect="non-scaling-stroke" /></svg>
+    <figcaption className="flex flex-wrap justify-between gap-1 text-xs text-foreground/70"><span>30-day realized price at deposits/withdrawals · {rows.length} observations</span><span>{points[0]} → {points.at(-1)} {vault.assetSymbol}</span></figcaption>
+    <p className="text-xs text-foreground/60">Last deposit or withdrawal price each day. Days without either have no price observation.</p>
   </figure>;
 }
 export function VaultDirectory() {

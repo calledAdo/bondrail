@@ -1,17 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { indexer, createTestIndexer, type TestIndexerProcessConfig } from 'envio';
-import { START_BLOCK } from '../src/deployment';
+import { getContractAddress } from 'viem';
+import { CREDIT_REGISTRY, FACTORY, START_BLOCK } from '../src/deployment';
 import '../src/handlers/bondrail';
 
 type Event = NonNullable<NonNullable<TestIndexerProcessConfig['chains'][10143]>['simulate']>[number];
-// Test-only discovery of synthetic registry addresses. Production has no wildcard handler;
-// operators explicitly configure a deployed address in gen-config.
+const registry = CREDIT_REGISTRY ?? getContractAddress({ from: FACTORY, nonce: 1n }).toLowerCase() as `0x${string}`;
+const other = getContractAddress({ from: registry, nonce: 1n }).toLowerCase() as `0x${string}`;
+// Only discover the extra registry used to test registry-qualified membership (or the
+// primary fixture when no registry is configured). Configured addresses use normal routing.
 indexer.contractRegister({ contract: 'BondrailCreditRegistry', event: 'BondRecorded', wildcard: true }, async ({ event, context }) => {
-  context.chain.BondrailCreditRegistry.add(event.srcAddress);
+  if (event.srcAddress.toLowerCase() === other || !CREDIT_REGISTRY) {
+    context.chain.BondrailCreditRegistry.add(event.srcAddress);
+  }
 });
-const registry = '0x1111111111111111111111111111111111111111';
-const other = '0x2222222222222222222222222222222222222222';
 const account = '0x3333333333333333333333333333333333333333';
 const bond = '0x4444444444444444444444444444444444444444';
 const signer = '0x5555555555555555555555555555555555555555';
