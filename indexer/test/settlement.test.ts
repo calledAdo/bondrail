@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { createTestIndexer, type Address, type TestIndexerProcessConfig } from 'envio';
-import { FACTORY, INDEXED_ASSET, START_BLOCK } from '../src/deployment';
+import { COVENANT, FACTORY, INDEXED_ASSET, START_BLOCK } from '../src/deployment';
 import '../src/handlers/bondrail';
 
 type Event = NonNullable<NonNullable<TestIndexerProcessConfig['chains'][10143]>['simulate']>[number];
@@ -118,4 +118,20 @@ test('bond trigger flag starts false, steps up, and clears on recovery without c
     const events = await db.ChainEvent.getAll();
     assert.deepEqual(events.map(e => e.kind), ['Created', ...states.map(s => s ? 'Triggered' : 'TriggerRecovered')]);
   }
+});
+
+test('configured covenant records observations and default history', async () => {
+  const bond = '0x7777777777777777777777777777777777777777' as const;
+  const db = await run([
+    { contract: 'BondrailCovenant', event: 'ObservationAccepted', srcAddress: COVENANT,
+      params: { bond, epoch: 1n, result: 2n, observedAt: BigInt(block.timestamp), evidenceHash: nonce(1), digest: nonce(2) }, transaction },
+    { contract: 'BondrailCovenant', event: 'CovenantDefault', srcAddress: COVENANT,
+      params: { bond, firstEpoch: 1n, secondEpoch: 2n, evidenceHash: nonce(1) }, transaction },
+  ]);
+  const observations = await db.CovenantCheck.getAll();
+  assert.equal(observations.length, 1);
+  assert.equal(observations[0].bond, bond);
+  assert.equal(observations[0].result, 2);
+  assert.equal(observations[0].epoch, 1n);
+  assert.deepEqual((await db.ChainEvent.getAll()).map(e => e.kind), ['CovenantDefault']);
 });
