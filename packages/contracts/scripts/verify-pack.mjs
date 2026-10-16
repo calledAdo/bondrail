@@ -30,7 +30,7 @@ function signature(item) { return `${item.name}(${item.inputs.map(type).join(','
 try {
   console.log('[contracts:verify] Compile canonical contracts and compare interface ABIs');
   run(forge, ['build'], join(repoDir, 'contracts'));
-  for (const contract of ['BondrailVault', 'BondrailCreditRegistry']) {
+  for (const contract of ['BondrailVault', 'BondrailCreditRegistry', 'BondrailVaultFactory']) {
     const actual = await json(join(repoDir, `contracts/out/${contract}.sol/${contract}.json`));
     const iface = await json(join(repoDir, `contracts/out/I${contract}.sol/I${contract}.json`));
     const functions = new Map(actual.abi.filter(i => i.type === 'function').map(i => [signature(i), i]));

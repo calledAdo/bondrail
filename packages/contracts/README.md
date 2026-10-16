@@ -138,3 +138,5 @@ From the repository root, run `npx -y pnpm@10.32.0 contracts:verify`. It compare
 mutability and nested return types, packs with npm, checks the installed payload byte-for-byte, then
 builds and tests [`examples/native-project`](https://github.com/calledAdo/bondrail/tree/next/examples/native-project)
 outside the workspace. `prepublishOnly` runs the same verification. Nothing is published by this check.
+
+`IBondrailVaultFactory` exposes bounded `vaults(offset, limit)` pages (1–100), membership, strategy metadata and creation. `BondrailVaultFactory` uses plain deployments with fixed original limits; the optional stricter-limit variant is not implemented. Names (64 bytes), symbols (16 bytes) and strategies (280 bytes) are bounded. A zero metadata hash means no external metadata. Legacy registration is owner-only and can succeed once; a separate verifier deploys an exact original reference with matching immutable values and compares runtime hashes. Build with the pinned compiler/settings to match the deployed legacy vault.

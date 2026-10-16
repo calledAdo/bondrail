@@ -61,7 +61,7 @@ contract VaultTest is TestBase {
     event Collected(address indexed bond, uint256 claims, uint256 assets);
     event RaiseWithdrawn(address indexed bond, uint256 assets);
 
-    function setUp() public {
+    function setUp() public virtual {
         vm.warp(100 days);
         asset = new MockUSDC();
         covenant = new BondrailCovenant(FORWARDER, vm.addr(OBSERVER_PK));
