@@ -1,0 +1,3464 @@
+{
+  "scenes": [
+    {
+      "id": "open",
+      "title": "What's new in Bondrail",
+      "minimum": 15,
+      "lines": [
+        {
+          "text": "Since our Metropolis submission, Bondrail has grown from revenue bonds into a full credit layer on Monad. Here's what's new — all live on testnet.",
+          "spoken": "Since our Metropolis submission, Bondrail has grown from revenue bonds into a full credit layer on Monad. Here's what's new — all live on test net.",
+          "file": "43589a21d357.wav",
+          "duration": 10.048,
+          "start": 0.4,
+          "end": 10.448
+        }
+      ],
+      "start": 0,
+      "duration": 15,
+      "voice": "am_michael",
+      "speed": 1.03
+    },
+    {
+      "id": "vaults",
+      "title": "One deposit. A portfolio of bonds.",
+      "minimum": 47,
+      "lines": [
+        {
+          "text": "First: vaults. Instead of picking bonds one by one, investors can deposit once and own a share of a portfolio of revenue bonds, managed by a disclosed curator under fixed limits.",
+          "spoken": "First: vaults. Instead of picking bonds one by one, investors can deposit once and own a share of a portfolio of revenue bonds, managed by a disclosed curator under fixed limits.",
+          "file": "88eaead7fc9d.wav",
+          "duration": 12.906666666666666,
+          "start": 0.4,
+          "end": 13.306666666666667
+        },
+        {
+          "text": "Anyone can create a vault through the factory; Bondrail lists them all, and says plainly that it doesn't endorse curators.",
+          "spoken": "Anyone can create a vault through the factory; Bondrail lists them all, and says plainly that it doesn't endorse curators.",
+          "file": "de7f25a6161e.wav",
+          "duration": 7.616,
+          "start": 14.506666666666666,
+          "end": 22.122666666666667
+        },
+        {
+          "text": "Depositing shows exactly what you get before you sign — your shares at today's price, and how much cash can be withdrawn right now.",
+          "spoken": "Depositing shows exactly what you get before you sign — your shares at today's price, and how much cash can be withdrawn right now.",
+          "file": "a69c34ec0cfd.wav",
+          "duration": 8.469333333333333,
+          "start": 23.322666666666667,
+          "end": 31.792
+        },
+        {
+          "text": "Healthy bonds are carried at cost; if a bond's revenue falls or it defaults, the exit price writes it down automatically. Your position appears in your portfolio within seconds.",
+          "spoken": "Healthy bonds are carried at cost; if a bond's revenue falls or it defaults, the exit price writes it down automatically. Your position appears in your portfolio within seconds.",
+          "file": "716efeb49c3d.wav",
+          "duration": 12.224,
+          "start": 32.992000000000004,
+          "end": 45.21600000000001
+        }
+      ],
+      "start": 15,
+      "duration": 47,
+      "voice": "am_michael",
+      "speed": 1.03
+    },
+    {
+      "id": "payers",
+      "title": "A payment with a proven payer",
+      "minimum": 28,
+      "lines": [
+        {
+          "text": "Second: paid API calls now settle straight through the business's Bondrail account.",
+          "spoken": "Second: paid ay pee eye calls now settle straight through the business's Bondrail account.",
+          "file": "c04999d5f54c.wav",
+          "duration": 5.205333333333333,
+          "start": 0.4,
+          "end": 5.605333333333333
+        },
+        {
+          "text": "The payer's own x402 signature is submitted to the account, so the payment is recorded with a proven payer, and the investors' share is split in the same transaction — on Monad.",
+          "spoken": "The payer's own X four oh two signature is submitted to the account, so the payment is recorded with a proven payer, and the investors' share is split in the same transaction — on Monad.",
+          "file": "6cf732a441a0.wav",
+          "duration": 12.394666666666666,
+          "start": 6.8053333333333335,
+          "end": 19.2
+        }
+      ],
+      "start": 62,
+      "duration": 28,
+      "voice": "am_michael",
+      "speed": 1.03
+    },
+    {
+      "id": "bonds",
+      "title": "Every bond explains itself",
+      "minimum": 34,
+      "lines": [
+        {
+          "text": "Third: every bond now explains itself. One sentence says what was raised, what investors receive and how much has been repaid; a timeline shows where the bond is in its life; and you can see what one claim is worth now, by maturity, and if revenue stops.",
+          "spoken": "Third: every bond now explains itself. One sentence says what was raised, what investors receive and how much has been repaid; a timeline shows where the bond is in its life; and you can see what one claim is worth now, by maturity, and if revenue stops.",
+          "file": "f27df9d3ccc6.wav",
+          "duration": 17.621333333333332,
+          "start": 0.4,
+          "end": 18.02133333333333
+        },
+        {
+          "text": "Bonds can also carry a performance trigger — if revenue falls below an agreed level, the investors' share steps up when the trigger is checked. And every page says plainly how you could lose money.",
+          "spoken": "Bonds can also carry a performance trigger — if revenue falls below an agreed level, the investors' share steps up when the trigger is checked. And every page says plainly how you could lose money.",
+          "file": "dc30b1e20f99.wav",
+          "duration": 12.394666666666666,
+          "start": 19.22133333333333,
+          "end": 31.615999999999996
+        }
+      ],
+      "start": 90,
+      "duration": 34,
+      "voice": "am_michael",
+      "speed": 1.03
+    },
+    {
+      "id": "credit",
+      "title": "A credit record other lenders can read",
+      "minimum": 18,
+      "lines": [
+        {
+          "text": "Fourth: on-chain credit profiles. Each business's record — revenue, payers and repayment history — is readable on-chain, with a signed attestation that other lenders can verify.",
+          "spoken": "Fourth: on-chain credit profiles. Each business's record — revenue, payers and repayment history — is readable on-chain, with a signed attestation that other lenders can verify.",
+          "file": "f4207e137674.wav",
+          "duration": 12.352,
+          "start": 0.4,
+          "end": 12.752
+        }
+      ],
+      "start": 124,
+      "duration": 18,
+      "voice": "am_michael",
+      "speed": 1.03
+    },
+    {
+      "id": "builders",
+      "title": "Build on Bondrail",
+      "minimum": 20,
+      "lines": [
+        {
+          "text": "And for builders, Bondrail is now on npm: the SDK for apps and agents, and the Solidity contracts — inherit BondrailEarner and your fees route through a revenue account from day one.",
+          "spoken": "And for builders, Bondrail is now on en pee em: the ess dee kay for apps and agents, and the Solidity contracts — inherit Bondrail Earner and your fees route through a revenue account from day one.",
+          "file": "abab151cb5ef.wav",
+          "duration": 13.376,
+          "start": 0.4,
+          "end": 13.776
+        }
+      ],
+      "start": 142,
+      "duration": 20,
+      "voice": "am_michael",
+      "speed": 1.03
+    },
+    {
+      "id": "close",
+      "title": "Credit for onchain businesses",
+      "minimum": 10,
+      "lines": [
+        {
+          "text": "Bondrail: credit for onchain businesses, repaid in the same block they earn. Try it at bondrail.vercel.app — testnet, not audited.",
+          "spoken": "Bondrail: credit for onchain businesses, repaid in the same block they earn. Try it at bond rail dot ver sell dot app — test net, not audited.",
+          "file": "e15373ceb479.wav",
+          "duration": 10.24,
+          "start": 0.4,
+          "end": 10.64
+        }
+      ],
+      "start": 162,
+      "duration": 11.066666666666666,
+      "voice": "am_michael",
+      "speed": 1.03
+    }
+  ],
+  "words": [
+    {
+      "text": "Since",
+      "start": 0.4,
+      "end": 0.56,
+      "alignment": "recognized"
+    },
+    {
+      "text": "our",
+      "start": 0.56,
+      "end": 0.72,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Metropolis",
+      "start": 0.72,
+      "end": 1.24,
+      "alignment": "recognized"
+    },
+    {
+      "text": "submission,",
+      "start": 1.24,
+      "end": 1.7200000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Bondrail",
+      "start": 2.58,
+      "end": 2.98,
+      "alignment": "recognized"
+    },
+    {
+      "text": "has",
+      "start": 2.98,
+      "end": 3.2199999999999998,
+      "alignment": "recognized"
+    },
+    {
+      "text": "grown",
+      "start": 3.2199999999999998,
+      "end": 3.52,
+      "alignment": "recognized"
+    },
+    {
+      "text": "from",
+      "start": 3.52,
+      "end": 3.76,
+      "alignment": "recognized"
+    },
+    {
+      "text": "revenue",
+      "start": 3.76,
+      "end": 3.98,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bonds",
+      "start": 3.98,
+      "end": 4.48,
+      "alignment": "recognized"
+    },
+    {
+      "text": "into",
+      "start": 4.48,
+      "end": 4.82,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 4.82,
+      "end": 4.98,
+      "alignment": "recognized"
+    },
+    {
+      "text": "full",
+      "start": 4.98,
+      "end": 5.2,
+      "alignment": "recognized"
+    },
+    {
+      "text": "credit",
+      "start": 5.2,
+      "end": 5.5600000000000005,
+      "alignment": "recognized"
+    },
+    {
+      "text": "layer",
+      "start": 5.5600000000000005,
+      "end": 5.94,
+      "alignment": "recognized"
+    },
+    {
+      "text": "on",
+      "start": 5.94,
+      "end": 6.2,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Monad.",
+      "start": 6.2,
+      "end": 6.7,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Here's",
+      "start": 7.24,
+      "end": 7.640000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "what's",
+      "start": 7.640000000000001,
+      "end": 7.9,
+      "alignment": "recognized"
+    },
+    {
+      "text": "new",
+      "start": 7.9,
+      "end": 8.1,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 8.72,
+      "end": 8.9,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "all",
+      "start": 8.72,
+      "end": 8.860000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "live",
+      "start": 8.860000000000001,
+      "end": 9.22,
+      "alignment": "recognized"
+    },
+    {
+      "text": "on",
+      "start": 9.22,
+      "end": 9.58,
+      "alignment": "recognized"
+    },
+    {
+      "text": "testnet.",
+      "start": 9.58,
+      "end": 10.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "First:",
+      "start": 15.4,
+      "end": 15.8,
+      "alignment": "recognized"
+    },
+    {
+      "text": "vaults.",
+      "start": 16.16,
+      "end": 16.6,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Instead",
+      "start": 17.560000000000002,
+      "end": 17.560000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "of",
+      "start": 17.560000000000002,
+      "end": 17.7,
+      "alignment": "recognized"
+    },
+    {
+      "text": "picking",
+      "start": 17.7,
+      "end": 17.92,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bonds",
+      "start": 17.92,
+      "end": 18.26,
+      "alignment": "recognized"
+    },
+    {
+      "text": "one",
+      "start": 18.26,
+      "end": 18.64,
+      "alignment": "recognized"
+    },
+    {
+      "text": "by",
+      "start": 18.64,
+      "end": 18.88,
+      "alignment": "recognized"
+    },
+    {
+      "text": "one,",
+      "start": 18.88,
+      "end": 19.22,
+      "alignment": "recognized"
+    },
+    {
+      "text": "investors",
+      "start": 19.560000000000002,
+      "end": 20.060000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "can",
+      "start": 20.060000000000002,
+      "end": 20.46,
+      "alignment": "recognized"
+    },
+    {
+      "text": "deposit",
+      "start": 20.46,
+      "end": 20.8,
+      "alignment": "recognized"
+    },
+    {
+      "text": "once",
+      "start": 20.8,
+      "end": 21.3,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 21.3,
+      "end": 21.58,
+      "alignment": "recognized"
+    },
+    {
+      "text": "own",
+      "start": 21.58,
+      "end": 21.82,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 21.82,
+      "end": 21.94,
+      "alignment": "recognized"
+    },
+    {
+      "text": "share",
+      "start": 21.94,
+      "end": 22.2,
+      "alignment": "recognized"
+    },
+    {
+      "text": "of",
+      "start": 22.2,
+      "end": 22.48,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 22.48,
+      "end": 22.54,
+      "alignment": "recognized"
+    },
+    {
+      "text": "portfolio",
+      "start": 22.54,
+      "end": 22.94,
+      "alignment": "recognized"
+    },
+    {
+      "text": "of",
+      "start": 22.94,
+      "end": 23.52,
+      "alignment": "recognized"
+    },
+    {
+      "text": "revenue",
+      "start": 23.52,
+      "end": 23.72,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bonds,",
+      "start": 23.72,
+      "end": 24.3,
+      "alignment": "recognized"
+    },
+    {
+      "text": "managed",
+      "start": 24.66,
+      "end": 25.28,
+      "alignment": "recognized"
+    },
+    {
+      "text": "by",
+      "start": 25.28,
+      "end": 25.6,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 25.6,
+      "end": 25.740000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "disclosed",
+      "start": 25.740000000000002,
+      "end": 26.04,
+      "alignment": "recognized"
+    },
+    {
+      "text": "curator",
+      "start": 26.04,
+      "end": 26.759999999999998,
+      "alignment": "recognized"
+    },
+    {
+      "text": "under",
+      "start": 26.759999999999998,
+      "end": 27.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "fixed",
+      "start": 27.18,
+      "end": 27.5,
+      "alignment": "recognized"
+    },
+    {
+      "text": "limits.",
+      "start": 27.5,
+      "end": 27.92,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Anyone",
+      "start": 29.506666666666668,
+      "end": 29.826666666666668,
+      "alignment": "recognized"
+    },
+    {
+      "text": "can",
+      "start": 29.826666666666668,
+      "end": 30.166666666666668,
+      "alignment": "recognized"
+    },
+    {
+      "text": "create",
+      "start": 30.166666666666668,
+      "end": 30.526666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 30.526666666666667,
+      "end": 30.686666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "vault",
+      "start": 30.686666666666667,
+      "end": 30.92666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "through",
+      "start": 30.92666666666667,
+      "end": 31.226666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 31.226666666666667,
+      "end": 31.326666666666668,
+      "alignment": "recognized"
+    },
+    {
+      "text": "factory;",
+      "start": 31.326666666666668,
+      "end": 31.78666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Bondrail",
+      "start": 32.68666666666667,
+      "end": 32.906666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "lists",
+      "start": 32.906666666666666,
+      "end": 33.22666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "them",
+      "start": 33.22666666666667,
+      "end": 33.486666666666665,
+      "alignment": "recognized"
+    },
+    {
+      "text": "all,",
+      "start": 33.486666666666665,
+      "end": 33.766666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 33.766666666666666,
+      "end": 34.18666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "says",
+      "start": 34.18666666666667,
+      "end": 34.446666666666665,
+      "alignment": "recognized"
+    },
+    {
+      "text": "plainly",
+      "start": 34.446666666666665,
+      "end": 34.846666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "that",
+      "start": 34.846666666666664,
+      "end": 35.346666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "it",
+      "start": 35.346666666666664,
+      "end": 35.42666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "doesn't",
+      "start": 35.42666666666667,
+      "end": 35.72666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "endorse",
+      "start": 35.72666666666667,
+      "end": 36.14666666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "curators.",
+      "start": 36.14666666666667,
+      "end": 36.766666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Depositing",
+      "start": 38.32266666666666,
+      "end": 38.842666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "shows",
+      "start": 38.842666666666666,
+      "end": 39.102666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "exactly",
+      "start": 39.102666666666664,
+      "end": 39.562666666666665,
+      "alignment": "recognized"
+    },
+    {
+      "text": "what",
+      "start": 39.562666666666665,
+      "end": 40.102666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "you",
+      "start": 40.102666666666664,
+      "end": 40.22266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "get",
+      "start": 40.22266666666666,
+      "end": 40.36266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "before",
+      "start": 40.36266666666666,
+      "end": 40.66266666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "you",
+      "start": 40.66266666666667,
+      "end": 40.842666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "sign",
+      "start": 40.842666666666666,
+      "end": 41.14266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 41.80266666666666,
+      "end": 41.98266666666666,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "your",
+      "start": 41.80266666666666,
+      "end": 41.94266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "shares",
+      "start": 41.94266666666666,
+      "end": 42.22266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "at",
+      "start": 42.22266666666666,
+      "end": 42.62266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "today's",
+      "start": 42.62266666666666,
+      "end": 43.062666666666665,
+      "alignment": "recognized"
+    },
+    {
+      "text": "price,",
+      "start": 43.062666666666665,
+      "end": 43.382666666666665,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 43.962666666666664,
+      "end": 44.14266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "how",
+      "start": 44.14266666666666,
+      "end": 44.282666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "much",
+      "start": 44.282666666666664,
+      "end": 44.462666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "cash",
+      "start": 44.462666666666664,
+      "end": 44.82266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "can",
+      "start": 44.82266666666666,
+      "end": 45.16266666666667,
+      "alignment": "recognized"
+    },
+    {
+      "text": "be",
+      "start": 45.16266666666667,
+      "end": 45.282666666666664,
+      "alignment": "recognized"
+    },
+    {
+      "text": "withdrawn",
+      "start": 45.282666666666664,
+      "end": 45.522666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "right",
+      "start": 45.522666666666666,
+      "end": 46.14266666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "now.",
+      "start": 46.14266666666666,
+      "end": 46.522666666666666,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Healthy",
+      "start": 47.992000000000004,
+      "end": 48.352000000000004,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bonds",
+      "start": 48.352000000000004,
+      "end": 48.69200000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "are",
+      "start": 48.69200000000001,
+      "end": 49.032000000000004,
+      "alignment": "recognized"
+    },
+    {
+      "text": "carried",
+      "start": 49.032000000000004,
+      "end": 49.412000000000006,
+      "alignment": "recognized"
+    },
+    {
+      "text": "at",
+      "start": 49.412000000000006,
+      "end": 49.532000000000004,
+      "alignment": "recognized"
+    },
+    {
+      "text": "cost;",
+      "start": 49.532000000000004,
+      "end": 49.772000000000006,
+      "alignment": "recognized"
+    },
+    {
+      "text": "if",
+      "start": 50.532000000000004,
+      "end": 50.572,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 50.572,
+      "end": 50.612,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bond's",
+      "start": 50.612,
+      "end": 51.152,
+      "alignment": "recognized"
+    },
+    {
+      "text": "revenue",
+      "start": 51.152,
+      "end": 51.312000000000005,
+      "alignment": "recognized"
+    },
+    {
+      "text": "falls",
+      "start": 51.312000000000005,
+      "end": 51.912000000000006,
+      "alignment": "recognized"
+    },
+    {
+      "text": "or",
+      "start": 51.912000000000006,
+      "end": 52.352000000000004,
+      "alignment": "recognized"
+    },
+    {
+      "text": "it",
+      "start": 52.352000000000004,
+      "end": 52.492000000000004,
+      "alignment": "recognized"
+    },
+    {
+      "text": "defaults,",
+      "start": 52.492000000000004,
+      "end": 52.87200000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 53.572,
+      "end": 53.612,
+      "alignment": "recognized"
+    },
+    {
+      "text": "exit",
+      "start": 53.612,
+      "end": 53.87200000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "price",
+      "start": 53.87200000000001,
+      "end": 54.392,
+      "alignment": "recognized"
+    },
+    {
+      "text": "writes",
+      "start": 54.392,
+      "end": 54.752,
+      "alignment": "recognized"
+    },
+    {
+      "text": "it",
+      "start": 54.752,
+      "end": 55.012,
+      "alignment": "recognized"
+    },
+    {
+      "text": "down",
+      "start": 55.012,
+      "end": 55.212,
+      "alignment": "recognized"
+    },
+    {
+      "text": "automatically.",
+      "start": 55.212,
+      "end": 55.912000000000006,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Your",
+      "start": 56.932,
+      "end": 56.97200000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "position",
+      "start": 56.97200000000001,
+      "end": 57.37200000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "appears",
+      "start": 57.37200000000001,
+      "end": 57.792,
+      "alignment": "recognized"
+    },
+    {
+      "text": "in",
+      "start": 57.792,
+      "end": 58.19200000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "your",
+      "start": 58.19200000000001,
+      "end": 58.312000000000005,
+      "alignment": "recognized"
+    },
+    {
+      "text": "portfolio",
+      "start": 58.312000000000005,
+      "end": 58.772000000000006,
+      "alignment": "recognized"
+    },
+    {
+      "text": "within",
+      "start": 58.772000000000006,
+      "end": 59.312000000000005,
+      "alignment": "recognized"
+    },
+    {
+      "text": "seconds.",
+      "start": 59.312000000000005,
+      "end": 59.792,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Second:",
+      "start": 62.4,
+      "end": 62.72,
+      "alignment": "recognized"
+    },
+    {
+      "text": "paid",
+      "start": 63,
+      "end": 63.12,
+      "alignment": "recognized"
+    },
+    {
+      "text": "API",
+      "start": 63.12,
+      "end": 63.9,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "calls",
+      "start": 63.9,
+      "end": 64.26,
+      "alignment": "recognized"
+    },
+    {
+      "text": "now",
+      "start": 64.26,
+      "end": 64.64,
+      "alignment": "recognized"
+    },
+    {
+      "text": "settle",
+      "start": 64.64,
+      "end": 65,
+      "alignment": "recognized"
+    },
+    {
+      "text": "straight",
+      "start": 65,
+      "end": 65.4,
+      "alignment": "recognized"
+    },
+    {
+      "text": "through",
+      "start": 65.4,
+      "end": 65.7,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 65.7,
+      "end": 65.8,
+      "alignment": "recognized"
+    },
+    {
+      "text": "business's",
+      "start": 65.8,
+      "end": 66.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Bondrail",
+      "start": 66.34,
+      "end": 66.9,
+      "alignment": "recognized"
+    },
+    {
+      "text": "account.",
+      "start": 66.9,
+      "end": 67.24,
+      "alignment": "recognized"
+    },
+    {
+      "text": "The",
+      "start": 68.80533333333334,
+      "end": 68.90533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "payer's",
+      "start": 68.90533333333333,
+      "end": 69.34533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "own",
+      "start": 69.34533333333334,
+      "end": 69.60533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "x402",
+      "start": 69.60533333333333,
+      "end": 70.40533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "signature",
+      "start": 70.40533333333333,
+      "end": 71.26533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 71.26533333333333,
+      "end": 71.72533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "submitted",
+      "start": 71.72533333333334,
+      "end": 72.10533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "to",
+      "start": 72.10533333333333,
+      "end": 72.40533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 72.40533333333333,
+      "end": 72.52533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "account,",
+      "start": 72.52533333333334,
+      "end": 72.82533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "so",
+      "start": 73.60533333333333,
+      "end": 73.68533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 73.68533333333333,
+      "end": 73.80533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "payment",
+      "start": 73.80533333333334,
+      "end": 74.12533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 74.12533333333334,
+      "end": 74.44533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "recorded",
+      "start": 74.44533333333334,
+      "end": 74.86533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "with",
+      "start": 74.86533333333334,
+      "end": 75.20533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 75.20533333333334,
+      "end": 75.28533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "proven",
+      "start": 75.28533333333334,
+      "end": 75.58533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "payer,",
+      "start": 75.58533333333334,
+      "end": 76.28533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 76.78533333333334,
+      "end": 76.84533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 76.84533333333334,
+      "end": 76.94533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "investors'",
+      "start": 76.94533333333334,
+      "end": 77.52533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "share",
+      "start": 77.52533333333334,
+      "end": 77.78533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 77.78533333333334,
+      "end": 78.08533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "split",
+      "start": 78.08533333333334,
+      "end": 78.34533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "in",
+      "start": 78.34533333333334,
+      "end": 78.60533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 78.60533333333333,
+      "end": 78.70533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "same",
+      "start": 78.70533333333334,
+      "end": 78.90533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "transaction",
+      "start": 78.90533333333333,
+      "end": 79.64533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 79.64533333333334,
+      "end": 79.82533333333333,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "on",
+      "start": 79.64533333333334,
+      "end": 80.44533333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Monad.",
+      "start": 80.44533333333334,
+      "end": 80.96533333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Third:",
+      "start": 90.4,
+      "end": 90.60000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "every",
+      "start": 91.12,
+      "end": 91.2,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bond",
+      "start": 91.2,
+      "end": 91.58000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "now",
+      "start": 91.58000000000001,
+      "end": 91.9,
+      "alignment": "recognized"
+    },
+    {
+      "text": "explains",
+      "start": 91.9,
+      "end": 92.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "itself.",
+      "start": 92.34,
+      "end": 92.74000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "One",
+      "start": 93.74000000000001,
+      "end": 93.74000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "sentence",
+      "start": 93.74000000000001,
+      "end": 94.14,
+      "alignment": "recognized"
+    },
+    {
+      "text": "says",
+      "start": 94.14,
+      "end": 94.5,
+      "alignment": "recognized"
+    },
+    {
+      "text": "what",
+      "start": 94.5,
+      "end": 94.7,
+      "alignment": "recognized"
+    },
+    {
+      "text": "was",
+      "start": 94.7,
+      "end": 94.84,
+      "alignment": "recognized"
+    },
+    {
+      "text": "raised,",
+      "start": 94.84,
+      "end": 95.16000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "what",
+      "start": 95.82000000000001,
+      "end": 95.96000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "investors",
+      "start": 95.96000000000001,
+      "end": 96.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "receive",
+      "start": 96.34,
+      "end": 97.04,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 97.34,
+      "end": 97.36,
+      "alignment": "recognized"
+    },
+    {
+      "text": "how",
+      "start": 97.36,
+      "end": 97.56,
+      "alignment": "recognized"
+    },
+    {
+      "text": "much",
+      "start": 97.56,
+      "end": 97.78,
+      "alignment": "recognized"
+    },
+    {
+      "text": "has",
+      "start": 97.78,
+      "end": 98,
+      "alignment": "recognized"
+    },
+    {
+      "text": "been",
+      "start": 98,
+      "end": 98.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "repaid;",
+      "start": 98.18,
+      "end": 98.46000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 99.38000000000001,
+      "end": 99.4,
+      "alignment": "recognized"
+    },
+    {
+      "text": "timeline",
+      "start": 99.4,
+      "end": 99.82000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "shows",
+      "start": 99.82000000000001,
+      "end": 100.36000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "where",
+      "start": 100.36000000000001,
+      "end": 100.68,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 100.68,
+      "end": 100.80000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bond",
+      "start": 100.80000000000001,
+      "end": 101.10000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 101.10000000000001,
+      "end": 101.4,
+      "alignment": "recognized"
+    },
+    {
+      "text": "in",
+      "start": 101.4,
+      "end": 101.52000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "its",
+      "start": 101.52000000000001,
+      "end": 101.64,
+      "alignment": "recognized"
+    },
+    {
+      "text": "life;",
+      "start": 101.64,
+      "end": 101.96000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 102.66000000000001,
+      "end": 102.7,
+      "alignment": "recognized"
+    },
+    {
+      "text": "you",
+      "start": 102.7,
+      "end": 102.82000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "can",
+      "start": 102.82000000000001,
+      "end": 102.94,
+      "alignment": "recognized"
+    },
+    {
+      "text": "see",
+      "start": 102.94,
+      "end": 103.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "what",
+      "start": 103.18,
+      "end": 103.42,
+      "alignment": "recognized"
+    },
+    {
+      "text": "one",
+      "start": 103.42,
+      "end": 103.66000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "claim",
+      "start": 103.66000000000001,
+      "end": 104.02000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 104.02000000000001,
+      "end": 104.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "worth",
+      "start": 104.34,
+      "end": 104.54,
+      "alignment": "recognized"
+    },
+    {
+      "text": "now,",
+      "start": 104.54,
+      "end": 104.9,
+      "alignment": "recognized"
+    },
+    {
+      "text": "by",
+      "start": 104.9,
+      "end": 105.28,
+      "alignment": "recognized"
+    },
+    {
+      "text": "maturity,",
+      "start": 105.28,
+      "end": 105.74000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 106.32000000000001,
+      "end": 106.56,
+      "alignment": "recognized"
+    },
+    {
+      "text": "if",
+      "start": 106.56,
+      "end": 106.7,
+      "alignment": "recognized"
+    },
+    {
+      "text": "revenue",
+      "start": 106.7,
+      "end": 107,
+      "alignment": "recognized"
+    },
+    {
+      "text": "stops.",
+      "start": 107,
+      "end": 107.64,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Bonds",
+      "start": 109.22133333333333,
+      "end": 109.50133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "can",
+      "start": 109.50133333333333,
+      "end": 109.76133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "also",
+      "start": 109.76133333333334,
+      "end": 110.06133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "carry",
+      "start": 110.06133333333334,
+      "end": 110.56133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 110.56133333333334,
+      "end": 110.74133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "performance",
+      "start": 110.74133333333333,
+      "end": 111.00133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "trigger",
+      "start": 111.00133333333333,
+      "end": 111.52133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 112.34133333333334,
+      "end": 112.52133333333333,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "if",
+      "start": 112.34133333333334,
+      "end": 112.34133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "revenue",
+      "start": 112.34133333333334,
+      "end": 112.62133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "falls",
+      "start": 112.62133333333334,
+      "end": 113.16133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "below",
+      "start": 113.16133333333333,
+      "end": 113.60133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "an",
+      "start": 113.60133333333333,
+      "end": 113.80133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "agreed",
+      "start": 113.80133333333333,
+      "end": 114.04133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "level,",
+      "start": 114.04133333333334,
+      "end": 114.58133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 115.04133333333334,
+      "end": 115.14133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "investors'",
+      "start": 115.14133333333334,
+      "end": 115.54133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "share",
+      "start": 115.54133333333334,
+      "end": 115.96133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "steps",
+      "start": 115.96133333333333,
+      "end": 116.34133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "up",
+      "start": 116.34133333333334,
+      "end": 116.66133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "when",
+      "start": 116.66133333333333,
+      "end": 116.86133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 116.86133333333333,
+      "end": 116.96133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "trigger",
+      "start": 116.96133333333333,
+      "end": 117.22133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 117.22133333333333,
+      "end": 117.48133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "checked.",
+      "start": 117.48133333333334,
+      "end": 117.82133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "And",
+      "start": 118.56133333333334,
+      "end": 118.66133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "every",
+      "start": 118.66133333333333,
+      "end": 118.92133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "page",
+      "start": 118.92133333333334,
+      "end": 119.28133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "says",
+      "start": 119.28133333333334,
+      "end": 119.70133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "plainly",
+      "start": 119.70133333333334,
+      "end": 119.98133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "how",
+      "start": 119.98133333333334,
+      "end": 120.48133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "you",
+      "start": 120.48133333333334,
+      "end": 120.68133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "could",
+      "start": 120.68133333333333,
+      "end": 120.82133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "lose",
+      "start": 120.82133333333333,
+      "end": 121.04133333333334,
+      "alignment": "recognized"
+    },
+    {
+      "text": "money.",
+      "start": 121.04133333333334,
+      "end": 121.38133333333333,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Fourth:",
+      "start": 124.4,
+      "end": 124.72,
+      "alignment": "recognized"
+    },
+    {
+      "text": "on-chain",
+      "start": 125.04,
+      "end": 125.42,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "credit",
+      "start": 125.42,
+      "end": 125.80000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "profiles.",
+      "start": 125.80000000000001,
+      "end": 126.22,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Each",
+      "start": 127.28,
+      "end": 127.32000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "business's",
+      "start": 127.32000000000001,
+      "end": 128,
+      "alignment": "recognized"
+    },
+    {
+      "text": "record",
+      "start": 128,
+      "end": 128.38,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 128.58,
+      "end": 128.76,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "revenue,",
+      "start": 128.58,
+      "end": 129,
+      "alignment": "recognized"
+    },
+    {
+      "text": "payers",
+      "start": 129.58,
+      "end": 129.94,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 130.04,
+      "end": 130.08,
+      "alignment": "recognized"
+    },
+    {
+      "text": "repayment",
+      "start": 130.08,
+      "end": 130.44,
+      "alignment": "recognized"
+    },
+    {
+      "text": "history",
+      "start": 130.44,
+      "end": 131,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 131,
+      "end": 131.18,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "is",
+      "start": 131,
+      "end": 131.6,
+      "alignment": "recognized"
+    },
+    {
+      "text": "readable",
+      "start": 131.6,
+      "end": 131.9,
+      "alignment": "recognized"
+    },
+    {
+      "text": "on-chain,",
+      "start": 131.9,
+      "end": 132.76,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "with",
+      "start": 132.76,
+      "end": 133.46,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 133.46,
+      "end": 133.54000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "signed",
+      "start": 133.54000000000002,
+      "end": 133.96,
+      "alignment": "recognized"
+    },
+    {
+      "text": "attestation",
+      "start": 133.96,
+      "end": 134.70000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "that",
+      "start": 134.70000000000002,
+      "end": 134.92000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "other",
+      "start": 134.92000000000002,
+      "end": 135.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "lenders",
+      "start": 135.18,
+      "end": 135.46,
+      "alignment": "recognized"
+    },
+    {
+      "text": "can",
+      "start": 135.46,
+      "end": 135.88,
+      "alignment": "recognized"
+    },
+    {
+      "text": "verify.",
+      "start": 135.88,
+      "end": 136.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "And",
+      "start": 142.4,
+      "end": 142.56,
+      "alignment": "recognized"
+    },
+    {
+      "text": "for",
+      "start": 142.56,
+      "end": 142.70000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "builders,",
+      "start": 142.70000000000002,
+      "end": 143,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Bondrail",
+      "start": 143.86,
+      "end": 144.12,
+      "alignment": "recognized"
+    },
+    {
+      "text": "is",
+      "start": 144.12,
+      "end": 144.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "now",
+      "start": 144.34,
+      "end": 144.64000000000001,
+      "alignment": "recognized"
+    },
+    {
+      "text": "on",
+      "start": 144.64000000000001,
+      "end": 144.92000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "npm:",
+      "start": 144.92000000000002,
+      "end": 145.32,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 146.42000000000002,
+      "end": 146.48000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "SDK",
+      "start": 146.48000000000002,
+      "end": 146.88,
+      "alignment": "recognized"
+    },
+    {
+      "text": "for",
+      "start": 146.88,
+      "end": 147.46,
+      "alignment": "recognized"
+    },
+    {
+      "text": "apps",
+      "start": 147.46,
+      "end": 147.72,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 147.72,
+      "end": 147.98000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "agents,",
+      "start": 147.98000000000002,
+      "end": 148.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "and",
+      "start": 149.08,
+      "end": 149.1,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 149.1,
+      "end": 149.20000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Solidity",
+      "start": 149.20000000000002,
+      "end": 149.58,
+      "alignment": "recognized"
+    },
+    {
+      "text": "contracts",
+      "start": 149.58,
+      "end": 149.96,
+      "alignment": "recognized"
+    },
+    {
+      "text": "—",
+      "start": 150.8,
+      "end": 150.98000000000002,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "inherit",
+      "start": 150.8,
+      "end": 151.04000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "BondrailEarner",
+      "start": 151.04000000000002,
+      "end": 152.22,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "and",
+      "start": 152.22,
+      "end": 152.56,
+      "alignment": "recognized"
+    },
+    {
+      "text": "your",
+      "start": 152.56,
+      "end": 152.68,
+      "alignment": "recognized"
+    },
+    {
+      "text": "fees",
+      "start": 152.68,
+      "end": 152.96,
+      "alignment": "recognized"
+    },
+    {
+      "text": "route",
+      "start": 152.96,
+      "end": 153.34,
+      "alignment": "recognized"
+    },
+    {
+      "text": "through",
+      "start": 153.34,
+      "end": 153.76,
+      "alignment": "recognized"
+    },
+    {
+      "text": "a",
+      "start": 153.76,
+      "end": 153.92000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "revenue",
+      "start": 153.92000000000002,
+      "end": 154.22,
+      "alignment": "recognized"
+    },
+    {
+      "text": "account",
+      "start": 154.22,
+      "end": 154.58,
+      "alignment": "recognized"
+    },
+    {
+      "text": "from",
+      "start": 154.58,
+      "end": 154.92000000000002,
+      "alignment": "recognized"
+    },
+    {
+      "text": "day",
+      "start": 154.92000000000002,
+      "end": 155.1,
+      "alignment": "recognized"
+    },
+    {
+      "text": "one.",
+      "start": 155.1,
+      "end": 155.5,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Bondrail:",
+      "start": 162.4,
+      "end": 162.96,
+      "alignment": "recognized"
+    },
+    {
+      "text": "credit",
+      "start": 163.24,
+      "end": 163.5,
+      "alignment": "recognized"
+    },
+    {
+      "text": "for",
+      "start": 163.5,
+      "end": 163.8,
+      "alignment": "recognized"
+    },
+    {
+      "text": "onchain",
+      "start": 163.8,
+      "end": 164.26000000000002,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "businesses,",
+      "start": 164.26000000000002,
+      "end": 164.74,
+      "alignment": "recognized"
+    },
+    {
+      "text": "repaid",
+      "start": 165.34,
+      "end": 165.6,
+      "alignment": "recognized"
+    },
+    {
+      "text": "in",
+      "start": 165.6,
+      "end": 165.86,
+      "alignment": "recognized"
+    },
+    {
+      "text": "the",
+      "start": 165.86,
+      "end": 165.96,
+      "alignment": "recognized"
+    },
+    {
+      "text": "same",
+      "start": 165.96,
+      "end": 166.18,
+      "alignment": "recognized"
+    },
+    {
+      "text": "block",
+      "start": 166.18,
+      "end": 166.52,
+      "alignment": "recognized"
+    },
+    {
+      "text": "they",
+      "start": 166.52,
+      "end": 166.78,
+      "alignment": "recognized"
+    },
+    {
+      "text": "earn.",
+      "start": 166.78,
+      "end": 167.1,
+      "alignment": "recognized"
+    },
+    {
+      "text": "Try",
+      "start": 167.86,
+      "end": 167.96,
+      "alignment": "recognized"
+    },
+    {
+      "text": "it",
+      "start": 167.96,
+      "end": 168.24,
+      "alignment": "recognized"
+    },
+    {
+      "text": "at",
+      "start": 168.24,
+      "end": 168.28,
+      "alignment": "recognized"
+    },
+    {
+      "text": "bondrail.vercel.app",
+      "start": 168.28,
+      "end": 169.37,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "—",
+      "start": 169.37,
+      "end": 170.46,
+      "alignment": "aligned-name-or-token"
+    },
+    {
+      "text": "testnet,",
+      "start": 170.84,
+      "end": 171.28,
+      "alignment": "recognized"
+    },
+    {
+      "text": "not",
+      "start": 171.6,
+      "end": 171.84,
+      "alignment": "recognized"
+    },
+    {
+      "text": "audited.",
+      "start": 171.84,
+      "end": 172.36,
+      "alignment": "recognized"
+    }
+  ],
+  "captures": {
+    "vault": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "overview",
+          "at": 0.051,
+          "url": "https://bondrail.vercel.app/vaults/0x57fd6a271a6a4e96b151e5d0732c7f61e3059f07",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\n0xF62d…761b\n← All vaults\nBondrail Credit\nOpen to deposits\n\nThis vault, curated by 0xc927…3c9b, spreads deposits across revenue bonds under fixed limits. 1 holding, 1.5 USDC withdrawable now.\n\nDiversified revenue bonds under fixed allocation limits\n\nCreated by the Bondrail team\n\nAnyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.\n\nVault value\nNet asset value\n2 USDC\nWithdrawable now\n1.5 USDC\nHoldings\n1\nEntry price / share\n1 USDC\nExit price / share\n1 USDC\n\n30-day realized price at deposits/withdrawals · one daily observation; trend builds over time\n\nMonad testnet · block 71498133 · refreshes every 15 seconds\n\nHow you could lose money\nBonds can earn less than expected or default. The vault writes down unpaid capital, reducing the value of your shares.\nExits are limited to idle cash. Other holders can withdraw it first; invested money remains tied up until bonds repay or settle.\nThe curator chooses the holdings. Fixed limits reduce concentration but cannot prevent poor choices, correlated losses, or curator inactivity.\nThis is testnet software and has not been audited. Contract bugs and asset failures can cause losses.\nYour deposit & withdrawal\nDeposit\nWithdraw\nAmount (USDC)\nMax\n\nBalance: 3 USDC\n\nEnter an amount to preview your shares.\n\nWithdrawals are limited to the vault's idle cash (withdrawable now: 1.5 USDC).\n\nReturns come from bond repayments; there is no fixed rate.\n\nThe transaction uses the price and available cash when it executes. Previewed amounts can change.\n\n1. Approve USDC\n2. Deposit\n\nApprove USDC\nHoldings\nPumpLab Revenue Claim\n\nActive\n\n0.5 USDC\n\n0.5 claims · cost 0.5 USDC\n\nMandate\n\nDiversified revenue bonds under fixed allocation limits. Strategy text describes the curator's intent; eligibility includes both Native and Watched bonds.\n\nMaximum per bond\n25%\nMaximum holdings\n16\nMinimum idle at allocation\n20%\n\nLimits apply when allocating and cannot be loosened. Withdrawals can exhaust idle cash. Owner changes to the curator have a 2-day delay; the owner cannot transfer vault funds.\n\nTechnical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "cursor",
+          "at": 4.453,
+          "x": 1463.4644584655762,
+          "y": 153.470458984375
+        },
+        {
+          "type": "cursor",
+          "at": 4.475,
+          "x": 1461.9034118652344,
+          "y": 154.841796875
+        },
+        {
+          "type": "cursor",
+          "at": 4.496,
+          "x": 1459.3852272033691,
+          "y": 157.053955078125
+        },
+        {
+          "type": "cursor",
+          "at": 4.516,
+          "x": 1455.978271484375,
+          "y": 160.046875
+        },
+        {
+          "type": "cursor",
+          "at": 4.554,
+          "x": 1451.7509117126465,
+          "y": 163.760498046875
+        },
+        {
+          "type": "cursor",
+          "at": 4.576,
+          "x": 1446.7715148925781,
+          "y": 168.134765625
+        },
+        {
+          "type": "cursor",
+          "at": 4.597,
+          "x": 1441.1084480285645,
+          "y": 173.109619140625
+        },
+        {
+          "type": "cursor",
+          "at": 4.617,
+          "x": 1434.830078125,
+          "y": 178.625
+        },
+        {
+          "type": "cursor",
+          "at": 4.655,
+          "x": 1428.0047721862793,
+          "y": 184.620849609375
+        },
+        {
+          "type": "cursor",
+          "at": 4.677,
+          "x": 1420.7008972167969,
+          "y": 191.037109375
+        },
+        {
+          "type": "cursor",
+          "at": 4.698,
+          "x": 1412.9868202209473,
+          "y": 197.813720703125
+        },
+        {
+          "type": "cursor",
+          "at": 4.738,
+          "x": 1404.930908203125,
+          "y": 204.890625
+        },
+        {
+          "type": "cursor",
+          "at": 4.759,
+          "x": 1396.6015281677246,
+          "y": 212.207763671875
+        },
+        {
+          "type": "cursor",
+          "at": 4.78,
+          "x": 1388.0670471191406,
+          "y": 219.705078125
+        },
+        {
+          "type": "cursor",
+          "at": 4.801,
+          "x": 1379.3958320617676,
+          "y": 227.322509765625
+        },
+        {
+          "type": "cursor",
+          "at": 4.838,
+          "x": 1370.65625,
+          "y": 235
+        },
+        {
+          "type": "cursor",
+          "at": 4.859,
+          "x": 1361.9166679382324,
+          "y": 242.677490234375
+        },
+        {
+          "type": "cursor",
+          "at": 4.881,
+          "x": 1353.2454528808594,
+          "y": 250.294921875
+        },
+        {
+          "type": "cursor",
+          "at": 4.903,
+          "x": 1344.7109718322754,
+          "y": 257.792236328125
+        },
+        {
+          "type": "cursor",
+          "at": 4.925,
+          "x": 1336.381591796875,
+          "y": 265.109375
+        },
+        {
+          "type": "cursor",
+          "at": 4.947,
+          "x": 1328.3256797790527,
+          "y": 272.186279296875
+        },
+        {
+          "type": "cursor",
+          "at": 4.968,
+          "x": 1320.6116027832031,
+          "y": 278.962890625
+        },
+        {
+          "type": "cursor",
+          "at": 5.004,
+          "x": 1313.3077278137207,
+          "y": 285.379150390625
+        },
+        {
+          "type": "cursor",
+          "at": 5.026,
+          "x": 1306.482421875,
+          "y": 291.375
+        },
+        {
+          "type": "cursor",
+          "at": 5.048,
+          "x": 1300.2040519714355,
+          "y": 296.890380859375
+        },
+        {
+          "type": "cursor",
+          "at": 5.07,
+          "x": 1294.5409851074219,
+          "y": 301.865234375
+        },
+        {
+          "type": "cursor",
+          "at": 5.105,
+          "x": 1289.5615882873535,
+          "y": 306.239501953125
+        },
+        {
+          "type": "cursor",
+          "at": 5.126,
+          "x": 1285.334228515625,
+          "y": 309.953125
+        },
+        {
+          "type": "cursor",
+          "at": 5.147,
+          "x": 1281.9272727966309,
+          "y": 312.946044921875
+        },
+        {
+          "type": "cursor",
+          "at": 5.169,
+          "x": 1279.4090881347656,
+          "y": 315.158203125
+        },
+        {
+          "type": "cursor",
+          "at": 5.204,
+          "x": 1277.8480415344238,
+          "y": 316.529541015625
+        },
+        {
+          "type": "cursor",
+          "at": 5.226,
+          "x": 1277.3125,
+          "y": 317
+        },
+        {
+          "type": "evidence",
+          "label": "preview",
+          "at": 9.657,
+          "url": "https://bondrail.vercel.app/vaults/0x57fd6a271a6a4e96b151e5d0732c7f61e3059f07",
+          "rect": {
+            "x": 1064.109375,
+            "y": 267,
+            "width": 486.890625,
+            "height": 96
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\n0xF62d…761b\n← All vaults\nBondrail Credit\nOpen to deposits\n\nThis vault, curated by 0xc927…3c9b, spreads deposits across revenue bonds under fixed limits. 1 holding, 1.5 USDC withdrawable now.\n\nDiversified revenue bonds under fixed allocation limits\n\nCreated by the Bondrail team\n\nAnyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.\n\nVault value\nNet asset value\n2 USDC\nWithdrawable now\n1.5 USDC\nHoldings\n1\nEntry price / share\n1 USDC\nExit price / share\n1 USDC\n\n30-day realized price at deposits/withdrawals · one daily observation; trend builds over time\n\nMonad testnet · block 71498182 · refreshes every 15 seconds\n\nHow you could lose money\nBonds can earn less than expected or default. The vault writes down unpaid capital, reducing the value of your shares.\nExits are limited to idle cash. Other holders can withdraw it first; invested money remains tied up until bonds repay or settle.\nThe curator chooses the holdings. Fixed limits reduce concentration but cannot prevent poor choices, correlated losses, or curator inactivity.\nThis is testnet software and has not been audited. Contract bugs and asset failures can cause losses.\nYour deposit & withdrawal\nDeposit\nWithdraw\nAmount (USDC)\nMax\n\nBalance: 3 USDC\n\nYou receive ≈ 1 shares at the entry price of 1 USDC.\n\nWithdrawals are limited to the vault's idle cash (withdrawable now: 1.5 USDC).\n\nReturns come from bond repayments; there is no fixed rate.\n\nThe transaction uses the price and available cash when it executes. Previewed amounts can change.\n\n1. Approve USDC\n2. Deposit\n\nApprove USDC\nHoldings\nPumpLab Revenue Claim\n\nActive\n\n0.5 USDC\n\n0.5 claims · cost 0.5 USDC\n\nMandate\n\nDiversified revenue bonds under fixed allocation limits. Strategy text describes the curator's intent; eligibility includes both Native and Watched bonds.\n\nMaximum per bond\n25%\nMaximum holdings\n16\nMinimum idle at allocation\n20%\n\nLimits apply when allocating and cannot be loosened. Withdrawals can exhaust idle cash. Owner changes to the curator have a 2-day delay; the owner cannot transfer vault funds.\n\nTechnical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "cursor",
+          "at": 15.77,
+          "x": 1277.399254322052,
+          "y": 318.04705810546875
+        },
+        {
+          "type": "cursor",
+          "at": 15.791,
+          "x": 1277.6521339416504,
+          "y": 321.09912109375
+        },
+        {
+          "type": "cursor",
+          "at": 15.814,
+          "x": 1278.0600638389587,
+          "y": 326.02252197265625
+        },
+        {
+          "type": "cursor",
+          "at": 15.836,
+          "x": 1278.6119689941406,
+          "y": 332.68359375
+        },
+        {
+          "type": "cursor",
+          "at": 15.871,
+          "x": 1279.2967743873596,
+          "y": 340.94866943359375
+        },
+        {
+          "type": "cursor",
+          "at": 15.894,
+          "x": 1280.1034049987793,
+          "y": 350.68408203125
+        },
+        {
+          "type": "cursor",
+          "at": 15.915,
+          "x": 1281.0207858085632,
+          "y": 361.75616455078125
+        },
+        {
+          "type": "cursor",
+          "at": 15.954,
+          "x": 1282.037841796875,
+          "y": 374.03125
+        },
+        {
+          "type": "cursor",
+          "at": 15.974,
+          "x": 1283.1434979438782,
+          "y": 387.37567138671875
+        },
+        {
+          "type": "cursor",
+          "at": 15.993,
+          "x": 1284.3266792297363,
+          "y": 401.65576171875
+        },
+        {
+          "type": "cursor",
+          "at": 16.019,
+          "x": 1285.576310634613,
+          "y": 416.73785400390625
+        },
+        {
+          "type": "cursor",
+          "at": 16.038,
+          "x": 1286.8813171386719,
+          "y": 432.48828125
+        },
+        {
+          "type": "cursor",
+          "at": 16.058,
+          "x": 1288.2306237220764,
+          "y": 448.77337646484375
+        },
+        {
+          "type": "cursor",
+          "at": 16.077,
+          "x": 1289.6131553649902,
+          "y": 465.45947265625
+        },
+        {
+          "type": "cursor",
+          "at": 16.097,
+          "x": 1291.017837047577,
+          "y": 482.41290283203125
+        },
+        {
+          "type": "cursor",
+          "at": 16.117,
+          "x": 1292.43359375,
+          "y": 499.5
+        },
+        {
+          "type": "cursor",
+          "at": 16.153,
+          "x": 1293.849350452423,
+          "y": 516.5870971679688
+        },
+        {
+          "type": "cursor",
+          "at": 16.175,
+          "x": 1295.2540321350098,
+          "y": 533.54052734375
+        },
+        {
+          "type": "cursor",
+          "at": 16.197,
+          "x": 1296.6365637779236,
+          "y": 550.2266235351562
+        },
+        {
+          "type": "cursor",
+          "at": 16.219,
+          "x": 1297.9858703613281,
+          "y": 566.51171875
+        },
+        {
+          "type": "cursor",
+          "at": 16.24,
+          "x": 1299.290876865387,
+          "y": 582.2621459960938
+        },
+        {
+          "type": "cursor",
+          "at": 16.259,
+          "x": 1300.5405082702637,
+          "y": 597.34423828125
+        },
+        {
+          "type": "cursor",
+          "at": 16.279,
+          "x": 1301.7236895561218,
+          "y": 611.6243286132812
+        },
+        {
+          "type": "cursor",
+          "at": 16.3,
+          "x": 1302.829345703125,
+          "y": 624.96875
+        },
+        {
+          "type": "cursor",
+          "at": 16.337,
+          "x": 1303.8464016914368,
+          "y": 637.2438354492188
+        },
+        {
+          "type": "cursor",
+          "at": 16.361,
+          "x": 1304.7637825012207,
+          "y": 648.31591796875
+        },
+        {
+          "type": "cursor",
+          "at": 16.383,
+          "x": 1305.5704131126404,
+          "y": 658.0513305664062
+        },
+        {
+          "type": "cursor",
+          "at": 16.42,
+          "x": 1306.2552185058594,
+          "y": 666.31640625
+        },
+        {
+          "type": "cursor",
+          "at": 16.443,
+          "x": 1306.8071236610413,
+          "y": 672.9774780273438
+        },
+        {
+          "type": "cursor",
+          "at": 16.485,
+          "x": 1307.2150535583496,
+          "y": 677.90087890625
+        },
+        {
+          "type": "cursor",
+          "at": 16.52,
+          "x": 1307.467933177948,
+          "y": 680.9529418945312
+        },
+        {
+          "type": "cursor",
+          "at": 16.539,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "evidence",
+          "label": "approval-confirmed",
+          "at": 20.639,
+          "url": "https://bondrail.vercel.app/vaults/0x57fd6a271a6a4e96b151e5d0732c7f61e3059f07",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\n0xF62d…761b\n← All vaults\nBondrail Credit\nOpen to deposits\n\nThis vault, curated by 0xc927…3c9b, spreads deposits across revenue bonds under fixed limits. 1 holding, 1.5 USDC withdrawable now.\n\nDiversified revenue bonds under fixed allocation limits\n\nCreated by the Bondrail team\n\nAnyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.\n\nVault value\nNet asset value\n2 USDC\nWithdrawable now\n1.5 USDC\nHoldings\n1\nEntry price / share\n1 USDC\nExit price / share\n1 USDC\n\n30-day realized price at deposits/withdrawals · one daily observation; trend builds over time\n\nMonad testnet · block 71498182 · refreshes every 15 seconds\n\nHow you could lose money\nBonds can earn less than expected or default. The vault writes down unpaid capital, reducing the value of your shares.\nExits are limited to idle cash. Other holders can withdraw it first; invested money remains tied up until bonds repay or settle.\nThe curator chooses the holdings. Fixed limits reduce concentration but cannot prevent poor choices, correlated losses, or curator inactivity.\nThis is testnet software and has not been audited. Contract bugs and asset failures can cause losses.\nYour deposit & withdrawal\nDeposit\nWithdraw\nAmount (USDC)\nMax\n\nBalance: 3 USDC\n\nYou receive ≈ 1 shares at the entry price of 1 USDC.\n\nWithdrawals are limited to the vault's idle cash (withdrawable now: 1.5 USDC).\n\nReturns come from bond repayments; there is no fixed rate.\n\nThe transaction uses the price and available cash when it executes. Previewed amounts can change.\n\n1. Approve USDC\n2. Deposit\n\nWaiting for confirmation…\n\nApproval confirmed in 413 ms. View transaction\n\nHoldings\nPumpLab Revenue Claim\n\nActive\n\n0.5 USDC\n\n0.5 claims · cost 0.5 USDC\n\nMandate\n\nDiversified revenue bonds under fixed allocation limits. Strategy text describes the curator's intent; eligibility includes both Native and Watched bonds.\n\nMaximum per bond\n25%\nMaximum holdings\n16\nMinimum idle at allocation\n20%\n\nLimits apply when allocating and cannot be loosened. Withdrawals can exhaust idle cash. Owner changes to the curator have a 2-day delay; the owner cannot transfer vault funds.\n\nTechnical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "cursor",
+          "at": 24.736,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.757,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.778,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.8,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.837,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.859,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.881,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.903,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.924,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.946,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 24.968,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.003,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.024,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.046,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.068,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.104,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.125,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.148,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.168,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.203,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.225,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.247,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.269,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.304,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.324,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.346,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.369,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.391,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.412,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.434,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.47,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "cursor",
+          "at": 25.493,
+          "x": 1307.5546875,
+          "y": 682
+        },
+        {
+          "type": "evidence",
+          "label": "confirmed",
+          "at": 30.081,
+          "url": "https://bondrail.vercel.app/vaults/0x57fd6a271a6a4e96b151e5d0732c7f61e3059f07",
+          "rect": {
+            "x": 1064.109375,
+            "y": 724,
+            "width": 486.890625,
+            "height": 20
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\n0xF62d…761b\n← All vaults\nBondrail Credit\nOpen to deposits\n\nThis vault, curated by 0xc927…3c9b, spreads deposits across revenue bonds under fixed limits. 1 holding, 1.5 USDC withdrawable now.\n\nDiversified revenue bonds under fixed allocation limits\n\nCreated by the Bondrail team\n\nAnyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.\n\nVault value\nNet asset value\n2 USDC\nWithdrawable now\n1.5 USDC\nHoldings\n1\nEntry price / share\n1 USDC\nExit price / share\n1 USDC\n\n30-day realized price at deposits/withdrawals · one daily observation; trend builds over time\n\nMonad testnet · block 71498231 · refreshes every 15 seconds\n\nHow you could lose money\nBonds can earn less than expected or default. The vault writes down unpaid capital, reducing the value of your shares.\nExits are limited to idle cash. Other holders can withdraw it first; invested money remains tied up until bonds repay or settle.\nThe curator chooses the holdings. Fixed limits reduce concentration but cannot prevent poor choices, correlated losses, or curator inactivity.\nThis is testnet software and has not been audited. Contract bugs and asset failures can cause losses.\nYour deposit & withdrawal\nDeposit\nWithdraw\nAmount (USDC)\nMax\n\nBalance: 3 USDC\n\nYou receive ≈ 1 shares at the entry price of 1 USDC.\n\nWithdrawals are limited to the vault's idle cash (withdrawable now: 1.5 USDC).\n\nReturns come from bond repayments; there is no fixed rate.\n\nThe transaction uses the price and available cash when it executes. Previewed amounts can change.\n\n1. Approve USDC · ready\n2. Deposit\n\nWaiting for confirmation…\n\nDeposit confirmed in 860 ms. View transaction\n\nHoldings\nPumpLab Revenue Claim\n\nActive\n\n0.5 USDC\n\n0.5 claims · cost 0.5 USDC\n\nMandate\n\nDiversified revenue bonds under fixed allocation limits. Strategy text describes the curator's intent; eligibility includes both Native and Watched bonds.\n\nMaximum per bond\n25%\nMaximum holdings\n16\nMinimum idle at allocation\n20%\n\nLimits apply when allocating and cannot be loosened. Withdrawals can exhaust idle cash. Owner changes to the curator have a 2-day delay; the owner cannot transfer vault funds.\n\nTechnical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "portfolio",
+          "at": 43.847,
+          "url": "https://bondrail.vercel.app/portfolio",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\n0xF62d…761b\n\n(portfolio)\n\nYour positions\n\nYour bond claims and vault shares, their current value, and the next action available.\n\nYour vault shares\nBondrail Credit\nShares\n1\nValue at exit price\n1 USDC\nWithdrawable now\n1 USDC\nRemaining deposit cost\n1 USDC\n\nDeposit cost comes from indexed deposits, reduced pro rata for burned shares and carried with transferred shares. It excludes transaction fees.\n\nReview withdrawal →\nYour bond claims\nNo bond claims yet\nBrowse markets\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        }
+      ],
+      "duration": 53.914,
+      "errors": []
+    },
+    "landing": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "hero",
+          "at": 0.068,
+          "url": "https://bondrail.vercel.app/",
+          "rect": null,
+          "text": "How it works\nTiers\nMarkets\nDocs\nOpen app\nLive\nRevenue bonds on Monad testnet\nIssue bonds.\nRaise capital.\n\nIssue revenue bonds to raise capital for your onchain business. Investors fund the bonds, and a share of business revenue is routed toward repayment.\n\nIssue a bond\nIssue a bond\nExplore bonds\nExplore bonds\nBuy\n[120]\nx402\ncall\n[0.01]\nSell\n[80]\nRevenue account\nhistory · split\nBusiness\n75%\nInvestors\n25%\nNative fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers still need sweep to book and split them.\n\nBondrail\n\n0xf62d…761b · x402 call · $0.0100\n0x5edb…8fe8 · x402 call · $0.0100\n0xc7cf…ce26 · x402 call · $0.0100\n0xdc00…511b · x402 call · $0.0100\n0x2a95…f880 · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0xf62d…761b · x402 call · $0.0100\n0x5edb…8fe8 · x402 call · $0.0100\n0xc7cf…ce26 · x402 call · $0.0100\n0xdc00…511b · x402 call · $0.0100\n0x2a95…f880 · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n\n[$0.47]\n\nRevenue routed\n\n[59]\n\nPayments booked\n\n[$0.08]\n\nCollected for investors\n\n[2]\n\nLive bonds\n\nLive from Monad testnet via Envio. Dollar totals use the deployment’s USDC; counts include all indexed accounts. Collected means revenue sent to bond pools, not holder redemptions. Demo businesses and traffic are run by the Bondrail team.\n\n(01) How it works\n\nFrom revenue to a funded bond.\n\nRecord revenue, set the terms, and let investors assess the business behind the bond.\n\n(01)\n\nOpen an account\n\nCreate a revenue account in the token you earn. It is your revenue address from day one.\n\n(02)\n\nBuild history\n\nNative fees and account settlements prove a payer on-chain. Plain transfers are booked by sweep without a proven payer.\n\n(03)\n\nIssue a bond\n\nSet the bond terms against your revenue history. Investors fund it; 25% or 50% is released, the rest at a milestone.\n\n(04)\n\nRoute revenue to repayment\n\nThe current revenue share goes toward repayment, up to the cap. Native fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers still need sweep.\n\n(02) Two tiers\n\nRouting enforced in code, or monitored.\nNative\nBuilt on Bondrail\n\nA reviewed template or individually reviewed project routes fees through its bound account using BondrailEarner. Review covers the disclosed code path; it does not guarantee future business revenue.\n\n· collect() for money in, settleOut() for money out\n· payer proven by the transfer itself\n· optional fee floor while a bond is live\nRead the guide\nWatched\nPaid APIs over x402\n\nYour API pays its account. Chainlink CRE checks every paid endpoint every 30 minutes; a confirmed diversion defaults the bond and slashes your stake.\n\n· /.well-known/bondrail.json manifest\n· every payment option must pay the account\n· guarded buyers verify payTo before paying\nRead the guide\n\n(03) For builders\n\nStart the record today.\n\nRoute revenue through an account. Build history, then set terms investors can assess.\n\nBuild with the npm packages @bondrail/sdk and @bondrail/contracts.\n\nQuickstart\n\n(04) For investors\n\nUnderwrite evidence, not promises.\n\nAssess attributed revenue, payer concentration and coverage. Buy claims on Kuru where listed, or fund a raise. Early redemption burns claims for current backing and gives up future receipts.\n\nPool capital in the credit vault, inspect credit profiles, and check performance triggers that can raise the investor share when revenue falls.\n\nBrowse markets\nBrowse markets\n\n(05) Trust\n\nEvery assumption, disclosed.\n\nRead the full trust model in the docs.\n\n(01)\nWho can stop the split?\n\nNative fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers split when anyone calls sweep. Revoking Native project or template approval blocks new deposits and releases unless another approval still applies; repayment of a live bond continues.\n\n(02)\nWhat do I rely on?\n\nA disclosed Native reviewer approves projects or templates; a milestone signer approves signed milestones where selected; observer reports arrive through Chainlink CRE. Signed credit assessments rely on the attester, and vault allocations rely on the curator within contract limits.\n\n(03)\nWhat if the business stops?\n\nRevenue stops too. Holders retain the collected pool and undrawn capital when it is recovered. Watched stake goes to investors only on a recorded default. Coverage and any available Kuru price help assess risk; neither guarantees repayment.\n\n(04)\nCan revenue be faked?\n\nSelf-payments still pay the investor share while a bond collects revenue. Indexer attribution excludes detected issuer-linked payers and plain transfers, but cannot prove customer independence. Performance triggers use all booked revenue, including self-payments.\n\n(05)\nIs this live?\n\nOn Monad testnet, with team-run demo businesses and traffic. The contracts are not audited.\n\nBUILT WITH\n\nMonad\nChainlink CRE\nEnvio HyperIndex\nKuru\nx402\nNansen\nERC-8004\nRevenue bonds for onchain businesses.\nDocs\nTrust model\nDeployments\nGitHub\n\nMonad testnet · not investment advice · demo businesses are run by the Bondrail team"
+        },
+        {
+          "type": "evidence",
+          "label": "live-stats",
+          "at": 8.967,
+          "url": "https://bondrail.vercel.app/",
+          "rect": null,
+          "text": "How it works\nTiers\nMarkets\nDocs\nOpen app\nLive\nRevenue bonds on Monad testnet\nIssue bonds.\nRaise capital.\n\nIssue revenue bonds to raise capital for your onchain business. Investors fund the bonds, and a share of business revenue is routed toward repayment.\n\nIssue a bond\nIssue a bond\nExplore bonds\nExplore bonds\nBuy\n[120]\nx402\ncall\n[0.01]\nSell\n[80]\nRevenue account\nhistory · split\nBusiness\n75%\nInvestors\n25%\nNative fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers still need sweep to book and split them.\n\nBondrail\n\n0xf62d…761b · x402 call · $0.0100\n0x5edb…8fe8 · x402 call · $0.0100\n0xc7cf…ce26 · x402 call · $0.0100\n0xdc00…511b · x402 call · $0.0100\n0x2a95…f880 · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0xf62d…761b · x402 call · $0.0100\n0x5edb…8fe8 · x402 call · $0.0100\n0xc7cf…ce26 · x402 call · $0.0100\n0xdc00…511b · x402 call · $0.0100\n0x2a95…f880 · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n0x1650…b79d · x402 call · $0.0100\n0xd17c…d67b · x402 call · $0.0100\n0x4cea…822a · x402 call · $0.0100\n0x850c…3843 · x402 call · $0.0100\n0x472b…ade4 · x402 call · $0.0100\n\n[$0.47]\n\nRevenue routed\n\n[59]\n\nPayments booked\n\n[$0.08]\n\nCollected for investors\n\n[2]\n\nLive bonds\n\nLive from Monad testnet via Envio. Dollar totals use the deployment’s USDC; counts include all indexed accounts. Collected means revenue sent to bond pools, not holder redemptions. Demo businesses and traffic are run by the Bondrail team.\n\n(01) How it works\n\nFrom revenue to a funded bond.\n\nRecord revenue, set the terms, and let investors assess the business behind the bond.\n\n(01)\n\nOpen an account\n\nCreate a revenue account in the token you earn. It is your revenue address from day one.\n\n(02)\n\nBuild history\n\nNative fees and account settlements prove a payer on-chain. Plain transfers are booked by sweep without a proven payer.\n\n(03)\n\nIssue a bond\n\nSet the bond terms against your revenue history. Investors fund it; 25% or 50% is released, the rest at a milestone.\n\n(04)\n\nRoute revenue to repayment\n\nThe current revenue share goes toward repayment, up to the cap. Native fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers still need sweep.\n\n(02) Two tiers\n\nRouting enforced in code, or monitored.\nNative\nBuilt on Bondrail\n\nA reviewed template or individually reviewed project routes fees through its bound account using BondrailEarner. Review covers the disclosed code path; it does not guarantee future business revenue.\n\n· collect() for money in, settleOut() for money out\n· payer proven by the transfer itself\n· optional fee floor while a bond is live\nRead the guide\nWatched\nPaid APIs over x402\n\nYour API pays its account. Chainlink CRE checks every paid endpoint every 30 minutes; a confirmed diversion defaults the bond and slashes your stake.\n\n· /.well-known/bondrail.json manifest\n· every payment option must pay the account\n· guarded buyers verify payTo before paying\nRead the guide\n\n(03) For builders\n\nStart the record today.\n\nRoute revenue through an account. Build history, then set terms investors can assess.\n\nBuild with the npm packages @bondrail/sdk and @bondrail/contracts.\n\nQuickstart\n\n(04) For investors\n\nUnderwrite evidence, not promises.\n\nAssess attributed revenue, payer concentration and coverage. Buy claims on Kuru where listed, or fund a raise. Early redemption burns claims for current backing and gives up future receipts.\n\nPool capital in the credit vault, inspect credit profiles, and check performance triggers that can raise the investor share when revenue falls.\n\nBrowse markets\nBrowse markets\n\n(05) Trust\n\nEvery assumption, disclosed.\n\nRead the full trust model in the docs.\n\n(01)\nWho can stop the split?\n\nNative fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers split when anyone calls sweep. Revoking Native project or template approval blocks new deposits and releases unless another approval still applies; repayment of a live bond continues.\n\n(02)\nWhat do I rely on?\n\nA disclosed Native reviewer approves projects or templates; a milestone signer approves signed milestones where selected; observer reports arrive through Chainlink CRE. Signed credit assessments rely on the attester, and vault allocations rely on the curator within contract limits.\n\n(03)\nWhat if the business stops?\n\nRevenue stops too. Holders retain the collected pool and undrawn capital when it is recovered. Watched stake goes to investors only on a recorded default. Coverage and any available Kuru price help assess risk; neither guarantees repayment.\n\n(04)\nCan revenue be faked?\n\nSelf-payments still pay the investor share while a bond collects revenue. Indexer attribution excludes detected issuer-linked payers and plain transfers, but cannot prove customer independence. Performance triggers use all booked revenue, including self-payments.\n\n(05)\nIs this live?\n\nOn Monad testnet, with team-run demo businesses and traffic. The contracts are not audited.\n\nBUILT WITH\n\nMonad\nChainlink CRE\nEnvio HyperIndex\nKuru\nx402\nNansen\nERC-8004\nRevenue bonds for onchain businesses.\nDocs\nTrust model\nDeployments\nGitHub\n\nMonad testnet · not investment advice · demo businesses are run by the Bondrail team"
+        }
+      ],
+      "duration": 19.066,
+      "errors": []
+    },
+    "vaults": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "directory",
+          "at": 0.043,
+          "url": "https://bondrail.vercel.app/vaults",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\n\n(vaults)\n\nRevenue bonds, held together.\n\nChoose a disclosed curator and a mandate. One deposit buys shares in a portfolio of revenue bonds; withdrawals depend on available cash.\n\nAsset\nAll assets\nUSDC · 0x534b…43a3\nStrategy\nSort by\nVault name\nAsset\nStrategy\nBondrail Credit\nOpen to deposits\n\nDiversified revenue bonds under fixed allocation limits\n\nCurator 0xc927…3c9b · USDC\n\nCreated by the Bondrail team\n\nAnyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.\n\nNAV\n3 USDC\nWithdrawable now\n2.5 USDC\nHoldings\n1\nEntry price / share\n1 USDC\nExit price / share\n1 USDC\n30-day realized price at deposits/withdrawals · 2 observations\n1 → 1 USDC\n\nLast deposit or withdrawal price each day. Days without either have no price observation.\n\nExplore vault →\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "disclosure",
+          "at": 6.117,
+          "url": "https://bondrail.vercel.app/vaults",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\n\n(vaults)\n\nRevenue bonds, held together.\n\nChoose a disclosed curator and a mandate. One deposit buys shares in a portfolio of revenue bonds; withdrawals depend on available cash.\n\nAsset\nAll assets\nUSDC · 0x534b…43a3\nStrategy\nSort by\nVault name\nAsset\nStrategy\nBondrail Credit\nOpen to deposits\n\nDiversified revenue bonds under fixed allocation limits\n\nCurator 0xc927…3c9b · USDC\n\nCreated by the Bondrail team\n\nAnyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.\n\nNAV\n3 USDC\nWithdrawable now\n2.5 USDC\nHoldings\n1\nEntry price / share\n1 USDC\nExit price / share\n1 USDC\n30-day realized price at deposits/withdrawals · 2 observations\n1 → 1 USDC\n\nLast deposit or withdrawal price each day. Days without either have no price observation.\n\nExplore vault →\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        }
+      ],
+      "duration": 16.175,
+      "errors": []
+    },
+    "oracle": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "summary",
+          "at": 0.043,
+          "url": "https://bondrail.vercel.app/bonds/0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nOracle Agent\n\nA paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.\n\nRepaying\nPaid API · watched by Chainlink\nUSDC\n\nOracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.0775 repaid so far.\n\nHold to earn; redeem after settlement\n\nRepaid\n$0.0775 of $1.20\n(current cap)\nEach claim redeems for\n$0.0388 now\nRevenue per day\n$0.4362\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:39 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:39 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 08:01 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:39 UTC and 2026-10-22 07:39 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 08:01 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:39 UTC\n\n2026-10-24 07:39 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.0388\nExpected by maturity at the current rate\n$0.9711\nIf revenue stops today\n$0.5388\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.47]\n\nraw $0.47\n\nAttributed per day\n[$0.4362]\n\ntrailing 7 days\n\nAttributed payers\n[10]\n\ntop payer 19%\n\nFee rate\n[100.00%]\n\non $0.47 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 2 days\nPayers\n0 of 10 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0x4cea…822a\tx402 (signed)\t9\t$0.09\tNo link found\n0xd17c…d67b\tx402 (signed)\t9\t$0.09\tNo link found\n0x472b…ade4\tx402 (signed)\t8\t$0.08\tNo link found\nShow all 10 payers\nSource\nPaid API · watched by Chainlink\n\nChainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.\n\nLast observation: 2026-10-16 09:00 UTC · compliant\n\nCompliant at the last check, 20 min ago · next check within 10 min\nCredit profile\nCredit line (unsigned estimate)\n$0.0571\nAttestation validity\nNo attestation\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nThe unsigned credit line estimates what this revenue history can support; it is not a loan offer.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nThe API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its $0.50 stake covers only part of possible losses.\nTwo qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "timeline",
+          "at": 7.495,
+          "url": "https://bondrail.vercel.app/bonds/0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+          "rect": {
+            "x": 369,
+            "y": 155,
+            "width": 162.34375,
+            "height": 28
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nOracle Agent\n\nA paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.\n\nRepaying\nPaid API · watched by Chainlink\nUSDC\n\nOracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.0775 repaid so far.\n\nHold to earn; redeem after settlement\n\nRepaid\n$0.0775 of $1.20\n(current cap)\nEach claim redeems for\n$0.0388 now\nRevenue per day\n$0.4362\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:39 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:39 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 08:01 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:39 UTC and 2026-10-22 07:39 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 08:01 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:39 UTC\n\n2026-10-24 07:39 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.0388\nExpected by maturity at the current rate\n$0.9711\nIf revenue stops today\n$0.5388\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.47]\n\nraw $0.47\n\nAttributed per day\n[$0.4362]\n\ntrailing 7 days\n\nAttributed payers\n[10]\n\ntop payer 19%\n\nFee rate\n[100.00%]\n\non $0.47 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 2 days\nPayers\n0 of 10 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0x4cea…822a\tx402 (signed)\t9\t$0.09\tNo link found\n0xd17c…d67b\tx402 (signed)\t9\t$0.09\tNo link found\n0x472b…ade4\tx402 (signed)\t8\t$0.08\tNo link found\nShow all 10 payers\nSource\nPaid API · watched by Chainlink\n\nChainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.\n\nLast observation: 2026-10-16 09:00 UTC · compliant\n\nCompliant at the last check, 20 min ago · next check within 10 min\nCredit profile\nCredit line (unsigned estimate)\n$0.0571\nAttestation validity\nNo attestation\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nThe unsigned credit line estimates what this revenue history can support; it is not a loan offer.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nThe API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its $0.50 stake covers only part of possible losses.\nTwo qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "claim-worth",
+          "at": 15.928,
+          "url": "https://bondrail.vercel.app/bonds/0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+          "rect": {
+            "x": 369,
+            "y": 155.25,
+            "width": 185.296875,
+            "height": 28
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nOracle Agent\n\nA paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.\n\nRepaying\nPaid API · watched by Chainlink\nUSDC\n\nOracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.0775 repaid so far.\n\nHold to earn; redeem after settlement\n\nRepaid\n$0.0775 of $1.20\n(current cap)\nEach claim redeems for\n$0.0388 now\nRevenue per day\n$0.4362\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:39 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:39 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 08:01 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:39 UTC and 2026-10-22 07:39 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 08:01 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:39 UTC\n\n2026-10-24 07:39 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.0388\nExpected by maturity at the current rate\n$0.9711\nIf revenue stops today\n$0.5388\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.47]\n\nraw $0.47\n\nAttributed per day\n[$0.4362]\n\ntrailing 7 days\n\nAttributed payers\n[10]\n\ntop payer 19%\n\nFee rate\n[100.00%]\n\non $0.47 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 2 days\nPayers\n0 of 10 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0x4cea…822a\tx402 (signed)\t9\t$0.09\tNo link found\n0xd17c…d67b\tx402 (signed)\t9\t$0.09\tNo link found\n0x472b…ade4\tx402 (signed)\t8\t$0.08\tNo link found\nShow all 10 payers\nSource\nPaid API · watched by Chainlink\n\nChainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.\n\nLast observation: 2026-10-16 09:00 UTC · compliant\n\nCompliant at the last check, 20 min ago · next check within 10 min\nCredit profile\nCredit line (unsigned estimate)\n$0.0571\nAttestation validity\nNo attestation\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nThe unsigned credit line estimates what this revenue history can support; it is not a loan offer.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nThe API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its $0.50 stake covers only part of possible losses.\nTwo qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "risks",
+          "at": 24.643,
+          "url": "https://bondrail.vercel.app/bonds/0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+          "rect": {
+            "x": 369,
+            "y": 238.75,
+            "width": 206.578125,
+            "height": 28
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nOracle Agent\n\nA paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.\n\nRepaying\nPaid API · watched by Chainlink\nUSDC\n\nOracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.0775 repaid so far.\n\nHold to earn; redeem after settlement\n\nRepaid\n$0.0775 of $1.20\n(current cap)\nEach claim redeems for\n$0.0388 now\nRevenue per day\n$0.4362\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:39 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:39 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 08:01 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:39 UTC and 2026-10-22 07:39 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 08:01 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:39 UTC\n\n2026-10-24 07:39 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.0388\nExpected by maturity at the current rate\n$0.9711\nIf revenue stops today\n$0.5388\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.47]\n\nraw $0.47\n\nAttributed per day\n[$0.4362]\n\ntrailing 7 days\n\nAttributed payers\n[10]\n\ntop payer 19%\n\nFee rate\n[100.00%]\n\non $0.47 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 2 days\nPayers\n0 of 10 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0x4cea…822a\tx402 (signed)\t9\t$0.09\tNo link found\n0xd17c…d67b\tx402 (signed)\t9\t$0.09\tNo link found\n0x472b…ade4\tx402 (signed)\t8\t$0.08\tNo link found\nShow all 10 payers\nSource\nPaid API · watched by Chainlink\n\nChainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.\n\nLast observation: 2026-10-16 09:00 UTC · compliant\n\nCompliant at the last check, 20 min ago · next check within 10 min\nCredit profile\nCredit line (unsigned estimate)\n$0.0571\nAttestation validity\nNo attestation\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nThe unsigned credit line estimates what this revenue history can support; it is not a loan offer.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nThe API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its $0.50 stake covers only part of possible losses.\nTwo qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "cursor",
+          "at": 33.541,
+          "x": 959.578218460083,
+          "y": 897.8858032226562
+        },
+        {
+          "type": "cursor",
+          "at": 33.562,
+          "x": 958.3487701416016,
+          "y": 891.72314453125
+        },
+        {
+          "type": "cursor",
+          "at": 33.583,
+          "x": 956.36549949646,
+          "y": 881.7819213867188
+        },
+        {
+          "type": "cursor",
+          "at": 33.604,
+          "x": 953.6822509765625,
+          "y": 868.33203125
+        },
+        {
+          "type": "cursor",
+          "at": 33.625,
+          "x": 950.3528690338135,
+          "y": 851.6433715820312
+        },
+        {
+          "type": "cursor",
+          "at": 33.646,
+          "x": 946.4311981201172,
+          "y": 831.98583984375
+        },
+        {
+          "type": "cursor",
+          "at": 33.668,
+          "x": 941.9710826873779,
+          "y": 809.6293334960938
+        },
+        {
+          "type": "cursor",
+          "at": 33.689,
+          "x": 937.0263671875,
+          "y": 784.84375
+        },
+        {
+          "type": "cursor",
+          "at": 33.726,
+          "x": 931.6508960723877,
+          "y": 757.8989868164062
+        },
+        {
+          "type": "cursor",
+          "at": 33.748,
+          "x": 925.8985137939453,
+          "y": 729.06494140625
+        },
+        {
+          "type": "cursor",
+          "at": 33.769,
+          "x": 919.8230648040771,
+          "y": 698.6115112304688
+        },
+        {
+          "type": "cursor",
+          "at": 33.79,
+          "x": 913.4783935546875,
+          "y": 666.80859375
+        },
+        {
+          "type": "cursor",
+          "at": 33.826,
+          "x": 906.9183444976807,
+          "y": 633.9260864257812
+        },
+        {
+          "type": "cursor",
+          "at": 33.846,
+          "x": 900.1967620849609,
+          "y": 600.23388671875
+        },
+        {
+          "type": "cursor",
+          "at": 33.867,
+          "x": 893.3674907684326,
+          "y": 566.0018920898438
+        },
+        {
+          "type": "cursor",
+          "at": 33.888,
+          "x": 886.484375,
+          "y": 531.5
+        },
+        {
+          "type": "cursor",
+          "at": 33.908,
+          "x": 879.6012592315674,
+          "y": 496.99810791015625
+        },
+        {
+          "type": "cursor",
+          "at": 33.929,
+          "x": 872.7719879150391,
+          "y": 462.76611328125
+        },
+        {
+          "type": "cursor",
+          "at": 33.951,
+          "x": 866.0504055023193,
+          "y": 429.07391357421875
+        },
+        {
+          "type": "cursor",
+          "at": 33.974,
+          "x": 859.4903564453125,
+          "y": 396.19140625
+        },
+        {
+          "type": "cursor",
+          "at": 34.009,
+          "x": 853.1456851959229,
+          "y": 364.38848876953125
+        },
+        {
+          "type": "cursor",
+          "at": 34.031,
+          "x": 847.0702362060547,
+          "y": 333.93505859375
+        },
+        {
+          "type": "cursor",
+          "at": 34.052,
+          "x": 841.3178539276123,
+          "y": 305.10101318359375
+        },
+        {
+          "type": "cursor",
+          "at": 34.073,
+          "x": 835.9423828125,
+          "y": 278.15625
+        },
+        {
+          "type": "cursor",
+          "at": 34.108,
+          "x": 830.9976673126221,
+          "y": 253.37066650390625
+        },
+        {
+          "type": "cursor",
+          "at": 34.131,
+          "x": 826.5375518798828,
+          "y": 231.01416015625
+        },
+        {
+          "type": "cursor",
+          "at": 34.153,
+          "x": 822.6158809661865,
+          "y": 211.35662841796875
+        },
+        {
+          "type": "cursor",
+          "at": 34.173,
+          "x": 819.2864990234375,
+          "y": 194.66796875
+        },
+        {
+          "type": "cursor",
+          "at": 34.208,
+          "x": 816.60325050354,
+          "y": 181.21807861328125
+        },
+        {
+          "type": "cursor",
+          "at": 34.227,
+          "x": 814.6199798583984,
+          "y": 171.27685546875
+        },
+        {
+          "type": "cursor",
+          "at": 34.247,
+          "x": 813.390531539917,
+          "y": 165.11419677734375
+        },
+        {
+          "type": "cursor",
+          "at": 34.275,
+          "x": 812.96875,
+          "y": 163
+        },
+        {
+          "type": "evidence",
+          "label": "glossary",
+          "at": 34.552,
+          "url": "https://bondrail.vercel.app/bonds/0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+          "rect": {
+            "x": 799.09375,
+            "y": 177,
+            "width": 284,
+            "height": 177
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nOracle Agent\n\nA paid AI answer API. Callers pay 0.01 USDC per request over x402, straight to its Bondrail account.\n\nRepaying\nPaid API · watched by Chainlink\nUSDC\n\nOracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.08 repaid so far.\n\nHold to earn; redeem after settlement\n\nRepaid\n$0.08 of $1.20\n(current cap)\nEach claim\nA token representing your share of the bond’s collected money and future receipts. Redeeming burns it, giving up those future receipts.\nLearn more\nabout claims\nClose\n redeems for\n$0.04 now\nRevenue per day\n$0.436\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:39 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:39 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 08:01 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:39 UTC and 2026-10-22 07:39 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 08:01 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:39 UTC\n\n2026-10-24 07:39 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.04\nExpected by maturity at the current rate\n$0.9722\nIf revenue stops today\n$0.54\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.47]\n\nraw $0.47\n\nAttributed per day\n[$0.436]\n\ntrailing 7 days\n\nAttributed payers\n[10]\n\ntop payer 19%\n\nFee rate\n[100.00%]\n\non $0.47 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 2 days\nPayers\n0 of 10 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0x4cea…822a\tx402 (signed)\t9\t$0.09\tNo link found\n0xd17c…d67b\tx402 (signed)\t9\t$0.09\tNo link found\n0x472b…ade4\tx402 (signed)\t8\t$0.08\tNo link found\nShow all 10 payers\nSource\nPaid API · watched by Chainlink\n\nChainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.\n\nLast observation: 2026-10-16 09:00 UTC · compliant\n\nCompliant at the last check, 21 min ago · next check within 9 min\nCredit profile\nCredit line (unsigned estimate)\n$0.0571\nAttestation validity\nNo attestation\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nThe unsigned credit line estimates what this revenue history can support; it is not a loan offer.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nThe API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its $0.50 stake covers only part of possible losses.\nTwo qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        }
+      ],
+      "duration": 40.629,
+      "errors": []
+    },
+    "pump": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "summary",
+          "at": 0.049,
+          "url": "https://bondrail.vercel.app/bonds/0xb6f44e47C7468c42A32d9679170cC3C4B145099B",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nPumpLab\n\nA token launchpad on Monad. Every trading fee is paid into its Bondrail account in code.\n\nRepaying\nNative\n·\nreviewed template\nUSDC\n\nPumpLab raised $2.00 of $2.00. Claim holders receive 25% of its revenue (rising to 40% if revenue falls below $0.01 over 1 day) until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.00 repaid so far.\n\nView vault holdings\nRepaid\n$0.00 of $1.20\n(current cap)\nEach claim redeems for\n$0.00 now\nRevenue per day\n$0.0021\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:22 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:22 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 07:22 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:22 UTC and 2026-10-22 07:22 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 07:22 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:22 UTC\n\n2026-10-24 07:22 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.00\nExpected by maturity at the current rate\n$0.502\nIf revenue stops today\n$0.50\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.0022]\n\nraw $0.0022\n\nAttributed per day\n[$0.0021]\n\ntrailing 7 days\n\nAttributed payers\n[3]\n\ntop payer 33%\n\nFee rate\n[1.00%]\n\non $0.2246 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 1 days\nPayers\n0 of 3 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0xab1c…33cf\tPulled fee\t2\t$0.0007\tNo link found\n0x59ff…5296\tPulled fee\t2\t$0.0007\tNo link found\n0x1366…74a3\tPulled fee\t2\t$0.0007\tNo link found\nSource\n\nNative · reviewed template: the factory deployed approved fee-routing code through this account. No individual project review; future revenue is not guaranteed.\n\nCredit profile\nCredit line (signed assessment)\n0.000233 USDC\nAttestation validity\nValid current attester signature\n\nExpires 2026-10-17 06:15:34 UTC\n\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nA signed assessment, not available cash or guaranteed repayment. Check validity.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nRevenue below $0.01 over 1 complete UTC day can raise the share to 40% after a trigger check. Self-payments count; a step-up creates no revenue.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "trigger",
+          "at": 5.337,
+          "url": "https://bondrail.vercel.app/bonds/0xb6f44e47C7468c42A32d9679170cC3C4B145099B",
+          "rect": {
+            "x": 369,
+            "y": 155,
+            "width": 896,
+            "height": 52
+          },
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nPumpLab\n\nA token launchpad on Monad. Every trading fee is paid into its Bondrail account in code.\n\nRepaying\nNative\n·\nreviewed template\nUSDC\n\nPumpLab raised $2.00 of $2.00. Claim holders receive 25% of its revenue (rising to 40% if revenue falls below $0.01 over 1 day) until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.00 repaid so far.\n\nView vault holdings\nRepaid\n$0.00 of $1.20\n(current cap)\nEach claim redeems for\n$0.00 now\nRevenue per day\n$0.0021\n\nAttributed · trailing 7d\n\nCurrent cap scales with released capital. “Repaid” is collected for holders before redemption.\n\nHow this bond works\n1\nRaising\n\nComplete\n\n2026-10-15 07:22 UTC\n\nDeposits are held in the bond. You can withdraw until 2026-10-19 07:22 UTC.\n\n2\nReleased\n\nComplete\n\n2026-10-15 07:22 UTC\n\n50% went to the business at activation; the rest waits for the milestone.\n\n3\nMilestone\n\nAhead / conditional\n\nOct 19, 2026 → Oct 22, 2026\n\nThe remaining 50% is released only if revenue reaches $0.01 between 2026-10-19 08:22 UTC and 2026-10-22 07:22 UTC; otherwise it returns to claim holders.\n\n4\nRepaying\n\nYou are here\n\n2026-10-15 07:22 UTC\n\n25% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.\n\n5\nMaturity\n\nAhead / conditional\n\n2026-10-24 07:22 UTC\n\n2026-10-24 07:22 UTC: collection stops. It can stop earlier if the cap is reached.\n\n6\nSettled\n\nAhead / conditional\n\nAfter collection ends\n\nClaims redeem for their share of everything collected.\n\nWhat one claim is worth\n\nYou can't buy claims here right now — no market. These values describe existing claims.\n\nRedeemable now (backing)\n$0.00\nExpected by maturity at the current rate\n$0.502\nIf revenue stops today\n$0.50\nBest case\n$1.20\n\nCurrent rate assumes trailing revenue/share, no further release and returned undrawn capital. “Stops” is backing + undrawn; best case reaches the cap with any still-possible release. Excludes fees and future stake recovery. Not guaranteed.\n\nEvidence\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.0022]\n\nraw $0.0022\n\nAttributed per day\n[$0.0021]\n\ntrailing 7 days\n\nAttributed payers\n[3]\n\ntop payer 33%\n\nFee rate\n[1.00%]\n\non $0.2246 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 1 days\nPayers\n0 of 3 excluded\nCheck payer labels with Nansen\nPayer\tHow\tPayments\tPaid\tCounted\n0xab1c…33cf\tPulled fee\t2\t$0.0007\tNo link found\n0x59ff…5296\tPulled fee\t2\t$0.0007\tNo link found\n0x1366…74a3\tPulled fee\t2\t$0.0007\tNo link found\nSource\n\nNative · reviewed template: the factory deployed approved fee-routing code through this account. No individual project review; future revenue is not guaranteed.\n\nCredit profile\nCredit line (signed assessment)\n0.000233 USDC\nAttestation validity\nValid current attester signature\n\nExpires 2026-10-17 06:15:34 UTC\n\nOn-chain record completeness\nCovers 1 of 1 bonds\n\nA signed assessment, not available cash or guaranteed repayment. Check validity.\n\nRead the full credit profile →\nHow you could lose money\nIf the business stops earning, you may receive less than you put in.\n50% of principal went to the business at activation; the contracts cannot recover it.\nRevenue below $0.01 over 1 complete UTC day can raise the share to 40% after a trigger check. Self-payments count; a step-up creates no revenue.\nThe milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.\nNo market: you cannot sell here. Early redemption gives up future receipts.\nMonad testnet. These contracts are unaudited; bugs can cause losses.\nWhat you can do now\n\nHold to earn; redeem after settlement\n\nRedeem early\nMaintenance (anyone can run)\nFull terms & technical details\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        }
+      ],
+      "duration": 17.421,
+      "errors": []
+    },
+    "credit": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "account",
+          "at": 0.041,
+          "url": "https://bondrail.vercel.app/accounts/0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nNative\nDeployed from a reviewed template\nearns in USDC\nCredit profile\n\n0x0c58ce2d764c089aefe8da8ca27c2e521bdc31f5 · issuer 0x3fff…bad3\n\nPortable credit profile\nRegistry reads\nBlock 71499790\n\nOther lenders can read both layers from one registry. Repayment coverage compares recorded bonds with all bonds created by this factory for the account. Each account is limited to 64 recorded bonds.\n\nOn-chain record\nTrustless reads\n\nDirect account and bond state. Booked revenue includes self-payments; payer addresses are not verified independent customers. Default flags retain the covenant observer’s trust.\n\nBooked revenue\n[0.002247 USDC]\nGross volume\n[0.22455 USDC]\nPayments\n[6]\nCollected payments\n[6]\nUnique payer addresses\n[3]\nHistory age\n[1.1 days]\nFirst revenue\n[2026-10-15 07:12:10 UTC]\nAccount tier\n[Native]\nAsset\n0x534b2f3A21130d7a60830c2Df862319e593943A3\nIssuer\n0x3FFfb2De63f1Efd3250b2ffCad40e6633f92baD3\nProject\n0x158B28949fDd1bC4Bb21B851dF28Eaad434dAeeD\nRepayment record\n\nRepayment record covers 1 of 1 bonds\n\nBonds recorded\n[1]\nFunding\n[0]\nActive\n[1]\nClosing settlement\n[0]\nFully repaid by cap\n[0]\nClosed at maturity\n[0]\nCancelled\n[0]\nDefault flagged\n[0]\nTotal raised (activated)\n[2 USDC]\nRevenue collected\n[0 USDC]\nPaid to investors\n[0 USDC]\n\nCap and maturity describe collection closure, including bonds still settling. Defaults can overlap either. Paid to investors means redeemed assets, including recovered principal and stake.\n\nRecorded bond repayment details\nBond\tState\tClosure\tCollected / effective cap\tPaid out\n0xb6f4…099B\nNative\n\tActive\tOpen\t0 USDC / 1.2 USDC\n0.00%\n\t0 USDC\nAttested\nValid current attester signature\n\nTrust the disclosed attester for attribution, exclusions, distinct payers, concentration and the recommended credit line. The evidence hash binds its inputs; it does not prove their truth or availability.\n\nAttributed revenue\n[0.002247 USDC]\nExcluded revenue\n[0 USDC]\nDistinct attributed payers\n[3]\nTop payer share\n[33.34%]\nAttested credit line\n[0.000233 USDC]\nExpires\n[2026-10-17 06:15:34 UTC]\nAttester who signed\n0x0500a7eDeD5425a7F94045674aBDc5BC0e55119E\nPeriod / issued\n2026-10-15 07:12:10 UTC – 2026-10-16 06:15:34 UTC / 2026-10-16 06:15:34 UTC\nEvidence hash\n0x295bb871df48834b78071e97c3005765382a17ff3cabb51589b16c1d46100467\nIndexer estimates · unsigned\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.0022]\n\nraw $0.0022\n\nAttributed per day\n[$0.0021]\n\ntrailing 7 days\n\nAttributed payers\n[3]\n\ntop payer 33%\n\nFee rate\n[1.00%]\n\non $0.2246 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 1 days\nPayers\n0 of 3 excluded\nScreen top payers with Nansen\nMainnet labels only; Nansen does not cover testnet.\nPayer\tHow\tPayments\tPaid\tCounted\n0xab1c…33cf\tPulled fee\t2\t$0.0007\tNo link found\n0x59ff…5296\tPulled fee\t2\t$0.0007\tNo link found\n0x1366…74a3\tPulled fee\t2\t$0.0007\tNo link found\nCredit line\n\n[$0.0002]\n\nlargest raise this history supports at 25% of revenue for 30 days, 1.2× cap, 1.2× coverage\n\nAttributed revenue\n$0.0021/day\nExpected to investors\n$0.0003\nStress haircut\n70%\nHistory weight (1.1 of 30 days)\n4%\nDiversification (top payer 33%)\n89%\nBonds\n[1]\n0xb6f4…099b\nLive\n\n$0.00 repaid of $1.20 (current cap)\n\nCollected for investors\n\n[$0.00]\n\nRevenue sent to bond pools across all bonds. Native fees and Bondrail-facilitated account settlements split immediately; plain transfers split when swept. This is not the amount redeemed by holders.\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "profile",
+          "at": 5.343,
+          "url": "https://bondrail.vercel.app/accounts/0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nNative\nDeployed from a reviewed template\nearns in USDC\nCredit profile\n\n0x0c58ce2d764c089aefe8da8ca27c2e521bdc31f5 · issuer 0x3fff…bad3\n\nPortable credit profile\nRegistry reads\nBlock 71499790\n\nOther lenders can read both layers from one registry. Repayment coverage compares recorded bonds with all bonds created by this factory for the account. Each account is limited to 64 recorded bonds.\n\nOn-chain record\nTrustless reads\n\nDirect account and bond state. Booked revenue includes self-payments; payer addresses are not verified independent customers. Default flags retain the covenant observer’s trust.\n\nBooked revenue\n[0.002247 USDC]\nGross volume\n[0.22455 USDC]\nPayments\n[6]\nCollected payments\n[6]\nUnique payer addresses\n[3]\nHistory age\n[1.1 days]\nFirst revenue\n[2026-10-15 07:12:10 UTC]\nAccount tier\n[Native]\nAsset\n0x534b2f3A21130d7a60830c2Df862319e593943A3\nIssuer\n0x3FFfb2De63f1Efd3250b2ffCad40e6633f92baD3\nProject\n0x158B28949fDd1bC4Bb21B851dF28Eaad434dAeeD\nRepayment record\n\nRepayment record covers 1 of 1 bonds\n\nBonds recorded\n[1]\nFunding\n[0]\nActive\n[1]\nClosing settlement\n[0]\nFully repaid by cap\n[0]\nClosed at maturity\n[0]\nCancelled\n[0]\nDefault flagged\n[0]\nTotal raised (activated)\n[2 USDC]\nRevenue collected\n[0 USDC]\nPaid to investors\n[0 USDC]\n\nCap and maturity describe collection closure, including bonds still settling. Defaults can overlap either. Paid to investors means redeemed assets, including recovered principal and stake.\n\nRecorded bond repayment details\nBond\tState\tClosure\tCollected / effective cap\tPaid out\n0xb6f4…099B\nNative\n\tActive\tOpen\t0 USDC / 1.2 USDC\n0.00%\n\t0 USDC\nAttested\nValid current attester signature\n\nTrust the disclosed attester for attribution, exclusions, distinct payers, concentration and the recommended credit line. The evidence hash binds its inputs; it does not prove their truth or availability.\n\nAttributed revenue\n[0.002247 USDC]\nExcluded revenue\n[0 USDC]\nDistinct attributed payers\n[3]\nTop payer share\n[33.34%]\nAttested credit line\n[0.000233 USDC]\nExpires\n[2026-10-17 06:15:34 UTC]\nAttester who signed\n0x0500a7eDeD5425a7F94045674aBDc5BC0e55119E\nPeriod / issued\n2026-10-15 07:12:10 UTC – 2026-10-16 06:15:34 UTC / 2026-10-16 06:15:34 UTC\nEvidence hash\n0x295bb871df48834b78071e97c3005765382a17ff3cabb51589b16c1d46100467\nIndexer estimates · unsigned\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.0022]\n\nraw $0.0022\n\nAttributed per day\n[$0.0021]\n\ntrailing 7 days\n\nAttributed payers\n[3]\n\ntop payer 33%\n\nFee rate\n[1.00%]\n\non $0.2246 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 1 days\nPayers\n0 of 3 excluded\nScreen top payers with Nansen\nMainnet labels only; Nansen does not cover testnet.\nPayer\tHow\tPayments\tPaid\tCounted\n0xab1c…33cf\tPulled fee\t2\t$0.0007\tNo link found\n0x59ff…5296\tPulled fee\t2\t$0.0007\tNo link found\n0x1366…74a3\tPulled fee\t2\t$0.0007\tNo link found\nCredit line\n\n[$0.0002]\n\nlargest raise this history supports at 25% of revenue for 30 days, 1.2× cap, 1.2× coverage\n\nAttributed revenue\n$0.0021/day\nExpected to investors\n$0.0003\nStress haircut\n70%\nHistory weight (1.1 of 30 days)\n4%\nDiversification (top payer 33%)\n89%\nBonds\n[1]\n0xb6f4…099b\nLive\n\n$0.00 repaid of $1.20 (current cap)\n\nCollected for investors\n\n[$0.00]\n\nRevenue sent to bond pools across all bonds. Native fees and Bondrail-facilitated account settlements split immediately; plain transfers split when swept. This is not the amount redeemed by holders.\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        },
+        {
+          "type": "evidence",
+          "label": "attestation",
+          "at": 12.976,
+          "url": "https://bondrail.vercel.app/accounts/0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5",
+          "rect": null,
+          "text": "Skip to content\nMarkets\nPortfolio\nVaults\nIssue a bond\nDocs\nMonad testnet\nConnect\nMarkets\nNative\nDeployed from a reviewed template\nearns in USDC\nCredit profile\n\n0x0c58ce2d764c089aefe8da8ca27c2e521bdc31f5 · issuer 0x3fff…bad3\n\nPortable credit profile\nRegistry reads\nBlock 71499790\n\nOther lenders can read both layers from one registry. Repayment coverage compares recorded bonds with all bonds created by this factory for the account. Each account is limited to 64 recorded bonds.\n\nOn-chain record\nTrustless reads\n\nDirect account and bond state. Booked revenue includes self-payments; payer addresses are not verified independent customers. Default flags retain the covenant observer’s trust.\n\nBooked revenue\n[0.002247 USDC]\nGross volume\n[0.22455 USDC]\nPayments\n[6]\nCollected payments\n[6]\nUnique payer addresses\n[3]\nHistory age\n[1.1 days]\nFirst revenue\n[2026-10-15 07:12:10 UTC]\nAccount tier\n[Native]\nAsset\n0x534b2f3A21130d7a60830c2Df862319e593943A3\nIssuer\n0x3FFfb2De63f1Efd3250b2ffCad40e6633f92baD3\nProject\n0x158B28949fDd1bC4Bb21B851dF28Eaad434dAeeD\nRepayment record\n\nRepayment record covers 1 of 1 bonds\n\nBonds recorded\n[1]\nFunding\n[0]\nActive\n[1]\nClosing settlement\n[0]\nFully repaid by cap\n[0]\nClosed at maturity\n[0]\nCancelled\n[0]\nDefault flagged\n[0]\nTotal raised (activated)\n[2 USDC]\nRevenue collected\n[0 USDC]\nPaid to investors\n[0 USDC]\n\nCap and maturity describe collection closure, including bonds still settling. Defaults can overlap either. Paid to investors means redeemed assets, including recovered principal and stake.\n\nRecorded bond repayment details\nBond\tState\tClosure\tCollected / effective cap\tPaid out\n0xb6f4…099B\nNative\n\tActive\tOpen\t0 USDC / 1.2 USDC\n0.00%\n\t0 USDC\nAttested\nValid current attester signature\n\nTrust the disclosed attester for attribution, exclusions, distinct payers, concentration and the recommended credit line. The evidence hash binds its inputs; it does not prove their truth or availability.\n\nAttributed revenue\n[0.002247 USDC]\nExcluded revenue\n[0 USDC]\nDistinct attributed payers\n[3]\nTop payer share\n[33.34%]\nAttested credit line\n[0.000233 USDC]\nExpires\n[2026-10-17 06:15:34 UTC]\nAttester who signed\n0x0500a7eDeD5425a7F94045674aBDc5BC0e55119E\nPeriod / issued\n2026-10-15 07:12:10 UTC – 2026-10-16 06:15:34 UTC / 2026-10-16 06:15:34 UTC\nEvidence hash\n0x295bb871df48834b78071e97c3005765382a17ff3cabb51589b16c1d46100467\nIndexer estimates · unsigned\nRevenue history\nsince 2026-10-15\nAttributed revenue\n[$0.0022]\n\nraw $0.0022\n\nAttributed per day\n[$0.0021]\n\ntrailing 7 days\n\nAttributed payers\n[3]\n\ntop payer 33%\n\nFee rate\n[1.00%]\n\non $0.2246 volume\n\nAttributed revenue excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.\n\nAttributed\nRaw\nDaily revenue for the last 1 days\nPayers\n0 of 3 excluded\nScreen top payers with Nansen\nMainnet labels only; Nansen does not cover testnet.\nPayer\tHow\tPayments\tPaid\tCounted\n0xab1c…33cf\tPulled fee\t2\t$0.0007\tNo link found\n0x59ff…5296\tPulled fee\t2\t$0.0007\tNo link found\n0x1366…74a3\tPulled fee\t2\t$0.0007\tNo link found\nCredit line\n\n[$0.0002]\n\nlargest raise this history supports at 25% of revenue for 30 days, 1.2× cap, 1.2× coverage\n\nAttributed revenue\n$0.0021/day\nExpected to investors\n$0.0003\nStress haircut\n70%\nHistory weight (1.1 of 30 days)\n4%\nDiversification (top payer 33%)\n89%\nBonds\n[1]\n0xb6f4…099b\nLive\n\n$0.00 repaid of $1.20 (current cap)\n\nCollected for investors\n\n[$0.00]\n\nRevenue sent to bond pools across all bonds. Native fees and Bondrail-facilitated account settlements split immediately; plain transfers split when swept. This is not the amount redeemed by holders.\n\nMonad testnet · demo businesses and their traffic are run by the Bondrail team · not investment advice"
+        }
+      ],
+      "duration": 25.043,
+      "errors": []
+    },
+    "explorer": {
+      "marks": [
+        {
+          "type": "evidence",
+          "label": "transaction",
+          "at": 0.038,
+          "url": "https://testnet.monadscan.com/tx/0x5563388bac3ee3686b00e1cd5b32055457b03c7936f8b6891a95d0bd80fda911",
+          "rect": null,
+          "text": "Monad Testnet\n/\nHome\nBlockchain\nTransactions\nContract Internal Transactions\nEIP-7702 Authorizations Beta\nView Blocks\nTop Accounts\nVerified Contracts\nTokens\nView ERC-20 Transfers\nNFTs\nLatest Transfers\nLatest Mints\nAPI\nMultichain API\nAPI Pricing\nAPI Documentation\nMore\nConverters\nUnit Converter\nBase64 Converter\nBlock & Date Converter\nUTF-8 Converter\nMethod ID Converter\nAPI\nAPI Documentation\nVerify Contract\nContract Diff Checker\nSimilar Contract Search\nVyper Online Compiler\nBytecode to Opcode\nBroadcast Transaction\nTools & Services\nCSV Export\nInput Data Decoder\nInput Data Encoder Beta\nAccount Balance Checker\nToken Supply Checker\nToken Standard Checker\nTransaction Details\n \nOverview\nInternal Txns\nLogs (6)\nState\nAPI\nTRANSACTION ACTION\n0x0CE7D559...552028B36\nCall\n0xbc28300c\nMethod on\n0x067861e4...F4927FA54\n[ This is a Monad Chain Testnet transaction only ]\nTransaction Hash:\n0x5563388bac3ee3686b00e1cd5b32055457b03c7936f8b6891a95d0bd80fda911 \nStatus:\nSuccess\nBlock:\n71498900\n3408 Block Confirmations\nTimestamp:\n17 mins ago\nOct-16-2026 09:17:39 AM +UTC\nFrom:\n0x0CE7D559B9A87E600a117F5A3EdBb6B552028B36\nInteracted With (To):\n0x067861e4bf4803a66DB97cF74E252B6F4927FA54 \nERC-20 Tokens Transferred: 2\nAll Transfers\nNet Transfers\nFrom\n0xF62d1CBb...A1381761b\nTo\n0x067861e4...F4927FA54\nFor\n0.01\nERC-20: USDC (USDC)\nFrom\n0x067861e4...F4927FA54\nTo\n0x66A9aAfa...42a987343\nFor\n0.0025\nERC-20: USDC (USDC)\nValue:\n0 MON\nTransaction Fee:\n0.037235304 MON\nGas Price:\n102 Gwei (0.000000102 MON)\n More Details:\n Click to show more\n\nA transaction is a cryptographically signed instruction that changes the blockchain state. Block explorers track the details of all transactions in the network. Learn more about transactions in our Knowledge Base.\n\nPowered by Monad.\n Back to Top\n Add Monad Testnet Network\n\nMonadScan © 2026 (MONAD-TESTNET-A1) | ⛏ Built by Team Etherscan\n\nTerms & Privacy\n|\nNetwork Status\n|\n\nDonations: 0x71c765...d8976f \n\n This website uses cookies to improve your experience. By continuing to use this website, you agree to its Terms and Privacy Policy.\n\nGot it!"
+        },
+        {
+          "type": "cursor",
+          "at": 8.13,
+          "x": 958.6558907032013,
+          "y": 897.985668182373
+        },
+        {
+          "type": "cursor",
+          "at": 8.155,
+          "x": 954.7379550933838,
+          "y": 892.1141052246094
+        },
+        {
+          "type": "cursor",
+          "at": 8.18,
+          "x": 948.4177815914154,
+          "y": 882.6424598693848
+        },
+        {
+          "type": "cursor",
+          "at": 8.206,
+          "x": 939.8669586181641,
+          "y": 869.827880859375
+        },
+        {
+          "type": "cursor",
+          "at": 8.228,
+          "x": 929.2570745944977,
+          "y": 853.9275169372559
+        },
+        {
+          "type": "cursor",
+          "at": 8.249,
+          "x": 916.7597179412842,
+          "y": 835.1985168457031
+        },
+        {
+          "type": "cursor",
+          "at": 8.272,
+          "x": 902.5464770793915,
+          "y": 813.8980293273926
+        },
+        {
+          "type": "cursor",
+          "at": 8.294,
+          "x": 886.7889404296875,
+          "y": 790.283203125
+        },
+        {
+          "type": "cursor",
+          "at": 8.317,
+          "x": 869.6586964130402,
+          "y": 764.6111869812012
+        },
+        {
+          "type": "cursor",
+          "at": 8.339,
+          "x": 851.3273334503174,
+          "y": 737.1391296386719
+        },
+        {
+          "type": "cursor",
+          "at": 8.363,
+          "x": 831.9664399623871,
+          "y": 708.1241798400879
+        },
+        {
+          "type": "cursor",
+          "at": 8.383,
+          "x": 811.7476043701172,
+          "y": 677.823486328125
+        },
+        {
+          "type": "cursor",
+          "at": 8.406,
+          "x": 790.8424150943756,
+          "y": 646.494197845459
+        },
+        {
+          "type": "cursor",
+          "at": 8.432,
+          "x": 769.4224605560303,
+          "y": 614.3934631347656
+        },
+        {
+          "type": "cursor",
+          "at": 8.451,
+          "x": 747.6593291759491,
+          "y": 581.7784309387207
+        },
+        {
+          "type": "cursor",
+          "at": 8.471,
+          "x": 725.724609375,
+          "y": 548.90625
+        },
+        {
+          "type": "cursor",
+          "at": 8.496,
+          "x": 703.7898895740509,
+          "y": 516.0340690612793
+        },
+        {
+          "type": "cursor",
+          "at": 8.521,
+          "x": 682.0267581939697,
+          "y": 483.4190368652344
+        },
+        {
+          "type": "cursor",
+          "at": 8.541,
+          "x": 660.6068036556244,
+          "y": 451.318302154541
+        },
+        {
+          "type": "cursor",
+          "at": 8.563,
+          "x": 639.7016143798828,
+          "y": 419.989013671875
+        },
+        {
+          "type": "cursor",
+          "at": 8.588,
+          "x": 619.4827787876129,
+          "y": 389.6883201599121
+        },
+        {
+          "type": "cursor",
+          "at": 8.613,
+          "x": 600.1218852996826,
+          "y": 360.6733703613281
+        },
+        {
+          "type": "cursor",
+          "at": 8.638,
+          "x": 581.7905223369598,
+          "y": 333.2013130187988
+        },
+        {
+          "type": "cursor",
+          "at": 8.663,
+          "x": 564.6602783203125,
+          "y": 307.529296875
+        },
+        {
+          "type": "cursor",
+          "at": 8.688,
+          "x": 548.9027416706085,
+          "y": 283.9144706726074
+        },
+        {
+          "type": "cursor",
+          "at": 8.713,
+          "x": 534.6895008087158,
+          "y": 262.6139831542969
+        },
+        {
+          "type": "cursor",
+          "at": 8.738,
+          "x": 522.1921441555023,
+          "y": 243.88498306274414
+        },
+        {
+          "type": "cursor",
+          "at": 8.763,
+          "x": 511.58226013183594,
+          "y": 227.984619140625
+        },
+        {
+          "type": "cursor",
+          "at": 8.789,
+          "x": 503.0314371585846,
+          "y": 215.17004013061523
+        },
+        {
+          "type": "cursor",
+          "at": 8.814,
+          "x": 496.7112636566162,
+          "y": 205.69839477539062
+        },
+        {
+          "type": "cursor",
+          "at": 8.839,
+          "x": 492.7933280467987,
+          "y": 199.82683181762695
+        },
+        {
+          "type": "cursor",
+          "at": 8.863,
+          "x": 491.44921875,
+          "y": 197.8125
+        },
+        {
+          "type": "evidence",
+          "label": "logs-overview",
+          "at": 13.146,
+          "url": "https://testnet.monadscan.com/tx/0x5563388bac3ee3686b00e1cd5b32055457b03c7936f8b6891a95d0bd80fda911#eventlog",
+          "rect": null,
+          "text": "Monad Testnet\n/\nHome\nBlockchain\nTransactions\nContract Internal Transactions\nEIP-7702 Authorizations Beta\nView Blocks\nTop Accounts\nVerified Contracts\nTokens\nView ERC-20 Transfers\nNFTs\nLatest Transfers\nLatest Mints\nAPI\nMultichain API\nAPI Pricing\nAPI Documentation\nMore\nConverters\nUnit Converter\nBase64 Converter\nBlock & Date Converter\nUTF-8 Converter\nMethod ID Converter\nAPI\nAPI Documentation\nVerify Contract\nContract Diff Checker\nSimilar Contract Search\nVyper Online Compiler\nBytecode to Opcode\nBroadcast Transaction\nTools & Services\nCSV Export\nInput Data Decoder\nInput Data Encoder Beta\nAccount Balance Checker\nToken Supply Checker\nToken Standard Checker\nTransaction Details\n \nOverview\nInternal Txns\nLogs (6)\nState\nAPI\nTransaction Receipt Event Logs\n38\nAddress\n0x534b2f3a21130d7a60830c2df862319e593943a3   \nName\n\nAuthorizationUsed (index_topic_1 address authorizer, index_topic_2 bytes32 nonce)View Source\n\nTopics\n0 0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5\n1: authorizer\nDec\n0xF62d1CBb1E11aC090a1060022f519c6A1381761b\n2: nonce\nDec\n5AD74B1F0A9B768C39F93056EDD88E8ECC4C94C7AE84EC19592215BC0E434359\nData\n0x\n39\nAddress\n0x534b2f3a21130d7a60830c2df862319e593943a3   \nName\n\nTransfer (index_topic_1 address from, index_topic_2 address to, uint256 value)View Source\n\nTopics\n0 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\n1: from\nDec\n0xF62d1CBb1E11aC090a1060022f519c6A1381761b\n2: to\nDec\n0x067861e4bf4803a66DB97cF74E252B6F4927FA54\nData\nDec\nHex\nvalue (uint256) :\n10000\n40\nAddress\n0x067861e4bf4803a66db97cf74e252b6f4927fa54   \nTopics\n0 0x22f68de1983d980ae3f96a85b07d13614cf2fc6966b3c4c197fe099ef00263ea\n1\n0x000000000000000000000000f62d1cbb1e11ac090a1060022f519c6a1381761b\n2\n0x5ad74b1f0a9b768c39f93056edd88e8ecc4c94c7ae84ec19592215bc0e434359\nData\nDec\nHex\nHex\n0000000000000000000000000000000000000000000000000000000000002710\n41\nAddress\n0x534b2f3a21130d7a60830c2df862319e593943a3   \nName\n\nTransfer (index_topic_1 address from, index_topic_2 address to, uint256 value)View Source\n\nTopics\n0 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\n1: from\nDec\n0x067861e4bf4803a66DB97cF74E252B6F4927FA54\n2: to\nDec\n0x66A9aAfad577A6319645F4E2E2daAad42a987343\nData\nDec\nHex\nvalue (uint256) :\n2500\n42\nAddress\n0x66a9aafad577a6319645f4e2e2daaad42a987343   \nTopics\n0 0xddfd8d7ea5f21be6405a8756715202b83341bbf3e00aae51160d97cb63af27d8\nData\nDec\nHex\nHex\n00000000000000000000000000000000000000000000000000000000000009c4\nHex\n0000000000000000000000000000000000000000000000000000000000013880\nHex\n0000000000000000000000000000000000000000000000000000000000013880\n43\nAddress\n0x067861e4bf4803a66db97cf74e252b6f4927fa54   \nTopics\n0 0x05590566a774d48c2c4863e5d52093920af271a33777c7de5ff7c46b15dfb2c3\n1\n0x00000000000000000000000066a9aafad577a6319645f4e2e2daaad42a987343\n2\n0x000000000000000000000000f62d1cbb1e11ac090a1060022f519c6a1381761b\nData\nDec\nHex\nHex\n0000000000000000000000000000000000000000000000000000000000002710\nHex\n00000000000000000000000000000000000000000000000000000000000009c4\nHex\n0000000000000000000000000000000000000000000000000000000000001d4c\nHex\n0000000000000000000000000000000000000000000000000000000000000001\n\nA transaction is a cryptographically signed instruction that changes the blockchain state. Block explorers track the details of all transactions in the network. Learn more about transactions in our Knowledge Base.\n\nPowered by Monad.\n Back to Top\n Add Monad Testnet Network\n\nMonadScan © 2026 (MONAD-TESTNET-A1) | ⛏ Built by Team Etherscan\n\nTerms & Privacy\n|\nNetwork Status\n|\n\nDonations: 0x71c765...d8976f \n\n This website uses cookies to improve your experience. By continuing to use this website, you agree to its Terms and Privacy Policy.\n\nGot it!"
+        },
+        {
+          "type": "evidence",
+          "label": "settled-event",
+          "at": 14.982,
+          "url": "https://testnet.monadscan.com/tx/0x5563388bac3ee3686b00e1cd5b32055457b03c7936f8b6891a95d0bd80fda911#eventlog",
+          "rect": {
+            "x": 497.0390625,
+            "y": 329.8984375,
+            "width": 499.078125,
+            "height": 14.5
+          },
+          "text": "Monad Testnet\n/\nHome\nBlockchain\nTransactions\nContract Internal Transactions\nEIP-7702 Authorizations Beta\nView Blocks\nTop Accounts\nVerified Contracts\nTokens\nView ERC-20 Transfers\nNFTs\nLatest Transfers\nLatest Mints\nAPI\nMultichain API\nAPI Pricing\nAPI Documentation\nMore\nConverters\nUnit Converter\nBase64 Converter\nBlock & Date Converter\nUTF-8 Converter\nMethod ID Converter\nAPI\nAPI Documentation\nVerify Contract\nContract Diff Checker\nSimilar Contract Search\nVyper Online Compiler\nBytecode to Opcode\nBroadcast Transaction\nTools & Services\nCSV Export\nInput Data Decoder\nInput Data Encoder Beta\nAccount Balance Checker\nToken Supply Checker\nToken Standard Checker\nTransaction Details\n \nOverview\nInternal Txns\nLogs (6)\nState\nAPI\nTransaction Receipt Event Logs\n38\nAddress\n0x534b2f3a21130d7a60830c2df862319e593943a3   \nName\n\nAuthorizationUsed (index_topic_1 address authorizer, index_topic_2 bytes32 nonce)View Source\n\nTopics\n0 0x98de503528ee59b575ef0c0a2576a82497bfc029a5685b209e9ec333479b10a5\n1: authorizer\nDec\n0xF62d1CBb1E11aC090a1060022f519c6A1381761b\n2: nonce\nDec\n5AD74B1F0A9B768C39F93056EDD88E8ECC4C94C7AE84EC19592215BC0E434359\nData\n0x\n39\nAddress\n0x534b2f3a21130d7a60830c2df862319e593943a3   \nName\n\nTransfer (index_topic_1 address from, index_topic_2 address to, uint256 value)View Source\n\nTopics\n0 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\n1: from\nDec\n0xF62d1CBb1E11aC090a1060022f519c6A1381761b\n2: to\nDec\n0x067861e4bf4803a66DB97cF74E252B6F4927FA54\nData\nDec\nHex\nvalue (uint256) :\n10000\n40\nAddress\n0x067861e4bf4803a66db97cf74e252b6f4927fa54   \nTopics\n0 0x22f68de1983d980ae3f96a85b07d13614cf2fc6966b3c4c197fe099ef00263ea\n1\n0x000000000000000000000000f62d1cbb1e11ac090a1060022f519c6a1381761b\n2\n0x5ad74b1f0a9b768c39f93056edd88e8ecc4c94c7ae84ec19592215bc0e434359\nData\nDec\nHex\nHex\n0000000000000000000000000000000000000000000000000000000000002710\n41\nAddress\n0x534b2f3a21130d7a60830c2df862319e593943a3   \nName\n\nTransfer (index_topic_1 address from, index_topic_2 address to, uint256 value)View Source\n\nTopics\n0 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef\n1: from\nDec\n0x067861e4bf4803a66DB97cF74E252B6F4927FA54\n2: to\nDec\n0x66A9aAfad577A6319645F4E2E2daAad42a987343\nData\nDec\nHex\nvalue (uint256) :\n2500\n42\nAddress\n0x66a9aafad577a6319645f4e2e2daaad42a987343   \nTopics\n0 0xddfd8d7ea5f21be6405a8756715202b83341bbf3e00aae51160d97cb63af27d8\nData\nDec\nHex\nHex\n00000000000000000000000000000000000000000000000000000000000009c4\nHex\n0000000000000000000000000000000000000000000000000000000000013880\nHex\n0000000000000000000000000000000000000000000000000000000000013880\n43\nAddress\n0x067861e4bf4803a66db97cf74e252b6f4927fa54   \nTopics\n0 0x05590566a774d48c2c4863e5d52093920af271a33777c7de5ff7c46b15dfb2c3\n1\n0x00000000000000000000000066a9aafad577a6319645f4e2e2daaad42a987343\n2\n0x000000000000000000000000f62d1cbb1e11ac090a1060022f519c6a1381761b\nData\nDec\nHex\nHex\n0000000000000000000000000000000000000000000000000000000000002710\nHex\n00000000000000000000000000000000000000000000000000000000000009c4\nHex\n0000000000000000000000000000000000000000000000000000000000001d4c\nHex\n0000000000000000000000000000000000000000000000000000000000000001\n\nA transaction is a cryptographically signed instruction that changes the blockchain state. Block explorers track the details of all transactions in the network. Learn more about transactions in our Knowledge Base.\n\nPowered by Monad.\n Back to Top\n Add Monad Testnet Network\n\nMonadScan © 2026 (MONAD-TESTNET-A1) | ⛏ Built by Team Etherscan\n\nTerms & Privacy\n|\nNetwork Status\n|\n\nDonations: 0x71c765...d8976f \n\n This website uses cookies to improve your experience. By continuing to use this website, you agree to its Terms and Privacy Policy.\n\nGot it!"
+        }
+      ],
+      "duration": 30.063,
+      "errors": []
+    }
+  },
+  "payment": {
+    "hash": "0x5563388bac3ee3686b00e1cd5b32055457b03c7936f8b6891a95d0bd80fda911",
+    "to": "0x067861e4bf4803a66db97cf74e252b6f4927fa54",
+    "payer": "0xF62d1CBb1E11aC090a1060022f519c6A1381761b",
+    "amount": "0.01",
+    "elapsedMs": 10437
+  },
+  "builder": {
+    "directory": "bondrail-update-builder-6E3jQQ",
+    "events": [
+      {
+        "at": 0.00015420800000001122,
+        "text": "$ npm i @bondrail/sdk @bondrail/contracts\n"
+      },
+      {
+        "at": 13.285398874999998,
+        "text": "\nadded 19 packages in 13s\n"
+      },
+      {
+        "at": 13.286370667,
+        "text": "npm notice\nnpm notice New major version of npm available! 11.19.0 -> 12.2.0\nnpm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0\nnpm notice To update run: npm install -g npm@12.2.0\nnpm notice\n"
+      },
+      {
+        "at": 13.3458885,
+        "text": "[exit 0]\n"
+      },
+      {
+        "at": 13.346284375,
+        "text": "$ cat src/MyBusiness.sol\n// SPDX-License-Identifier: MIT\npragma solidity 0.8.28;\nimport {BondrailEarner} from \"@bondrail/contracts/src/BondrailEarner.sol\";\ncontract MyBusiness is BondrailEarner {\n    constructor(address account) BondrailEarner(account) {}\n}\n"
+      },
+      {
+        "at": 13.346495375,
+        "text": "$ forge build\n"
+      },
+      {
+        "at": 13.459865458,
+        "text": "Compiling 9 files with Solc 0.8.28\n"
+      },
+      {
+        "at": 13.516197667,
+        "text": "Solc 0.8.28 finished in 56.42ms\n"
+      },
+      {
+        "at": 13.522667457999999,
+        "text": "Compiler run successful!\n"
+      },
+      {
+        "at": 13.535049083,
+        "text": "[exit 0]\n"
+      }
+    ],
+    "source": "// SPDX-License-Identifier: MIT\npragma solidity 0.8.28;\nimport {BondrailEarner} from \"@bondrail/contracts/src/BondrailEarner.sol\";\ncontract MyBusiness is BondrailEarner {\n    constructor(address account) BondrailEarner(account) {}\n}\n",
+    "success": true,
+    "versions": {
+      "@bondrail/sdk": "0.2.0",
+      "@bondrail/contracts": "0.1.0",
+      "@openzeppelin/contracts": "5.4.0"
+    },
+    "configuration": "[profile.default]\nsrc = \"src\"\nlibs = [\"node_modules\"]\nsolc_version = \"0.8.28\"\nevm_version = \"cancun\"\noptimizer = true\nremappings = [\"@bondrail/contracts/=node_modules/@bondrail/contracts/\", \"@openzeppelin/contracts/=node_modules/@openzeppelin/contracts/\"]\n"
+  },
+  "stats": {
+    "Revenue routed": "$0.47",
+    "Payments booked": "59",
+    "Collected for investors": "$0.08",
+    "Live bonds": "2"
+  },
+  "terminal": "$ guarded x402 GET https://bondrail-next-agent.vercel.app/api/oracle\npayer 0xF62d1CBb1E11aC090a1060022f519c6A1381761b\nHTTP 200 · paid 0.01 test USDC\ntransaction 0x5563388bac3ee3686b00e1cd5b32055457b03c7936f8b6891a95d0bd80fda911\nto 0x067861e4bf4803a66db97cf74e252b6f4927fa54\nSettled(payer=0xF62d1CBb1E11aC090a1060022f519c6A1381761b, value=10000)\nEnd-to-end API response: 10437 ms\n"
+}

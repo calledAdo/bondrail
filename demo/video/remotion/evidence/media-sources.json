@@ -1,0 +1,51 @@
+{
+  "vault": {
+    "directory": "raw/vault-1792142033526",
+    "duration": 53.914,
+    "video": "vault.mp4",
+    "videoSha256": "fdfd1f4adbe13ce84ee748dc7e0f12ed057f334bd1b055d6fa048bf2d85e1933",
+    "originalFrameCount": 113
+  },
+  "landing": {
+    "directory": "raw/landing-1792142337004",
+    "duration": 19.066,
+    "video": "landing.mp4",
+    "videoSha256": "962901fe501e816963b208ecba3ffe17eb44126984c50ad34b06a841345fe28b",
+    "originalFrameCount": 1103
+  },
+  "vaults": {
+    "directory": "raw/vaults-1792142384392",
+    "duration": 16.175,
+    "video": "vaults.mp4",
+    "videoSha256": "86eef40439c265a50f0ba45f9ebd5df460c4615086ed4ba3af8125a25d0556d7",
+    "originalFrameCount": 5
+  },
+  "oracle": {
+    "directory": "raw/oracle-1792142431284",
+    "duration": 40.629,
+    "video": "oracle.mp4",
+    "videoSha256": "8c7dbf67c9431287fc1129148eb75a1214beb13f70e3fc9a50ee573450b9cc8b",
+    "originalFrameCount": 132
+  },
+  "pump": {
+    "directory": "raw/pump-1792142480497",
+    "duration": 17.421,
+    "video": "pump.mp4",
+    "videoSha256": "2be98929c1eeb1ae47a8ad066fc2190b6f2df24270cb245d914fe7d2bdd29509",
+    "originalFrameCount": 15
+  },
+  "credit": {
+    "directory": "raw/credit-1792142534638",
+    "duration": 25.043,
+    "video": "credit.mp4",
+    "videoSha256": "1f67e3d09b48173093bee447239a465cc53f55841a026797b9876e70d8f7d6c1",
+    "originalFrameCount": 48
+  },
+  "explorer": {
+    "directory": "raw/explorer-1792143320824",
+    "duration": 30.063,
+    "video": "explorer.mp4",
+    "videoSha256": "1f9a4effe7b640e120e197c693ef9dd4032ac7938a45c845a510eb252247a72b",
+    "originalFrameCount": 137
+  }
+}

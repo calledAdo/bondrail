@@ -1,5 +1,7 @@
 > Historical recordings below retain their original names. Current helper scripts generate Bondrail-named outputs; they do not rename or rebrand existing footage.
 
+**Latest update video:** `output/update/bondrail-update.mp4` — 2:53, real vault deposit, account-settled x402 payment, bond explanations, credit profile and npm/Forge build. Remotion source, evidence and rebuild instructions: [UPDATE-VIDEO.md](UPDATE-VIDEO.md).
+
 # Bondrail demo: free local production
 
 **Envio sponsor demo:** `output/envio/bondrail-envio-demo.mp4` — 1:27, actual recorded payment followed by fresh HyperIndex query and live revenue/payer views. Michael narration and captions. See [ENVIO-DEMO.md](ENVIO-DEMO.md) for evidence and upload text. No new chain writes.

@@ -1,0 +1,151 @@
+{
+  "file": "bondrail-update.mp4",
+  "sha256": "06a231a50eda1b8a8c3fe1dcb87a6ef73e56fd39574faac74037595a616f23a0",
+  "bytes": 20140802,
+  "seconds": 173.07,
+  "format": "1920x1080 / 30 fps / H.264 / AAC",
+  "decode": "passed",
+  "loudnessLUFS": -18.06,
+  "truePeakDBTP": -1.34,
+  "captions": 333,
+  "timing": "word timestamps from source-line ASR; independently checked on final AAC track",
+  "captionTimingChecks": [
+    {
+      "scene": "open",
+      "matchedWords": 24,
+      "medianOffsetSeconds": 0.040000000000000036,
+      "p95OffsetSeconds": 0.16799999999999954,
+      "maxOffsetSeconds": 0.4
+    },
+    {
+      "scene": "vaults",
+      "matchedWords": 103,
+      "medianOffsetSeconds": 0.03999999999999915,
+      "p95OffsetSeconds": 0.11920000000000101,
+      "maxOffsetSeconds": 0.4066666666666663
+    },
+    {
+      "scene": "payers",
+      "matchedWords": 42,
+      "medianOffsetSeconds": 0.03733333333332922,
+      "p95OffsetSeconds": 0.10480000000000085,
+      "maxOffsetSeconds": 0.734666666666655
+    },
+    {
+      "scene": "bonds",
+      "matchedWords": 81,
+      "medianOffsetSeconds": 0.03999999999999204,
+      "p95OffsetSeconds": 0.2013333333333378,
+      "maxOffsetSeconds": 0.6813333333333418
+    },
+    {
+      "scene": "credit",
+      "matchedWords": 20,
+      "medianOffsetSeconds": 0.03999999999999204,
+      "p95OffsetSeconds": 0.5490000000000195,
+      "maxOffsetSeconds": 0.7199999999999989
+    },
+    {
+      "scene": "builders",
+      "matchedWords": 30,
+      "medianOffsetSeconds": 0.03999999999999204,
+      "p95OffsetSeconds": 0.07999999999998408,
+      "maxOffsetSeconds": 0.4000000000000057
+    },
+    {
+      "scene": "close",
+      "matchedWords": 16,
+      "medianOffsetSeconds": 0.03999999999999204,
+      "p95OffsetSeconds": 0.355000000000004,
+      "maxOffsetSeconds": 0.4000000000000057
+    }
+  ],
+  "finalSpeechRecognition": [
+    {
+      "scene": "open",
+      "expected": "Since our Metropolis submission, Bondrail has grown from revenue bonds into a full credit layer on Monad. Here's what's new — all live on testnet.",
+      "recognized": "Since our metropolis submission, Bondrail has grown from revenue bonds into a full credit layer on Monad. Here's what's new, all live on TestNet.",
+      "characterSimilarity": 1
+    },
+    {
+      "scene": "vaults",
+      "expected": "First: vaults. Instead of picking bonds one by one, investors can deposit once and own a share of a portfolio of revenue bonds, managed by a disclosed curator under fixed limits. Anyone can create a vault through the factory; Bondrail lists them all, and says plainly that it doesn't endorse curators. Depositing shows exactly what you get before you sign — your shares at today's price, and how much cash can be withdrawn right now. Healthy bonds are carried at cost; if a bond's revenue falls or it defaults, the exit price writes it down automatically. Your position appears in your portfolio within seconds.",
+      "recognized": "First, vaults. Instead of picking bonds one by one, investors can deposit once and own a share of a portfolio of revenue bonds, managed by a disclosed curator under fixed limits. Anyone can create a vault through the factory. Bondrail lists them all and says plainly that it doesn't endorse curators. Depositing shows exactly what you get before you sign, your shares at today's price, and how much cash can be withdrawn right now. Healthy bonds are carried at cost. If a bond's revenue falls or it defaults, the exit price writes it down automatically. Your position appears in your portfolio within seconds.",
+      "characterSimilarity": 1
+    },
+    {
+      "scene": "payers",
+      "expected": "Second: paid API calls now settle straight through the business's Bondrail account. The payer's own x402 signature is submitted to the account, so the payment is recorded with a proven payer, and the investors' share is split in the same transaction — on Monad.",
+      "recognized": "Second, paid IPI calls now settle straight through the business's Bondrail account. The payer's own X402 signature is submitted to the account, so the payment is recorded with a proven payer, and the investor's share is split in the same transaction, on Monad.",
+      "characterSimilarity": 0.9952153110047847
+    },
+    {
+      "scene": "bonds",
+      "expected": "Third: every bond now explains itself. One sentence says what was raised, what investors receive and how much has been repaid; a timeline shows where the bond is in its life; and you can see what one claim is worth now, by maturity, and if revenue stops. Bonds can also carry a performance trigger — if revenue falls below an agreed level, the investors' share steps up when the trigger is checked. And every page says plainly how you could lose money.",
+      "recognized": "Third, every bond now explains itself. One sentence says what was raised, what investors receive and how much has been repaid. A timeline shows where the bond is in its life, and you can see what one claim is worth now by maturity and if revenue stops. Bonds can also carry a performance trigger. If revenue falls below an agreed level, the investors share steps up when the trigger is checked and every page says plainly how you could lose money.",
+      "characterSimilarity": 1
+    },
+    {
+      "scene": "credit",
+      "expected": "Fourth: on-chain credit profiles. Each business's record — revenue, payers and repayment history — is readable on-chain, with a signed attestation that other lenders can verify.",
+      "recognized": "Fourth, on-chain credit profiles. Each business's record, revenue, payers, and repayment history is readable on-chain, with assigned at a station that other lenders can verify.",
+      "characterSimilarity": 0.9859154929577465
+    },
+    {
+      "scene": "builders",
+      "expected": "And for builders, Bondrail is now on npm: the SDK for apps and agents, and the Solidity contracts — inherit BondrailEarner and your fees route through a revenue account from day one.",
+      "recognized": "And for builders, Bondrail is now on NPM, the SDK for apps and agents, and the Solidity Contracts, inherit Bondrail Earner and your fees route through a revenue account from day one.",
+      "characterSimilarity": 1
+    },
+    {
+      "scene": "close",
+      "expected": "Bondrail: credit for onchain businesses, repaid in the same block they earn. Try it at bondrail.vercel.app — testnet, not audited.",
+      "recognized": "Bondrail, credit for on-chain businesses, repaid in the same block they earn. Try it at bondrail.verssell.app.testnet, not audit it.",
+      "characterSimilarity": 0.9615384615384616
+    }
+  ],
+  "chainVerified": 3,
+  "x402Calls": 1,
+  "gasRemainingMON": "0.105799626",
+  "contactSheetFrames": [
+    9,
+    39,
+    79,
+    104,
+    135,
+    157
+  ],
+  "visualReview": {
+    "status": "passed",
+    "finalContactSheetSeconds": [
+      9,
+      39,
+      79,
+      104,
+      135,
+      157
+    ],
+    "additionalCompositionReviewSeconds": [
+      3,
+      9,
+      39,
+      43,
+      49,
+      58,
+      72,
+      79,
+      97,
+      104,
+      107,
+      115,
+      121,
+      128,
+      132,
+      135,
+      157,
+      167
+    ],
+    "notes": "Reviewed the final six-frame contact sheet and credit close-up; prior 18 representative composition frames checked for evidence visibility, accurate cursor placement, readable captions and square-pixel framing."
+  },
+  "recognitionLimitations": "Final-track ASR has phonetic spelling differences for API, signed attestation, the URL and audited. Character similarity is 0.962–1.000 by scene; this is not a claim of verbatim ASR agreement. Timing checks compare matching recognized words, with each scene matching at least 70% of its caption words."
+}
