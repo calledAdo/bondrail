@@ -1,5 +1,7 @@
 # Frontend Phase B — bond decisions
 
+These captures record Task 22b. [Task 22c](../performance.md) supersedes the loading path, cap wording and unconditional vault links described below.
+
 The bond page reads in decision order: summary and primary action, lifecycle, claim worth or purchase scenarios, evidence, concrete loss scenarios, actions, then collapsed full terms. Task 22b replaces missing-value grids, reduces mobile length, and removes secondary actions from the summary. Existing tokens, `Panel`, mono/tabular figures, themes and Phase A early-redemption safeguards are retained. Maintenance stays collapsed. Closing exposes settlement timing without an investor transaction.
 
 ## Task 22b corrections

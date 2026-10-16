@@ -10,7 +10,10 @@ export function bondSummary(b: BondView) {
   if (b.phase === 'Cancelled') return "This raise didn't complete. Every deposit can be refunded in full.";
   const stepUp = b.triggerWindowDays > 0
     ? ` (rising to ${number(b.stepUpShare)}% if revenue falls below ${fmt(b.triggerRevenue, b.asset)} over ${number(b.triggerWindowDays)} day${b.triggerWindowDays === 1 ? '' : 's'})${b.triggered ? ' — currently stepped up' : ''}` : '';
-  const benefit = `claim holders receive ${number(b.baseRevenueShare)}% of its revenue${stepUp} until ${fmt(b.cap, b.asset)} has been repaid or ${shortBondDate(b.maturity)}.`;
+  const cap = b.effectiveCap < b.cap
+    ? `${fmt(b.cap, b.asset)} has been repaid (currently up to ${fmt(b.effectiveCap, b.asset)}${b.phase === 'Funding' || (b.phase === 'Active' && !b.defaulted && b.undrawn > 0) ? ', rising as more capital is released' : ''})`
+    : `${fmt(b.cap, b.asset)} has been repaid`;
+  const benefit = `claim holders receive ${number(b.baseRevenueShare)}% of its revenue${stepUp} until up to ${cap} or ${shortBondDate(b.maturity)}.`;
   const sentence = b.phase === 'Funding'
     ? `${b.name} is raising ${fmt(b.raise, b.asset)}. If fully funded by ${shortBondDate(b.fundingDeadline)}, ${benefit}`
     : `${b.name} raised ${fmt(b.raised, b.asset)} of ${fmt(b.raise, b.asset)}. ${benefit[0].toUpperCase()}${benefit.slice(1)}`;
@@ -126,4 +129,9 @@ export function purchaseEstimate(b: BondView, account: Pick<AccountView, 'verifi
     paybackDays: y.paybackDays !== null ? y.paybackDays + (start - now) / 86400 : expected !== null && expected >= amount ? Math.max(0, (b.maturity - now) / 86400) : null,
     exceedsSupply: claims > supply,
   };
+}
+
+/** Membership must be positively verified. Unknown/error/empty holdings never advertise the vault. */
+export function vaultHoldsBond(bond: string, holdings?: readonly string[]) {
+  return holdings?.some(held => held.toLowerCase() === bond.toLowerCase()) === true;
 }

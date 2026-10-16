@@ -1,0 +1,42 @@
+{
+  "results": [
+    {
+      "test": "indexed summary survives delayed RPC/registry; cap/action/scope/cache/375px",
+      "ms": 86,
+      "navigationRequests": [
+        {
+          "url": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
+          "body": {
+            "query": "query AccountBonds($address: String!) {\n  Bond(where: { account: { _eq: $address } }, order_by: { createdAt: desc }) { id account adapter policyHash phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool totalSupply effectiveCap defaulted triggered createdAt }\n}",
+            "variables": {
+              "address": "0x067861e4bf4803a66db97cf74e252b6f4927fa54"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "test": "vault held"
+    },
+    {
+      "test": "vault not-held"
+    },
+    {
+      "test": "vault unknown"
+    },
+    {
+      "test": "RPC outage retains indexed summary/evidence and exposes retry"
+    },
+    {
+      "test": "failed account evidence retains full bond terms; unavailable history is explicit"
+    },
+    {
+      "test": "fresh account uses two filtered queries",
+      "graphql": [
+        "query AccountEvidence($address: String!) {\n  Issuer(where: { id: { _eq: $address } }) { id issuer tier project projectApproved activeBond grossRevenue toInvestors payments firstRevenueAt asset volume }\n  DailyRevenue(where: { account: { _eq: $address } }, order_by: { day: asc }) { account day gross verified x402 }\n  PayerTotal(where: { account: { _eq: $address } }, order_by: { amount: desc }) { account payer amount payments related reasons source }\n}",
+        "query AccountBonds($address: String!) {\n  Bond(where: { account: { _eq: $address } }, order_by: { createdAt: desc }) { id account adapter policyHash phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool totalSupply effectiveCap defaulted triggered createdAt }\n}"
+      ]
+    }
+  ],
+  "errors": []
+}

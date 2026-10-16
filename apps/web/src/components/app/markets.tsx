@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowUpRight, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { days, fmt, listed, marketTab, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
+import { days, fmt, indexedPhase, unit, listed, marketTab, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
 import { Badge, Empty, PhaseBadge, Ribbon, TierBadge } from './ui';
 import { bondImpliedYield, yieldPercent } from '@/lib/bond-yield';
 import { useKuruPrice } from '@/lib/kuru';
@@ -103,7 +103,7 @@ function AccountRow({ a }: { a: AccountView }) {
 }
 
 export function Markets() {
-  const { data, loading, error, configured } = useProtocol();
+  const { data, loading, error, configured, metas } = useProtocol();
   const [tab, setTab] = useState<(typeof TABS)[number][0]>('raising');
   const [all, setAll] = useState(false);
   const [q, setQ] = useState('');
@@ -111,6 +111,7 @@ export function Markets() {
   const bonds = (data?.bonds ?? []).filter((b) => marketTab(b) === tab && (!q || `${b.name} ${b.symbol}`.toLowerCase().includes(q.toLowerCase())));
   const shown = all ? bonds : bonds.filter(listed);
   const hidden = bonds.length - shown.length;
+  const pending = (data?.indexedBonds ?? []).filter(b => !data?.bonds.some(full => full.address === b.id) && marketTab({ phase: indexedPhase(b) }) === tab);
   const pipeline = (data?.accounts ?? []).filter((a) => !a.activeBond && a.payments > 0);
 
   return (
@@ -162,10 +163,19 @@ export function Markets() {
         <Empty title="Couldn't reach the indexer">{error.message}</Empty>
       ) : (
         <>
-          {shown.length === 0 && (tab !== 'record' || pipeline.length === 0) ? (
+          {shown.length === 0 && pending.length === 0 && (tab !== 'record' || pipeline.length === 0) ? (
             <Empty title={tab === 'raising' ? 'Nothing raising right now' : tab === 'trading' ? 'No live bonds' : 'No history yet'} />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {pending.map(b => {
+                const a = accounts.get(b.account);
+                return <Link key={b.id} href={`/bonds/${b.id}`} className="rounded-xl border border-foreground/10 p-5">
+                  <h3 className="font-semibold">{a?.profile?.profile.name || short(b.id)}</h3>
+                  <PhaseBadge phase={indexedPhase(b)} defaulted={b.defaulted} />
+                  {a && <p className="mt-3 text-sm">Repaid {fmt(unit(b.revenueCollected, a.asset), a.asset)} of {fmt(unit(b.effectiveCap, a.asset), a.asset)} (current cap)</p>}
+                  <p className="mt-3 text-xs text-foreground/70">{metas[data!.indexedBonds.indexOf(b)]?.error ? 'Full terms could not be read. Open the bond to retry.' : 'Full terms are loading. Open the bond for details.'}</p>
+                </Link>;
+              })}
               {shown.map((b) => (
                 <BondCard key={b.address} b={b} account={accounts.get(b.account)} />
               ))}

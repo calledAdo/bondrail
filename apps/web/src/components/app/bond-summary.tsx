@@ -1,6 +1,6 @@
 'use client';
 import { bondSummary, bondTimeline, phaseLabel } from '@/lib/bond-decision';
-import { fmt, type AccountView, type BondView } from '@/lib/protocol';
+import { fmt, indexedBacking, indexedPhase, short, unit, type Asset, type IndexedBond, type AccountView, type BondView } from '@/lib/protocol';
 import { useState, type ReactNode } from 'react';
 import { Badge, Panel } from './ui';
 import { Term, TermsText } from './term';
@@ -19,7 +19,7 @@ export function BondSummary({ b, account, actions, now }: { b: BondView; account
     <p className="max-w-4xl text-sm leading-relaxed sm:text-base" data-testid="bond-sentence"><TermsText>{bondSummary(b)}</TermsText></p>
     <div className="my-4">{actions}</div>
     <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,5.5rem),1fr))] gap-2 border-t border-foreground/10 pt-4 sm:grid-cols-3 sm:gap-6">
-      <div><dt className="text-xs text-foreground/70">Repaid</dt><dd className="font-mono text-base tabular sm:text-lg">{fmt(b.collected, b.asset)} <span className="text-sm text-foreground/70">of {fmt(b.effectiveCap, b.asset)}</span></dd></div>
+      <div><dt className="text-xs text-foreground/70">Repaid</dt><dd className="font-mono text-base tabular sm:text-lg">{fmt(b.collected, b.asset)} <span className="text-sm text-foreground/70">of {fmt(b.effectiveCap, b.asset)} <span className="block text-xs">(current cap)</span></span></dd></div>
       <div><dt className="text-xs text-foreground/70">Each <Term term="claim">claim</Term> redeems for</dt><dd className="font-mono text-base tabular sm:text-lg">{fmt(b.backingPerToken, b.asset, 4)} <span className="text-sm text-foreground/70">now</span></dd></div>
       {account && <div><dt className="text-xs text-foreground/70">Revenue per day</dt><dd className="font-mono text-base tabular sm:text-lg">{fmt(account.verifiedDaily, b.asset)}</dd><p className="text-xs text-foreground/70"><Term term="attributed">Attributed</Term> · trailing 7d</p></div>}
     </dl>
@@ -54,4 +54,17 @@ export function BondTimeline({ b, now }: { b: BondView; now: number }) {
     </ol>
     <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll} className="mt-1 min-h-11 text-sm underline underline-offset-4 lg:hidden">{showAll ? 'Show current step' : `Show all ${steps.length} steps`}</button>
   </Panel>;
+}
+
+/** Useful indexed facts survive slow or failed RPC/registry reads; terms are never fabricated. */
+export function IndexedBondSummary({ b, account, asset }: { b: IndexedBond; account?: AccountView; asset?: Asset }) {
+  return <div data-testid="indexed-bond-summary" data-ready={!!asset}><Panel className="p-4 sm:p-6">
+    <h1 className="text-2xl font-semibold">{account?.profile?.profile.name || `Bond ${short(b.id)}`}</h1>
+    <div className="my-3 flex gap-2"><Badge>{indexedPhase(b)}</Badge><Badge>{Number(b.adapter) === 0 ? 'Native' : 'Watched'}</Badge></div>
+    {asset ? <dl className="grid grid-cols-2 gap-4">
+      <div><dt className="text-xs text-foreground/70">Repaid</dt><dd className="font-mono">{fmt(unit(b.revenueCollected, asset), asset)} of {fmt(unit(b.effectiveCap, asset), asset)} <span className="block text-xs">(current cap)</span></dd></div>
+      <div><dt className="text-xs text-foreground/70">Each claim redeems for</dt><dd className="font-mono">{fmt(indexedBacking(b), asset, 4)}</dd></div>
+    </dl> : <p role="status" className="text-sm">Reading repayment currency…</p>}
+    <p role="status" className="mt-3 text-sm text-foreground/70">Reading bond terms and actions…</p>
+  </Panel></div>;
 }

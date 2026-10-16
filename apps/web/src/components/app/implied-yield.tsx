@@ -2,7 +2,6 @@
 import { bondImpliedYield, yieldPercent } from '@/lib/bond-yield';
 import { useKuruPrice } from '@/lib/kuru';
 import { fmt, type AccountView, type BondView } from '@/lib/protocol';
-import Link from 'next/link';
 import { useState } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
@@ -59,7 +58,7 @@ export function WhatYouGet({ b, account, now }: { b: BondView; account?: Account
   const value = holdingMode ? claimEstimate(b, account, now) : estimate;
   const usd = /USD/i.test(b.asset.symbol);
   const explanation = holdingMode ? b.phase === 'Active'
-    ? "You can't buy claims here right now — no market. The vault may hold this bond."
+    ? "You can't buy claims here right now — no market. These values describe existing claims."
     : 'This bond is no longer open for new purchases. These values describe existing claims.'
     : !usd ? `No USD conversion is available for ${b.asset.symbol}. The bond pays in ${b.asset.symbol}.`
     : b.phase === 'Active' && prices.ask === null ? prices.loading ? 'Reading the market’s current asking price…' : 'No usable asking price. A listed market needs a seller before you can buy.'
@@ -81,7 +80,7 @@ export function WhatYouGet({ b, account, now }: { b: BondView; account?: Account
     <div className={`mb-4 grid gap-3 ${!holdingMode && usd ? 'sm:grid-cols-[12rem_1fr] sm:items-end' : ''}`}>
       {!holdingMode && usd && <label className="block space-y-2"><span className="text-sm">Amount in USD</span><input inputMode="decimal" value={amount} onChange={e => setAmount(e.target.value)} aria-invalid={!valid} aria-describedby={rows.length ? "calculator-assumption" : undefined}
         className="min-h-11 w-full rounded-lg border border-foreground/25 bg-transparent px-3 font-mono tabular focus-visible:outline-2 focus-visible:outline-foreground" /></label>}
-      <p className="text-sm text-foreground/80"><TermsText>{explanation}</TermsText>{b.phase === 'Active' && !b.kuru && <> <Link href="/vault" className="underline underline-offset-4">View vault holdings</Link>.</>}</p>
+      <p className="text-sm text-foreground/80"><TermsText>{explanation}</TermsText></p>
     </div>
     {!holdingMode && usd && !valid && <p role="alert" className="mb-3 text-sm">Enter a positive amount, such as 10.</p>}
     {prices.error && b.kuru && <p role="alert" className="mb-3 text-sm">Market prices could not be read. <button type="button" onClick={() => void prices.refetch()} className="min-h-11 underline">Retry price</button></p>}

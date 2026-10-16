@@ -9,9 +9,9 @@ export const bondSections = [
   ['How you could lose money', 'min-h-[22rem]'],
   ['What you can do now', 'min-h-40'],
 ] as const;
-export function BondPlaceholders({ error, retry }: { error?: string; retry?: () => void }) {
+export function BondPlaceholders({ error, retry, omitSummary = false, evidence }: { error?: string; retry?: () => void; omitSummary?: boolean; evidence?: ReactNode }) {
   return <div className="space-y-6" aria-busy={!error}>
-    {bondSections.map(([title, height]) => <Panel key={title} title={title} className={height}>
+    {bondSections.filter(([title]) => !omitSummary || title !== 'Bond summary').map(([title, height]) => title === 'Evidence' && evidence ? <div key={title}>{evidence}</div> : <Panel key={title} title={title} className={height}>
       {error ? <div role="alert"><p className="text-sm">{error}</p><p className="mt-2 text-sm text-foreground/70">This section needs the bond’s verified terms and indexed history before it can show a decision.</p>{retry && <button type="button" onClick={retry} className="mt-3 min-h-11 underline">Retry data</button>}</div>
         : <div role="status" aria-label={`Loading ${title}`} className="space-y-4 motion-safe:animate-pulse"><div className="h-5 w-3/4 rounded bg-foreground/10" /><div className="h-5 w-full rounded bg-foreground/10" /><div className="h-5 w-2/3 rounded bg-foreground/10" /><div className="h-11 w-36 rounded bg-foreground/10" /></div>}
     </Panel>)}

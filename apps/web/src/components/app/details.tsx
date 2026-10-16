@@ -6,12 +6,12 @@ import { useReadContract } from 'wagmi';
 import { AlertTriangle, ArrowLeft, ExternalLink } from 'lucide-react';
 import { bondAbi, covenantAbi } from '@/lib/abi';
 import { chain } from '@/lib/wallet';
-import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
+import { days, fmt, short, useBond, useAccountPage, useNativeReview, indexedPhase, unit, type AccountView, type BondView, type IndexerData } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
 import { creditLine, defaultCreditTerms } from '@bondrail/sdk/credit';
 import { RegistryCreditProfile } from './credit-profile';
 import { BondActions } from './bond-actions';
-import { BondSummary, BondTimeline } from './bond-summary';
+import { BondSummary, BondTimeline, IndexedBondSummary } from './bond-summary';
 import { DecisionLinks, DecisionPanel, type BondIntent } from './bond-decisions';
 import { BondPlaceholders, BondSection } from './bond-section';
 import { bondRisks, bondDate } from '@/lib/bond-decision';
@@ -128,14 +128,14 @@ const REPORT_INTERVAL = 30 * 60; // the reporter's schedule (ops/covenant-server
 const ago = (s: number) => (s < 90 ? `${s} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
 
 function Health({ b, a }: { b: BondView; a?: AccountView }) {
-  const covenant = useReadContract({ address: b.address, abi: bondAbi, functionName: 'covenant', chainId: chain.id, query: { enabled: b.tier === 'Watched' } });
+  const covenant = useReadContract({ address: b.address, abi: bondAbi, functionName: 'covenant', chainId: chain.id, query: { enabled: b.tier === 'Watched', staleTime: Infinity } });
   const dark = useReadContract({
     address: covenant.data as `0x${string}` | undefined,
     abi: covenantAbi,
     functionName: 'darkFor',
     args: [b.address],
     chainId: chain.id,
-    query: { enabled: !!covenant.data, refetchInterval: 15_000 },
+    query: { enabled: !!covenant.data, staleTime: 15_000, refetchInterval: 15_000 },
   });
   if (b.tier === 'Native') return <Panel compact className="p-4 sm:p-6" title="Source">
     <p className="text-sm leading-relaxed text-foreground/80"><TermsText>{a?.nativeReview === 'template'
@@ -231,18 +231,22 @@ function Back() {
   );
 }
 
-export function BondPage({ address }: { address: string }) {
-  const { data, loading, error, configured, refetch } = useProtocol();
-  const b = data?.bonds.find(x => x.address.toLowerCase() === address.toLowerCase());
-  if (!b) return <div className="space-y-6"><Back /><BondPlaceholders
+export function BondPage({ address, initialData, indexedAt }: { address: string; initialData?: IndexerData; indexedAt?: number }) {
+  const { row, b, a, assets, loading, error, configured, refetch, termsError, evidenceLoading, liveLoading, checksLoading, checksError } = useBond(address, initialData, indexedAt);
+  const review = useNativeReview(a?.tier === 'Native' ? a.project : undefined);
+  const account = a && review.data && !review.isError ? { ...a, nativeReview: review.data, reviewed: review.data === 'template' || review.data === 'individual' } : a;
+  if (!row) return <div className="space-y-6"><Back /><BondPlaceholders
     error={!configured ? 'No indexer configured.' : loading ? undefined : error ? 'The bond data could not be reached.' : 'No bond is indexed at this address yet.'}
     retry={() => void refetch()} /></div>;
-  const a = data?.accounts.find(x => x.address.toLowerCase() === b.account.toLowerCase());
-  return <BondDetailView key={b.address} b={b} a={a} refreshError={!!error} />;
+  if (!b) return <div className="space-y-3" data-testid="bond-page"><Back />
+    <IndexedBondSummary b={row} account={account} asset={account?.asset ?? [...assets.values()][0]} />
+    <BondPlaceholders omitSummary evidence={account && <section aria-label="Evidence" className="space-y-3"><h2 className="text-xl font-semibold">Evidence</h2><History a={account} compact /><Payers a={account} compact /><RegistryCreditProfile account={row.account} compact estimate={account} /></section>} error={error ? 'The account data could not be read.' : termsError ? 'The bond terms could not be read.' : undefined} retry={() => void refetch()} />
+  </div>;
+  return <BondDetailView key={b.address} b={b} a={account} refreshError={!!error} evidenceLoading={evidenceLoading} liveLoading={liveLoading} checksLoading={checksLoading} checksError={!!checksError} />;
 }
 
 /** Shared by the live route and development-only deterministic review fixtures. */
-export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = false }: { b: BondView; a?: AccountView; now?: number; refreshError?: boolean }) {
+export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = false, evidenceLoading = false, liveLoading = false, checksLoading = false, checksError = false }: { b: BondView; a?: AccountView; now?: number; refreshError?: boolean; evidenceLoading?: boolean; liveLoading?: boolean; checksLoading?: boolean; checksError?: boolean }) {
   const [intent, setIntent] = useState<BondIntent | null>(null);
   function select(value: BondIntent) {
     setIntent(value);
@@ -250,15 +254,15 @@ export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = f
   }
   return <div className="-mx-2 -mt-4 -mb-4 space-y-3 sm:mt-0 sm:mb-0 sm:mx-0 sm:space-y-6" data-testid="bond-page">
     <Back />
-    {refreshError && <p role="alert" className="text-sm">Refresh failed. Showing the last successful bond snapshot; reload before making a decision.</p>}
+    {refreshError && <p role="alert" className="text-sm">Some data could not be refreshed. Available bond facts remain visible; reload before making a decision.</p>}
     <BondSection title="Bond summary"><BondSummary b={b} account={a} now={now} actions={<DecisionLinks b={b} now={now} onSelect={select} />} /></BondSection>
-    <BondSection title="How this bond works"><BondTimeline b={b} now={now} /></BondSection>
+    <BondSection title="How this bond works">{liveLoading ? <Panel title="How this bond works"><p role="status">Reading lifecycle dates…</p></Panel> : <BondTimeline b={b} now={now} />}</BondSection>
     <BondSection title="What you get"><WhatYouGet b={b} account={a} now={now} /></BondSection>
     <section aria-labelledby="bond-evidence" className="space-y-3 sm:space-y-4">
       <h2 id="bond-evidence" className="text-xl font-semibold">Evidence</h2>
-      <BondSection title="Revenue history">{a ? <History a={a} compact /> : <Panel title="Revenue history" className="p-4 sm:p-6"><p>Revenue history is unavailable. It shows how much the business has earned from counted payers.</p></Panel>}</BondSection>
-      <BondSection title="Payers">{a ? <Payers a={a} compact /> : <Panel title="Payers"><p>Payer data is unavailable. This table helps you see whether revenue comes from a few addresses.</p></Panel>}</BondSection>
-      <BondSection title="Source"><Health b={b} a={a} /></BondSection>
+      <BondSection title="Revenue history">{a ? <History a={a} compact /> : <Panel title="Revenue history" className="p-4 sm:p-6"><p role={evidenceLoading ? "status" : undefined}>{evidenceLoading ? "Reading revenue history…" : "Revenue history is unavailable. It shows how much the business has earned from counted payers."}</p></Panel>}</BondSection>
+      <BondSection title="Payers">{a ? <Payers a={a} compact /> : <Panel title="Payers"><p role={evidenceLoading ? "status" : undefined}>{evidenceLoading ? "Reading payers…" : "Payer data is unavailable. This table helps you see whether revenue comes from a few addresses."}</p></Panel>}</BondSection>
+      <BondSection title="Source">{checksLoading ? <Panel title="Source"><p role="status">Reading source observations…</p></Panel> : checksError ? <Panel title="Source"><p role="alert">Source observations could not be read.</p></Panel> : <Health b={b} a={a} />}</BondSection>
       <BondSection title="Credit profile"><RegistryCreditProfile account={b.account} compact estimate={a} /></BondSection>
     </section>
     <BondSection title="How you could lose money"><Panel compact title="How you could lose money" className="p-4 sm:p-6">
@@ -337,15 +341,17 @@ function CreditLinePanel({ a }: { a: AccountView }) {
 }
 
 export function AccountPage({ address }: { address: string }) {
-  const { data, loading, error, configured } = useProtocol();
-  const a = data?.accounts.find((x) => x.address.toLowerCase() === address.toLowerCase());
+  const { data, loading, error, configured, bondsLoading } = useAccountPage(address);
+  const indexedAccount = data?.accounts.find((x) => x.address.toLowerCase() === address.toLowerCase());
+  const review = useNativeReview(indexedAccount?.tier === 'Native' ? indexedAccount.project : undefined);
+  const a = indexedAccount && review.data && !review.isError ? { ...indexedAccount, nativeReview: review.data, reviewed: review.data === 'individual' || review.data === 'template' } : indexedAccount;
   if (!a) return <div className="space-y-8"><Back /><h1 className="text-4xl font-semibold">Credit profile</h1>
     <RegistryCreditProfile account={address} />
     <Empty title={!configured ? 'No indexer configured' : loading ? 'Loading indexed estimates…' : error ? "Couldn't reach the indexer" : 'No indexed account yet'}>
       Registry reads are independent of the indexed estimates below.
     </Empty>
   </div>;
-  const bonds = data!.bonds.filter((b) => b.account === a.address);
+  const bonds = data!.indexedBonds;
   return (
     <div className="space-y-8">
       <Back />
@@ -363,6 +369,7 @@ export function AccountPage({ address }: { address: string }) {
           · issuer {short(a.issuer)}
         </p>
       </header>
+      {error && <p role="alert">Some account data could not be refreshed. Showing the last available indexed history.</p>}
       <RegistryCreditProfile account={a.address} />
       <h2 className="text-xl font-semibold">Indexer estimates · unsigned</h2>
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
@@ -373,19 +380,19 @@ export function AccountPage({ address }: { address: string }) {
         <aside className="space-y-6">
           <CreditLinePanel a={a} />
           <Panel title="Bonds" aside={<span className="font-mono text-xs text-foreground/70">[{bonds.length}]</span>}>
-            {bonds.length === 0 ? (
+            {bondsLoading ? <p role="status" className="text-sm">Reading this account’s bonds…</p> : bonds.length === 0 ? (
               <p className="text-sm text-foreground/70">No bonds yet. This account is building history.</p>
             ) : (
               <ul className="space-y-3">
                 {bonds.map((b) => (
-                  <li key={b.address}>
-                    <Link href={`/bonds/${b.address}`} className="block rounded-lg border border-foreground/10 p-3 hover:border-foreground/25">
+                  <li key={b.id}>
+                    <Link href={`/bonds/${b.id}`} className="block rounded-lg border border-foreground/10 p-3 hover:border-foreground/25">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium">{b.symbol}</span>
-                        <PhaseBadge phase={b.phase} defaulted={b.defaulted} />
+                        <span className="font-medium">{short(b.id)}</span>
+                        <PhaseBadge phase={indexedPhase(b)} defaulted={b.defaulted} />
                       </div>
                       <p className="mt-1 text-xs text-foreground/70">
-                        {fmt(b.collected, b.asset)} repaid of {fmt(b.effectiveCap, b.asset)} · {b.multiple.toFixed(2)}×
+                        {fmt(unit(b.revenueCollected, a.asset), a.asset)} repaid of {fmt(unit(b.effectiveCap, a.asset), a.asset)} (current cap)
                       </p>
                     </Link>
                   </li>

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { erc20Abi, formatUnits, isAddress, zeroAddress, type Address } from 'viem';
 import { creditAttestationLabel, getCreditProfile, creditLine } from '@bondrail/sdk/credit';
@@ -15,18 +15,26 @@ const phases = ['Funding', 'Active', 'Closing', 'Closed', 'Cancelled'];
 
 export function RegistryCreditProfile({ account, compact = false, estimate }: { account: string; compact?: boolean; estimate?: AccountView }) {
   const registry = deployment.creditRegistry;
+  const cache = useQueryClient();
   const client = usePublicClient({ chainId: chain.id });
   const validAccount = isAddress(account);
   const query = useQuery({
     queryKey: ['registry-credit', chain.id, registry, account.toLowerCase()],
     enabled: !!client && !!registry && validAccount && safeNetwork,
+    staleTime: 30_000,
     refetchInterval: 30_000,
     queryFn: async () => {
       const profile = await getCreditProfile(client!, registry!, account as Address);
-      const [decimals, symbol] = await Promise.all([
-        client!.readContract({ address: profile.onchain.asset, abi: erc20Abi, functionName: 'decimals', blockNumber: profile.blockNumber }),
-        client!.readContract({ address: profile.onchain.asset, abi: erc20Abi, functionName: 'symbol', blockNumber: profile.blockNumber }),
-      ]);
+      const { decimals, symbol } = await cache.fetchQuery({
+        queryKey: ['asset-metadata', chain.id, profile.onchain.asset.toLowerCase()], staleTime: Infinity,
+        queryFn: async () => {
+          const [decimals, symbol] = await client!.multicall({ allowFailure: false, contracts: [
+            { address: profile.onchain.asset, abi: erc20Abi, functionName: 'decimals' },
+            { address: profile.onchain.asset, abi: erc20Abi, functionName: 'symbol' },
+          ], blockNumber: profile.blockNumber });
+          return { address: profile.onchain.asset, decimals, symbol, known: profile.onchain.asset.toLowerCase() === deployment.token?.toLowerCase() };
+        },
+      });
       return { ...profile, decimals, symbol };
     },
   });

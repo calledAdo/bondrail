@@ -1,18 +1,18 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, claimEstimate, purchaseEstimate } from './bond-decision';
+import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, claimEstimate, purchaseEstimate, vaultHoldsBond } from './bond-decision';
 import { bondFixtures, fixtureAccount, FIXTURE_NOW, marketFixture } from './bond-fixtures';
 
-const activeSentence = 'Fixture Studio raised $1,000.00 of $1,000.00. Claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until $1,500.00 has been repaid or Jan 14, 2027. $200.00 repaid so far.';
-const fundingSentence = 'Fixture Studio is raising $1,000.00. If fully funded by Oct 17, 2026, claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until $1,500.00 has been repaid or Jan 14, 2027. $0.00 repaid so far.';
+const activeSentence = 'Fixture Studio raised $1,000.00 of $1,000.00. Claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until up to $1,500.00 has been repaid (currently up to $750.00, rising as more capital is released) or Jan 14, 2027. $200.00 repaid so far.';
+const fundingSentence = 'Fixture Studio is raising $1,000.00. If fully funded by Oct 17, 2026, claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until up to $1,500.00 has been repaid (currently up to $750.00, rising as more capital is released) or Jan 14, 2027. $0.00 repaid so far.';
 const expected = {
   Funding: [fundingSentence, 'Raising', 'Deposit'],
   'Funding-paused': [fundingSentence, 'Raising', null],
   Active: [activeSentence, 'Repaying', null],
   'Active-triggered': [activeSentence.replace('over 7 days)', 'over 7 days) — currently stepped up'), 'Repaying', null],
-  'Active-defaulted': [activeSentence + ' The issuer defaulted on Oct 15, 2026; recovered funds are being paid to claim holders.', 'Default recovery', null],
-  Closing: [activeSentence.replace('$200.00 repaid', '$750.00 repaid'), 'Settled', null],
-  Closed: [activeSentence.replace('$200.00 repaid', '$750.00 repaid'), 'Settled', 'Redeem'],
+  'Active-defaulted': [activeSentence.replace(', rising as more capital is released', '') + ' The issuer defaulted on Oct 15, 2026; recovered funds are being paid to claim holders.', 'Default recovery', null],
+  Closing: [activeSentence.replace(', rising as more capital is released', '').replace('$200.00 repaid', '$750.00 repaid'), 'Settled', null],
+  Closed: [activeSentence.replace(', rising as more capital is released', '').replace('$200.00 repaid', '$750.00 repaid'), 'Settled', 'Redeem'],
   Cancelled: ["This raise didn't complete. Every deposit can be refunded in full.", 'Raise cancelled', 'Refund'],
 } as const;
 for (const [phase, b] of Object.entries(bondFixtures)) {
@@ -27,7 +27,7 @@ for (const [phase, b] of Object.entries(bondFixtures)) {
   });
 }
 test('no trigger, singular day, unavailable default date, milestone completion/expiry', () => {
-  assert.ok(!bondSummary({ ...bondFixtures.Active, triggerWindowDays: 0 }).includes('rising'));
+  assert.ok(!bondSummary({ ...bondFixtures.Active, triggerWindowDays: 0 }).includes('rising to'));
   assert.match(bondSummary({ ...bondFixtures.Active, triggerWindowDays: 1 }), /over 1 day\)/);
   assert.match(bondSummary({ ...bondFixtures['Active-defaulted'], defaultedAt: undefined }), /unreported date/);
   assert.equal(bondTimeline({ ...bondFixtures.Active, released: 1000, undrawn: 0 }, FIXTURE_NOW)[2].state, 'complete');
@@ -109,4 +109,20 @@ test('claim value respects recovery, release windows and stopped collection', ()
 
 test('cancelled claims refund at par even after some holders burn their claims', () => {
   assert.deepEqual(claimEstimate({ ...bondFixtures.Cancelled, supply: 100 }, undefined, FIXTURE_NOW), { backing: 1, stopped: 1, expected: 1, best: 1 });
+});
+
+
+test('current and full caps agree when fully released; zero current cap stays zero', () => {
+  const active = bondFixtures.Active;
+  assert.match(bondSummary(active), /up to \$1,500.00.*currently up to \$750.00/);
+  assert.ok(!bondSummary({ ...active, effectiveCap: active.cap }).includes('currently up to'));
+  assert.match(bondSummary({ ...active, effectiveCap: 0 }), /currently up to \$0.00/);
+});
+
+test('vault action requires positive tracked membership, independent of address case', () => {
+  const address = '0xabcdef';
+  assert.equal(vaultHoldsBond(address, [address.toUpperCase()]), true);
+  assert.equal(vaultHoldsBond(address, ['0x123456']), false);
+  assert.equal(vaultHoldsBond(address, []), false);
+  assert.equal(vaultHoldsBond(address, undefined), false);
 });

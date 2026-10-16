@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { usePublicClient } from 'wagmi';
 import { erc20Abi, formatUnits, type Address } from 'viem';
 import { bondAbi, vaultAbi } from '@/lib/abi';
@@ -58,10 +58,16 @@ async function readVault(client: NonNullable<ReturnType<typeof usePublicClient>>
 export function CreditVault() {
   const client = usePublicClient({ chainId: chain.id });
   const address = deployment.vault;
+  const cache = useQueryClient();
   const query = useQuery({
     queryKey: ['credit-vault', chain.id, address],
     enabled: !!client && !!address && safeNetwork,
-    queryFn: () => readVault(client!, address!),
+    queryFn: async () => {
+      const data = await readVault(client!, address!);
+      cache.setQueryData(['vault-holdings', chain.id, address], data.holdings.map(h => h.bond));
+      return data;
+    },
+    staleTime: 30_000,
     refetchInterval: 30_000,
     retry: 1,
   });

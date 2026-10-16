@@ -3,9 +3,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useAccount, useReadContract } from 'wagmi';
 import { erc20Abi } from 'viem';
-import { bondAction } from '@/lib/bond-decision';
+import { bondAction, vaultHoldsBond } from '@/lib/bond-decision';
 import { chain } from '@/lib/wallet';
-import type { AccountView, BondView } from '@/lib/protocol';
+import { useVaultHoldings, type AccountView, type BondView } from '@/lib/protocol';
 import { BondActions } from './bond-actions';
 import { Trade } from './trade';
 import { TermsText } from './term';
@@ -17,11 +17,13 @@ export function DecisionLinks({ b, now, onSelect, primary = true }: { b: BondVie
   const balance = useReadContract({ address: b.address, abi: erc20Abi, functionName: 'balanceOf', args: address ? [address] : undefined, chainId: chain.id, query: { enabled: !!address, refetchInterval: 10000 } });
   const [shared, setShared] = useState('');
   const action = bondAction(b, now);
+  const holdings = useVaultHoldings(b.phase === 'Active' && !b.kuru);
+  const vaultLink = primary && b.phase === 'Active' && !b.kuru && !holdings.isError && vaultHoldsBond(b.address, holdings.data);
   const intent: BondIntent = b.phase === 'Funding' ? 'deposit' : b.phase === 'Active' ? 'buy' : b.phase === 'Closed' ? 'redeem' : 'refund';
   return <div>
-    {action.message && (!primary || b.phase !== 'Active') && <p className="text-sm font-medium"><TermsText>{action.message}</TermsText></p>}
+    {action.message && !vaultLink && <p className="text-sm font-medium"><TermsText>{action.message}</TermsText></p>}
     <div className="flex flex-wrap items-center gap-x-5 gap-y-1">
-      {primary && b.phase === 'Active' && !b.kuru && <Link href="/vault" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90">View vault holdings</Link>}
+      {vaultLink && <Link href="/vault" className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90">View vault holdings</Link>}
       {action.primary && <button type="button" onClick={() => onSelect(intent)} className={primary ? 'inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground hover:bg-primary/90' : quiet}>{action.primary}</button>}
       {!primary && b.phase === 'Funding' && (balance.data ?? 0n) > 0n && now < b.fundingDeadline && <button type="button" onClick={() => onSelect('withdraw')} className={quiet}>Withdraw</button>}
       {!primary && b.phase === 'Funding' && action.primary && <button type="button" className={quiet} onClick={async () => { try { await navigator.clipboard.writeText(location.href); setShared('Link copied'); } catch { setShared('Copy the page address to share this bond.'); } }}>Share link</button>}
