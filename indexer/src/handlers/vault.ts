@@ -1,8 +1,6 @@
 import { indexer, type EvmOnEventContext, type EvmEvent } from 'envio';
-import { vaultState, blockTime } from '../vault-state';
+import { ZERO, emptyTotals, emptyPrice, eventTotals, eventPrice, addTotals, supplyChange, emptyHolding, updateHolding } from '../vault-accounting';
 const low = (a: string) => a.toLowerCase();
-const ZERO = '0x0000000000000000000000000000000000000000';
-const zeroHash = `0x${'0'.repeat(64)}`;
 type Context = EvmOnEventContext;
 type Event = EvmEvent<'BondrailVault'>;
 
@@ -10,28 +8,19 @@ indexer.contractRegister({ contract: 'BondrailVaultFactory', event: 'VaultCreate
   context.chain.BondrailVault.add(event.params.vault);
 });
 
-export async function snapshotVault(context: Context, vault: string, chainId: number, block: number, timestamp: bigint) {
-  const state = await context.effect(vaultState, { chainId, vault, block });
-  const old = await context.Vault.get(vault);
-  if (!old) context.Vault.set({ id: vault, chainId, registry: '', asset: low(state.asset), owner: low(state.owner),
-    curator: low(state.curator), name: state.name, symbol: state.symbol,
-    strategy: 'Diversified revenue bonds under fixed allocation limits', metadataHash: zeroHash,
-    pendingCurator: undefined, curatorChangeAfter: undefined, createdAt: timestamp });
-  const day = Number(timestamp / 86400n);
-  context.VaultDailySnapshot.set({ id: `${vault}-${day}`, vault, day, timestamp, block: BigInt(block),
-    nav: state.nav, entryNav: state.entryNav, idle: state.idle, totalSupply: state.totalSupply,
-    entryPrice: state.entryPrice, exitPrice: state.exitPrice });
+async function getVault(context: Context, id: string, chainId: number, timestamp: bigint) {
+  return await context.Vault.get(id) ?? { id, chainId, registry: '', asset: undefined, owner: undefined,
+    curator: undefined, name: undefined, symbol: undefined, strategy: undefined, metadataHash: undefined,
+    pendingCurator: undefined, curatorChangeAfter: undefined, createdAt: timestamp,
+    ...emptyTotals(), ...emptyPrice(), totalSupply: 0n, lockedIncome: 0n, holdings: [] as string[] };
 }
 
 indexer.onEvent({ contract: 'BondrailVaultFactory', event: 'VaultCreated' }, async ({ event, context }) => {
   const p = event.params, vault = low(p.vault);
-  const old = await context.Vault.get(vault);
-  context.Vault.set({ id: vault, chainId: event.chainId, registry: low(event.srcAddress), asset: low(p.asset),
+  const old = await getVault(context, vault, event.chainId, BigInt(event.block.timestamp));
+  context.Vault.set({ ...old, registry: low(event.srcAddress), asset: low(p.asset),
     owner: low(p.owner), curator: low(p.curator), name: p.name, symbol: p.symbol,
-    strategy: p.strategy.description, metadataHash: p.strategy.metadataHash,
-    pendingCurator: old?.pendingCurator, curatorChangeAfter: old?.curatorChangeAfter,
-    createdAt: old?.createdAt ?? BigInt(event.block.timestamp) });
-  await snapshotVault(context, vault, event.chainId, event.block.number, BigInt(event.block.timestamp));
+    strategy: p.strategy.description, metadataHash: p.strategy.metadataHash });
 });
 
 function position(vault: string, holder: string) {
@@ -40,26 +29,46 @@ function position(vault: string, holder: string) {
 
 indexer.onEvent({ contract: 'BondrailVault', event: 'Transfer' }, async ({ event, context }) => {
   const vault = low(event.srcAddress), from = low(event.params.from), to = low(event.params.to), shares = event.params.value;
-  if (from === to) return;
-  let cost = 0n;
-  if (from !== ZERO) {
-    const p = await context.VaultPosition.get(`${vault}-${from}`) ?? position(vault, from);
-    if (shares > p.shares) throw new Error('Vault share history incomplete; reindex from deployment');
-    cost = p.shares === 0n ? 0n : p.costBasis * shares / p.shares;
-    context.VaultPosition.set({ ...p, shares: p.shares - shares, costBasis: p.costBasis - cost });
+  if (from !== to) {
+    let cost = 0n;
+    if (from !== ZERO) {
+      const p = await context.VaultPosition.get(`${vault}-${from}`) ?? position(vault, from);
+      if (shares > p.shares) throw new Error('Vault share history incomplete; reindex from deployment');
+      cost = p.shares === 0n ? 0n : p.costBasis * shares / p.shares;
+      context.VaultPosition.set({ ...p, shares: p.shares - shares, costBasis: p.costBasis - cost });
+    }
+    if (to !== ZERO) {
+      const p = await context.VaultPosition.get(`${vault}-${to}`) ?? position(vault, to);
+      context.VaultPosition.set({ ...p, shares: p.shares + shares, costBasis: p.costBasis + cost });
+    }
   }
-  if (to !== ZERO) {
-    const p = await context.VaultPosition.get(`${vault}-${to}`) ?? position(vault, to);
-    context.VaultPosition.set({ ...p, shares: p.shares + shares, costBasis: p.costBasis + cost });
-  }
+  await activity(context, event, 'Transfer', from, to, '', 0n, shares);
 });
 
-async function activity(context: Context, event: Event, kind: string, actor = '', receiver = '', bond = '', assets = 0n, shares = 0n) {
-  const vault = low(event.srcAddress);
+async function activity(context: Context, event: Event, kind: string, actor = '', receiver = '', bond = '', assets = 0n, shares = 0n, lockedIncome?: bigint) {
+  const vault = low(event.srcAddress), timestamp = BigInt(event.block.timestamp), day = Number(timestamp / 86400n);
+  const e = { kind, timestamp, assets, shares, from: low(actor), to: low(receiver), newIncome: assets, lockedIncome };
+  const price = eventPrice(e), delta = eventTotals(e);
+  let v = addTotals(await getVault(context, vault, event.chainId, timestamp), delta);
+  v = { ...v, ...price, totalSupply: v.totalSupply + supplyChange(e), lockedIncome: lockedIncome ?? v.lockedIncome };
+  if (bond) {
+    bond = low(bond);
+    const h = updateHolding(await context.VaultHolding.get(`${vault}-${bond}`) ?? emptyHolding(vault, bond), kind, assets);
+    context.VaultHolding.set(h);
+    v = { ...v, holdings: h.active ? [...new Set([...v.holdings, bond])] : v.holdings.filter(b => b !== bond) };
+  }
+  if (kind === 'CuratorProposed') v = { ...v, pendingCurator: low(actor), curatorChangeAfter: (event as EvmEvent<'BondrailVault', 'CuratorProposed'>).params.executableAt };
+  if (kind === 'CuratorChanged') v = { ...v, curator: low(actor), pendingCurator: undefined, curatorChangeAfter: undefined };
+  context.Vault.set(v);
+  const daily = await context.VaultDailySnapshot.get(`${vault}-${day}`) ?? {
+    id: `${vault}-${day}`, vault, day, timestamp, block: BigInt(event.block.number), eventCount: 0,
+    ...emptyTotals(), ...emptyPrice(), totalSupply: 0n, lockedIncome: 0n,
+  };
+  context.VaultDailySnapshot.set({ ...addTotals(daily, delta), ...price, timestamp, block: BigInt(event.block.number),
+    totalSupply: v.totalSupply, lockedIncome: v.lockedIncome, eventCount: daily.eventCount + 1 });
   context.VaultActivity.set({ id: `${event.chainId}:${event.block.number}:${event.transaction.hash}:${event.logIndex}`,
-    chainId: event.chainId, vault, kind, actor: low(actor), receiver: low(receiver), bond: low(bond), assets, shares,
-    timestamp: BigInt(event.block.timestamp), block: BigInt(event.block.number), txHash: event.transaction.hash });
-  await snapshotVault(context, vault, event.chainId, event.block.number, BigInt(event.block.timestamp));
+    chainId: event.chainId, vault, kind, actor: low(actor), receiver: low(receiver), bond, assets, shares,
+    timestamp, block: BigInt(event.block.number), txHash: event.transaction.hash, realizedPrice: price?.realizedPrice, lockedIncome });
 }
 
 indexer.onEvent({ contract: 'BondrailVault', event: 'Deposit' }, async ({ event, context }) => {
@@ -84,28 +93,11 @@ indexer.onEvent({ contract: 'BondrailVault', event: 'RaiseWithdrawn' }, async ({
   await activity(context, event, 'RaiseWithdrawn', '', '', event.params.bond, event.params.assets);
 });
 indexer.onEvent({ contract: 'BondrailVault', event: 'IncomeCheckpointed' }, async ({ event, context }) => {
-  await activity(context, event, 'IncomeCheckpointed', '', '', '', event.params.newIncome);
+  await activity(context, event, 'IncomeCheckpointed', '', '', '', event.params.newIncome, 0n, event.params.lockedIncome);
 });
 indexer.onEvent({ contract: 'BondrailVault', event: 'CuratorProposed' }, async ({ event, context }) => {
   await activity(context, event, 'CuratorProposed', event.params.curator);
-  const v = await context.Vault.get(low(event.srcAddress));
-  if (v) context.Vault.set({ ...v, pendingCurator: low(event.params.curator), curatorChangeAfter: event.params.executableAt });
 });
 indexer.onEvent({ contract: 'BondrailVault', event: 'CuratorChanged' }, async ({ event, context }) => {
   await activity(context, event, 'CuratorChanged', event.params.curator, event.params.previousCurator);
-  const v = await context.Vault.get(low(event.srcAddress));
-  if (v) context.Vault.set({ ...v, curator: low(event.params.curator), pendingCurator: undefined, curatorChangeAfter: undefined });
-});
-
-// The first sampled block on each UTC day captures time-only write-down/vesting changes, even without
-// vault transactions. Activity refreshes that day's row. Historical RPC failure stops/retries indexing.
-indexer.onBlock({ name: 'vaultDailySnapshots', where: () => ({ block: { number: { _every: 300 } } }) }, async ({ block, context }) => {
-  const chainId = context.chain.id;
-  const vaults = await context.Vault.getWhere({ chainId: { _eq: chainId } });
-  if (!vaults.length) return;
-  const timestamp = await context.effect(blockTime, { chainId, block: block.number });
-  for (const v of vaults) {
-    if (await context.VaultDailySnapshot.get(`${v.id}-${timestamp / 86400n}`)) continue;
-    await snapshotVault(context, v.id, chainId, block.number, timestamp);
-  }
 });

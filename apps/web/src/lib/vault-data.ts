@@ -40,5 +40,14 @@ export function vaultInputError(p: { connected: boolean; correctNetwork: boolean
   return undefined;
 }
 
-export type VaultSnapshot = { id: string; vault: string; day: number; timestamp: string; block: string; entryPrice: string; exitPrice: string; nav: string; entryNav: string; idle: string; totalSupply: string };
+export type VaultSnapshot = { id: string; vault: string; day: number; timestamp: string; block: string; realizedPrice: string | null; realizedPriceKind: string | null; realizedPriceTimestamp: string | null; totalSupply: string };
 export type IndexedVaultPosition = { id: string; vault: string; holder: string; shares: string; costBasis: string; deposited: string; withdrawn: string };
+
+/** Daily observations only; never carry a price into a day with no deposit/withdrawal. */
+export function realizedVaultHistory(snapshots: VaultSnapshot[], vault: { address: string; decimals: number; assetDecimals: number }) {
+  return snapshots.filter(s => s.vault.toLowerCase() === vault.address.toLowerCase() && s.realizedPrice !== null)
+    .sort((a, b) => a.day - b.day).slice(-30).map(s => ({ ...s,
+      // Indexer stores raw assets/raw shares scaled by 1e18; normalize using live token metadata.
+      price: formatUnits(BigInt(s.realizedPrice!) * 10n ** BigInt(vault.decimals) / 10n ** 18n, vault.assetDecimals),
+    }));
+}

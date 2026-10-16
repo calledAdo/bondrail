@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { allocationHeadroom, depositGap, isTeamVault, vaultAmount, vaultInputError } from './vault-data';
+import { allocationHeadroom, depositGap, isTeamVault, realizedVaultHistory, vaultAmount, vaultInputError, type VaultSnapshot } from './vault-data';
+test('realized history skips unpriced days, keeps zero prices and scales raw shares using token decimals', () => {
+  const row = (day: number, realizedPrice: string | null): VaultSnapshot => ({ id: String(day), vault: '0xABC', day,
+    timestamp: '1', block: '1', totalSupply: '0', realizedPrice, realizedPriceKind: 'Deposit', realizedPriceTimestamp: '1' });
+  const rows = [row(5, '0'), row(2, '1234567000000'), row(3, null), { ...row(1, '9000000000000'), vault: '0xdef' }];
+  const points = realizedVaultHistory(rows, { address: '0xabc', decimals: 12, assetDecimals: 6 });
+  assert.deepEqual(points.map(p => [p.day, p.price]), [[2, '1.234567'], [5, '0']]);
+  assert.equal(realizedVaultHistory([row(1, '1500000000000')], { address: '0xabc', decimals: 24, assetDecimals: 18 })[0].price, '1.5');
+});
 const p = { nav: 1000n, idle: 500n, holdingValue: 100n, cap: 2500n, buffer: 2000n, holdings: 1, maxBonds: 16n, tracked: true, raiseRemaining: 1000n };
 test('team origin requires the registered original and manifest operator owner, never a name', () => {
   const original = { address: '0xAbC', owner: '0xDeF' };

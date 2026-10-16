@@ -1,5 +1,9 @@
 # Phase C acceptance — Task 23b review corrections
 
+Historical Task 23b evidence. Task 23d replaces the RPC snapshot history described below with
+[event-derived aggregates and realized prices](../../../indexer/VAULTS.md). Current local acceptance
+screenshots are written to `.data/e2e-local/vault-browser/`; these archived captures remain unchanged.
+
 Local branch `next`; no push, tag, publish, deployment to a remote chain, or remote configuration
 change. All transaction tests use an isolated Anvil on chain 31337. Public deployment manifests
 are compared byte-for-byte by the rehearsal. The SDK version is 0.2.0 and remains unpublished.

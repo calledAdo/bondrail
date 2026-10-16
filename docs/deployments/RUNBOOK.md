@@ -175,9 +175,9 @@ The writer checks recovery/balance every 15 seconds, logs `facilitator_low_gas_b
 
 ## RPC budget and provider configuration
 
-Monad's public `https://testnet-rpc.monad.xyz` endpoint limits **15 requests/second per IP**. All host processes, CRE, indexers and operator scripts share this public allowance. The retired Slice services have been removed. A per-process limiter cannot coordinate separate processes or deployments. Six requests/second in four processes is already over budget. `https://rpc-testnet.monadinfra.com` is **not a drop-in alternative**: some methods and batched requests return HTTP 403 “Restricted JSON RPC method”.
+Monad's public `https://testnet-rpc.monad.xyz` endpoint limits **15 requests/second per IP**. All host processes, CRE and operator scripts using this RPC share this public allowance. The retired Slice services have been removed. A per-process limiter cannot coordinate separate processes or deployments. Six requests/second in four processes is already over budget. `https://rpc-testnet.monadinfra.com` is **not a drop-in alternative**: some methods and batched requests return HTTP 403 “Restricted JSON RPC method”.
 
-`createRpcTransport` in `@bondrail/shared` is used by facilitator, worker, attester, scripts through `scripts/lib.ts`, and agent receipt reconciliation. The observer only probes unpaid web endpoints and signs locally; it has no RPC client. CRE and indexers have separate RPC configuration and must be included in the host budget.
+`createRpcTransport` in `@bondrail/shared` is used by facilitator, worker, attester, scripts through `scripts/lib.ts`, and agent receipt reconciliation. The observer only probes unpaid web endpoints and signs locally; it has no RPC client. CRE has separate RPC configuration and must be included in the host budget. Envio handlers use only indexed events and block timestamps; they make no chain RPC calls.
 
 | Setting | Default | Behavior |
 | --- | --- | --- |
@@ -311,3 +311,32 @@ Local acceptance runs `PATH="$HOME/.foundry/bin:$PATH" pnpm e2e:local`. It creat
 starts an isolated Anvil on 127.0.0.1/31337, deploys the registry, registers the original vault, creates a
 second strategy, deposits, withdraws, allocates and withdraws from a raise. Public manifests are checked
 byte-for-byte and services/temporary keys are cleaned up. No remote factory deployment was performed.
+Current transcripts/results are under `.data/e2e-local/`, including `vault-browser/` screenshots;
+archived Task 23b evidence under `docs/ux/phase-c/` is not overwritten.
+
+
+## Event-only indexer recovery (Task 23d)
+
+The `envio-next` incident at block **71,191,661** was caused by vault handlers awaiting historical
+state and block-time RPC effects against the public Monad RPC. Rate limits and unavailable archive
+state prevented progress. The repair removes those effects and the quiet-day block sampler entirely;
+no archive RPC or Envio Cloud environment-variable setting is required.
+
+The revised indexer records event totals, share balances/cost basis, per-bond allocation basis and
+holdings, curator changes and income checkpoints. Daily history records the last realized
+Deposit/Withdraw price that day plus event aggregates. Days without a price have null prices, and
+quiet days have no rows. `/vaults` and vault detail display **realized price at deposits/withdrawals**;
+live NAV, entry/exit quotes and idle cash continue to be read by the web app at the current block.
+Do not interpret the realized-price series as NAV or returns.
+
+This is a breaking schema change: daily `entryPrice`, `exitPrice`, `nav`, `entryNav`, `idle` are
+removed; daily flow/price fields, Vault running totals and `VaultHolding` are added. Legacy metadata
+is nullable until established by events. See [the complete schema report](../../indexer/VAULTS.md).
+
+For a separately authorized operator release: generate/review configuration for the intended manifest,
+run codegen and tests, release the matching indexer and web consumer, and **fully reindex from the
+original inception block**. Preserve the static legacy vault address and later factory discovery
+block. Do not resume the old snapshot database or advance the start block to bypass the incident.
+Verify indexing progresses past 71,191,661, check totals and realized prices against emitted logs,
+and verify web live valuation independently. The local repair and acceptance perform no hosted
+release, reindex, push, tag or remote change.
