@@ -14,6 +14,7 @@ import { classify, encodeObservationReport, observationDomain, observationTypes,
   type WatchPolicy, type Observation } from '../services/observer/src/protocol.ts';
 import { chromium } from '@playwright/test';
 import { webEnvironment } from './web-env.ts';
+import { verifyVaultBrowser } from './vault-browser.ts';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const logs = path.join(root, '.data/e2e-local');
@@ -262,6 +263,13 @@ async function main() {
   assert.equal(keccak256(stringToHex(evidence)), attested[0].evidenceHash);
   assert((await read(d.creditRegistry!, 'BondrailCreditRegistry', 'onchainProfile', [pump.account])).complete);
   pass('Local indexer serves all bonds and x402; real attester relays valid, complete profile with matching evidence');
+  // Browser wallet sends from explicitly impersonated local roles only.
+  const vaultInvestor = account('vault-depositor').address;
+  await write(account('deployer'), d.asset, artifact('MockERC3009').abi, 'mint', [vaultInvestor, 1_000_000n]);
+  for (const role of [vaultInvestor, account('curator').address]) {
+    await client.request({ method: 'anvil_impersonateAccount' as never, params: [role] as never });
+    await client.request({ method: 'anvil_setBalance' as never, params: [role, '0xde0b6b3a7640000'] as never });
+  }
   const webEnv = webEnvironment(d, rpc, indexer);
   fs.writeFileSync(path.join(logs, 'web.env'), Object.entries(webEnv).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
   const require = createRequire(import.meta.url);
@@ -295,12 +303,13 @@ async function main() {
     assert.match(await page.locator('body').innerText(), /1 of 1/);
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.join(logs, 'credit.png'), fullPage: true });
+    await verifyVaultBrowser({ browser, origin: `http://127.0.0.1:${webPort}`, rpc, deployment: d, investor: vaultInvestor, curator: account('curator').address, output: path.join(root, 'docs/ux/phase-c') });
   } catch (error) {
     fs.writeFileSync(path.join(logs, 'browser-failure.txt'), await page.locator('body').innerText());
     await page.screenshot({ path: path.join(logs, 'browser-failure.png'), fullPage: true });
     throw error;
   } finally { await browser.close(); }
-  pass('Web production build from 31337-e2e; browser reads all bonds, vault NAV and attestation without page errors');
+  pass('Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots');
   for (const { file, bytes } of protectedFiles) assert.deepEqual(fs.readFileSync(file), bytes);
   pass('Current and judged deployment manifests unchanged; only isolated anvil used');
   const addresses = Object.entries({ USDC: d.asset, factory: d.factory, covenant: d.covenant, registry: d.creditRegistry, vault: d.vault,

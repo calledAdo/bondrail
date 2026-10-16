@@ -1,0 +1,11 @@
+{
+  "chainId": 31337,
+  "results": [
+    "Two strategies, filtering, legacy redirect, real previews/caps/positions, hidden curator, 375/1280 screenshots and no overflow",
+    "Closed-deposit reason and zero-share rejection verified through local read-only RPC overrides",
+    "Injected wallet: wrong-network recovery, insufficient balance, approval → deposit → withdrawal with measured receipts on local Anvil",
+    "Curator-only console verifies headroom, allocates and withdraws from raise on local Anvil"
+  ],
+  "errors": [],
+  "screenshots": 10
+}

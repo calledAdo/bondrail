@@ -1,6 +1,6 @@
-import { CreditVault } from '@/components/app/vault';
-
-export const metadata = { title: 'Credit vault' };
+import { isAddress } from 'viem';
+import { redirect } from 'next/navigation';
 export default function Page() {
-  return <CreditVault />;
+  const address = process.env.NEXT_PUBLIC_VAULT_ADDRESS;
+  redirect(address && isAddress(address) ? `/vaults/${address}` : '/vaults');
 }

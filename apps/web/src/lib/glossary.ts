@@ -1,5 +1,8 @@
 /** Plain-language bond vocabulary. Definitions follow content/docs; aliases share one definition. */
 export const glossary = {
+  nav: { aliases: ['net asset value', 'NAV'], definition: 'The vault’s idle cash plus the carried value of its holdings, after write-downs and excluding unvested income. It is a valuation, not the cash available to withdraw now.', href: '/docs/guides/investing' },
+  curator: { aliases: ['curator'], definition: 'The disclosed wallet that allocates vault cash to eligible Funding bonds under fixed limits, withdraws from raises and collects settled holdings. The owner can replace it only after a two-day delay.', href: '/docs/guides/investing' },
+  vaultShare: { aliases: ['vault shares'], definition: 'Tokens representing your proportional ownership of a vault. Deposits buy shares at the entry price; withdrawals burn them at the exit price and are capped by idle cash.', href: '/docs/guides/investing' },
   claim: { aliases: ['claims', 'claim'], definition: 'A token representing your share of the bond’s collected money and future receipts. Redeeming burns it, giving up those future receipts.', href: '/docs/concepts/bond' },
   backing: { aliases: ['cash backing', 'backing'], definition: 'Money already in the repayment pool, divided by the claims still outstanding. It excludes future revenue and money still held for a possible release.', href: '/docs/guides/investing' },
   coverage: { aliases: ['coverage'], definition: 'Projected revenue payments divided by the remaining repayment cap. It is an estimate based on recent revenue, not a promise of repayment.', href: '/docs/concepts/credit-profiles' },

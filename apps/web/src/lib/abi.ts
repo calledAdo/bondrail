@@ -2,6 +2,7 @@
 export {
   bondrailBondAbi as bondAbi,
   bondrailVaultAbi as vaultAbi,
+  bondrailVaultFactoryAbi as vaultFactoryAbi,
   bondrailAccountAbi as accountAbi,
   bondrailFactoryAbi as factoryAbi,
   bondrailCovenantAbi as covenantAbi,

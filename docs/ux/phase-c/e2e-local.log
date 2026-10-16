@@ -1,0 +1,66 @@
+
+> bondrail@0.1.0 e2e:local /Users/adokiye/Nervos_Development/slice-next
+> tsx scripts/e2e-local.ts
+
+RUN forge-build
+RUN deploy
+PASS Full deployment, role bindings and reviewed template
+RUN deploy-refusal
+RUN deploy-resume
+PASS Overwrite refused; --force resumes identical contracts
+RUN vault-factory-plan
+RUN vault-factory-deploy
+RUN vault-factory-resume
+PASS Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw
+RUN accounts
+RUN native-history
+RUN curve-history
+PASS Native traffic and x402 HTTP payments through facilitator/account.settle; replay safe
+RUN bonds
+PASS History warp, three recorded bonds, CurveLab open raise; vault allocates in Funding and NAV = 2 USDC
+PASS Second vault allocates to eligible Funding bond and withdraws from raise within hard limits
+RUN activate-watched
+PASS Watched HTTP observation/activation; x402 repayment 2500 + issuer 7500 in same transaction
+RUN native-repayments
+PASS Low-revenue trigger fires; share 40%; exit NAV 1750080, entry NAV 2000000; withdrawals idle-capped
+RUN setup-resume
+RUN deploy-after-demo
+PASS Demo and full deploy reruns retain accounts/bonds/allocation
+RUN attest
+PASS Local indexer serves all bonds and x402; real attester relays valid, complete profile with matching evidence
+RUN web-build
+PASS Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots
+PASS Current and judged deployment manifests unchanged; only isolated anvil used
+┌─────────┬────────────────────┬──────────────────────────────────────────────┐
+│ (index) │ contract           │ address                                      │
+├─────────┼────────────────────┼──────────────────────────────────────────────┤
+│ 0       │ 'USDC'             │ '0x5fbdb2315678afecb367f032d93f642f64180aa3' │
+│ 1       │ 'factory'          │ '0x610178da211fef7d417bc0e6fed39f05609ad788' │
+│ 2       │ 'covenant'         │ '0x8a791620dd6260079bf849dc5567adc3f2fdc318' │
+│ 3       │ 'registry'         │ '0xa51c1fc2f0d1a1b8494ed1fe312d7c3a78ed91c0' │
+│ 4       │ 'vault'            │ '0x0dcd1bf9a1b36ce34237eeafef220932846bcd82' │
+│ 5       │ 'PumpLab'          │ '0x8df5074a2cc937eD240a3F152fB81724d9d90874' │
+│ 6       │ 'PumpLab account'  │ '0x6F1216D1BFe15c98520CA1434FC1d9D57AC95321' │
+│ 7       │ 'PumpLab bond'     │ '0xa0E2E37c8bA56cD19fe3BD70f8c9390C0e3Dd5d8' │
+│ 8       │ 'Agent account'    │ '0x193198556d1DbF455Aa063050eC1Cb039E8acECf' │
+│ 9       │ 'Agent bond'       │ '0x454b0a07000FAD1a4686c40428463cC353E3fE84' │
+│ 10      │ 'CurveLab account' │ '0xCBd5431cC04031d089c90E7c83288183A6Fe545d' │
+│ 11      │ 'CurveLab bond'    │ '0xbb55fe723929CcB45a12C03fc91EBeD5407C8a6A' │
+└─────────┴────────────────────┴──────────────────────────────────────────────┘
+┌─────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┬────────┐
+│ (index) │ check                                                                                                                                                               │ result │
+├─────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┤
+│ 0       │ 'Full deployment, role bindings and reviewed template'                                                                                                              │ 'PASS' │
+│ 1       │ 'Overwrite refused; --force resumes identical contracts'                                                                                                            │ 'PASS' │
+│ 2       │ 'Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw'                                                                 │ 'PASS' │
+│ 3       │ 'Native traffic and x402 HTTP payments through facilitator/account.settle; replay safe'                                                                             │ 'PASS' │
+│ 4       │ 'History warp, three recorded bonds, CurveLab open raise; vault allocates in Funding and NAV = 2 USDC'                                                              │ 'PASS' │
+│ 5       │ 'Second vault allocates to eligible Funding bond and withdraws from raise within hard limits'                                                                       │ 'PASS' │
+│ 6       │ 'Watched HTTP observation/activation; x402 repayment 2500 + issuer 7500 in same transaction'                                                                        │ 'PASS' │
+│ 7       │ 'Low-revenue trigger fires; share 40%; exit NAV 1750080, entry NAV 2000000; withdrawals idle-capped'                                                                │ 'PASS' │
+│ 8       │ 'Demo and full deploy reruns retain accounts/bonds/allocation'                                                                                                      │ 'PASS' │
+│ 9       │ 'Local indexer serves all bonds and x402; real attester relays valid, complete profile with matching evidence'                                                      │ 'PASS' │
+│ 10      │ 'Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots' │ 'PASS' │
+│ 11      │ 'Current and judged deployment manifests unchanged; only isolated anvil used'                                                                                       │ 'PASS' │
+└─────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴────────┘
+E2E LOCAL PASS (12 checks). Logs: /Users/adokiye/Nervos_Development/slice-next/.data/e2e-local. Services stop automatically.
