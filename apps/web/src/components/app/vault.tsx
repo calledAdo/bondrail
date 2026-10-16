@@ -7,7 +7,7 @@ import { chain } from '@/lib/wallet';
 import { Badge, Empty, Figure, Panel } from './ui';
 import { Term } from './term';
 import { VaultActions, vaultControl, vaultMoney } from './vault-actions';
-import { AddressLink, VaultTrend } from './vaults';
+import { AddressLink, VaultDisclosure, VaultTrend } from './vaults';
 import { VaultCurator } from './vault-curator';
 const phases = ['Funding', 'Active', 'Closing', 'Closed', 'Cancelled'];
 
@@ -26,6 +26,7 @@ export function CreditVault({ address, initialAction }: { address: Address; init
       <div className="flex flex-wrap items-center gap-3"><h1 className="break-words text-3xl font-semibold sm:text-4xl">{v.name}</h1><Badge>{v.maxDeposit > 0n ? 'Open to deposits' : 'Closed to deposits'}</Badge></div>
       <p className="text-foreground/80">This vault, curated by <AddressLink address={v.curator} />, spreads deposits across revenue bonds under fixed limits. {v.holdings.length} {v.holdings.length === 1 ? 'holding' : 'holdings'}, {money(v.idle)} withdrawable now.</p>
       <p className="text-sm text-foreground/70">{v.strategy?.description ?? 'Diversified revenue bonds under fixed allocation limits'}</p>
+      <VaultDisclosure vault={v} />
     </header>
     {query.isError && <p role="alert">Could not refresh. Showing the last successful read at block {v.blockNumber.toString()}. <button className="underline" onClick={() => void query.refetch()}>Retry</button></p>}
     <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,1fr)]">

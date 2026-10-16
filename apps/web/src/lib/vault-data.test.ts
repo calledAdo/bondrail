@@ -1,7 +1,27 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { allocationHeadroom, vaultAmount, vaultInputError } from './vault-data';
+import { allocationHeadroom, depositGap, isTeamVault, vaultAmount, vaultInputError } from './vault-data';
 const p = { nav: 1000n, idle: 500n, holdingValue: 100n, cap: 2500n, buffer: 2000n, holdings: 1, maxBonds: 16n, tracked: true, raiseRemaining: 1000n };
+test('team origin requires the registered original and manifest operator owner, never a name', () => {
+  const original = { address: '0xAbC', owner: '0xDeF' };
+  const deployment = { vault: '0xabc', operator: '0xdef', vaultFactory: '0x123' };
+  assert.equal(isTeamVault(original, deployment), true);
+  assert.equal(isTeamVault({ ...original, owner: '0x456' }, deployment), false);
+  assert.equal(isTeamVault({ ...original, address: '0x789' }, deployment), false);
+  assert.equal(isTeamVault(original, { ...deployment, operator: undefined }), false);
+  assert.equal(isTeamVault(original, { ...deployment, vaultFactory: undefined }), false);
+});
+test('immediate exit loss uses asset units with an exact greater-than-2% acknowledgement threshold', () => {
+  assert.deepEqual(depositGap(100_000n, 87_504n), { exitAssets: 87_504n, percent: '12.5', requiresAcknowledgement: true });
+  assert.equal(depositGap(100_000n, 98_001n)?.requiresAcknowledgement, false);
+  assert.equal(depositGap(100_000n, 98_000n)?.requiresAcknowledgement, false);
+  assert.deepEqual(depositGap(100_000n, 97_999n), { exitAssets: 97_999n, percent: '2.01', requiresAcknowledgement: true });
+  assert.equal(depositGap(10n ** 30n, 98n * 10n ** 28n - 1n)?.requiresAcknowledgement, true);
+  assert.equal(depositGap(100n, 0n)?.percent, '100');
+  assert.equal(depositGap(100n, 100n), undefined);
+  assert.equal(depositGap(100n, 101n), undefined);
+  assert.equal(depositGap(0n, 0n), undefined);
+});
 test('headroom respects concentration, idle ceil, holding slots and remaining raise', () => {
   assert.deepEqual(allocationHeadroom(p), { available: 150n, concentration: 150n, liquidity: 300n, bufferRequired: 200n, slotAvailable: true });
   assert.equal(allocationHeadroom({ ...p, idle: 230n }).available, 30n);

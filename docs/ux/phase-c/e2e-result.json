@@ -24,6 +24,10 @@
       "result": "PASS"
     },
     {
+      "check": "Registration preflight uses only eth_call: matching runtime passes, metadata mismatch fails with both hashes, registry unchanged",
+      "result": "PASS"
+    },
+    {
       "check": "Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw",
       "result": "PASS"
     },
@@ -68,5 +72,5 @@
     "docs/deployments/10143.json": "53b777973e30c04b0d51cda48835a535d1c42145cec893ac5a11b753234c32f7",
     "docs/deployments/archive/10143-slice-metropolis.json": "4492e96c5005077416b09fe98ad3380a69c6c6826f2c3c91855c89d0dd85ab84"
   },
-  "completedAt": "2026-10-16T02:16:28.797Z"
+  "completedAt": "2026-10-16T02:46:17.354Z"
 }

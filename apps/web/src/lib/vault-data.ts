@@ -1,4 +1,16 @@
-import { parseUnits } from 'viem';
+import { formatUnits, parseUnits } from 'viem';
+
+export const vaultDisclosure = 'Anyone can create a vault. Bondrail lists every vault created through its factory but does not endorse curators or strategies.';
+export function isTeamVault(v: { address: string; owner: string }, d: { vault?: string; vaultFactory?: string; operator?: string }) {
+  return !!d.vaultFactory && !!d.operator && v.address.toLowerCase() === d.vault?.toLowerCase()
+    && v.owner.toLowerCase() === d.operator.toLowerCase();
+}
+/** Compare exact asset units; display rounds upward so a loss above 2% never displays as 2%. */
+export function depositGap(assets: bigint, exitAssets: bigint) {
+  const loss = assets - exitAssets;
+  if (assets <= 0n || loss <= 0n) return undefined;
+  return { exitAssets, percent: formatUnits((loss * 10_000n + assets - 1n) / assets, 2), requiresAcknowledgement: loss * 100n > assets * 2n };
+}
 
 export function vaultAmount(text: string, decimals: number): bigint | undefined {
   if (!/^\d+(\.\d+)?$/.test(text) || (text.split('.')[1]?.length ?? 0) > decimals) return undefined;

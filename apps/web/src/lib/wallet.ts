@@ -58,6 +58,7 @@ export const deployment = {
   factory: address(process.env.NEXT_PUBLIC_FACTORY_ADDRESS),
   vault: address(process.env.NEXT_PUBLIC_VAULT_ADDRESS),
   vaultFactory: address(process.env.NEXT_PUBLIC_VAULT_FACTORY_ADDRESS),
+  operator: address(process.env.NEXT_PUBLIC_OPERATOR_ADDRESS),
   creditRegistry: address(process.env.NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS),
   bonds: {
     pumplab: address(process.env.NEXT_PUBLIC_PUMPLAB_BOND_ADDRESS),

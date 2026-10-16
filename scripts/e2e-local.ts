@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
+import { createServer } from 'node:http';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { randomBytes, createHash } from 'node:crypto';
@@ -118,10 +119,47 @@ async function main() {
   pass('Overwrite refused; --force resumes identical contracts');
   await script('vault-factory-plan', 'scripts/deploy-vault-factory.ts', ['--register-existing']);
   assert.equal(readDeployment().vaultFactory, undefined);
-  await script('vault-factory-deploy', 'scripts/deploy-vault-factory.ts', ['--execute', '--force', '--register-existing']);
+  await script('vault-factory-deploy', 'scripts/deploy-vault-factory.ts', ['--execute', '--force']);
   d = readDeployment();
-  assert(d.vaultFactory && d.vaultFactoryStartBlock);
+  assert(d.vault && d.vaultFactory && d.vaultFactoryStartBlock);
+  // Enforce the preflight's eth_call-only contract at the transport boundary.
+  const preflightMethods: string[] = [];
+  const preflightProxy = createServer(async (req, res) => {
+    try {
+      let body = ''; for await (const chunk of req) body += chunk;
+      const request = JSON.parse(body);
+      preflightMethods.push(request.method);
+      assert.equal(request.method, 'eth_call');
+      const response = await fetch(rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+      res.setHeader('content-type', 'application/json'); res.end(await response.text());
+    } catch { res.writeHead(400); res.end('Only eth_call is permitted'); }
+  });
+  await new Promise<void>(resolve => preflightProxy.listen(0, '127.0.0.1', resolve));
+  const preflightRpc = `http://127.0.0.1:${(preflightProxy.address() as net.AddressInfo).port}`;
+  const preflightArgs = ['--rpc', preflightRpc, '--manifest', lib.deploymentFile];
+  try {
+    const match = JSON.parse(await script('vault-registration-match', 'scripts/check-vault-registration.ts', preflightArgs));
+    assert.equal(match.code, 'MATCH'); assert.equal(match.simulation, 'PASS'); assert.equal(match.ready, true);
+    assert.equal(match.candidateCodeHash, match.referenceCodeHash);
+    const originalCode = (await client.getCode({ address: d.vault }))!;
+    // Change only the trailing metadata byte; getters still work but exact verification must fail.
+    const differentMetadata = `${originalCode.slice(0, -2)}${originalCode.endsWith('00') ? '01' : '00'}` as Hex;
+    let mismatch;
+    try {
+      await client.request({ method: 'anvil_setCode' as never, params: [d.vault, differentMetadata] as never });
+      mismatch = JSON.parse(await script('vault-registration-mismatch', 'scripts/check-vault-registration.ts', preflightArgs, {}, 1));
+      assert.equal(mismatch.code, 'MISMATCH'); assert.equal(mismatch.simulation, 'InvalidVault');
+      assert.equal(mismatch.ready, false); assert.notEqual(mismatch.candidateCodeHash, mismatch.referenceCodeHash);
+    } finally { await client.request({ method: 'anvil_setCode' as never, params: [d.vault, originalCode] as never }); }
+    assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'vaultCount'), 0n);
+    assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'existingRegistered'), false);
+    fs.mkdirSync(path.join(root, 'docs/ux/phase-c'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'docs/ux/phase-c/registration-preflight.json'), JSON.stringify({ match, mismatch, methods: [...new Set(preflightMethods)], registryUnchanged: true }, null, 2) + '\n');
+  } finally { await new Promise<void>((resolve, reject) => preflightProxy.close(error => error ? reject(error) : resolve())); }
+  pass('Registration preflight uses only eth_call: matching runtime passes, metadata mismatch fails with both hashes, registry unchanged');
   await script('vault-factory-resume', 'scripts/deploy-vault-factory.ts', ['--execute', '--force', '--register-existing']);
+  const registered = JSON.parse(await script('vault-registration-already', 'scripts/check-vault-registration.ts', ['--rpc', rpc, '--manifest', lib.deploymentFile], {}, 1));
+  assert.equal(registered.code, 'MATCH'); assert.equal(registered.simulation, 'AlreadyRegistered'); assert.equal(registered.ready, false);
   assert.equal(readDeployment().vaultFactory, d.vaultFactory);
   const factoryReceipt = await write(account('deployer'), d.vaultFactory, artifact('BondrailVaultFactory').abi, 'createVault', [
     d.asset, 'Patient revenue', 'brPATIENT', account('curator').address, account('deployer').address,

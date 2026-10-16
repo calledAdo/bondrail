@@ -68,6 +68,8 @@ export async function verifyVaultBrowser(o: { browser: Browser; origin: string; 
       await page.goto(`${o.origin}/vaults`);
       await page.getByRole('link', { name: 'Patient revenue', exact: true }).waitFor({ timeout: 45_000 });
       await page.getByRole('link', { name: 'Bondrail Credit', exact: true }).waitFor();
+      assert.equal(await page.getByText('Anyone can create a vault.', { exact: false }).count(), 2);
+      assert.equal(await page.getByText('Created by the Bondrail team', { exact: true }).count(), 1);
       await page.getByText(/30-day exit price · [2-9] observations/).first().waitFor({ timeout: 60_000 });
       await shot('vaults', width);
       await page.getByLabel('Strategy', { exact: true }).fill('Patient');
@@ -75,6 +77,8 @@ export async function verifyVaultBrowser(o: { browser: Browser; origin: string; 
       await page.getByLabel('Strategy', { exact: true }).fill('');
       await page.goto(`${o.origin}/vault`);
       await page.getByRole('heading', { name: 'Bondrail Credit', exact: true }).waitFor({ timeout: 45_000 });
+      await page.getByText('Anyone can create a vault.', { exact: false }).waitFor();
+      await page.getByText('Created by the Bondrail team', { exact: true }).waitFor();
       assert.match(page.url().toLowerCase(), new RegExp(`/vaults/${o.deployment.vault!.toLowerCase()}`));
       await page.getByRole('link', { name: 'PumpLab Revenue Claim', exact: true }).waitFor();
       await page.getByText(/30-day exit price · [2-9] observations/).waitFor({ timeout: 60_000 });
@@ -89,7 +93,16 @@ export async function verifyVaultBrowser(o: { browser: Browser; origin: string; 
       await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('0.1');
       await page.getByText('You receive ≈', { exact: false }).waitFor();
       await page.getByRole('button', { name: 'Approve testUSDC', exact: true }).waitFor();
+      await page.getByText(/If you withdrew right away you'd get ≈ 0\.08750\d testUSDC \(12\.5% less\)/).waitFor();
+      const acknowledge = page.getByRole('checkbox', { name: 'I understand that withdrawing right away would return less than I deposit.' });
+      assert.equal(await acknowledge.isChecked(), false);
+      assert.equal(await page.locator('#vault-submit').isEnabled(), false);
       await shot('deposit-preview', width);
+      await acknowledge.check();
+      await page.locator('#vault-submit:enabled').waitFor();
+      await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('0.2');
+      assert.equal(await acknowledge.isChecked(), false);
+      assert.equal(await page.locator('#vault-submit').isEnabled(), false);
       await page.getByRole('button', { name: 'Withdraw', exact: true }).first().click();
       await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('2');
       await page.getByText('This exceeds what you can withdraw now.', { exact: false }).waitFor();
@@ -107,6 +120,7 @@ export async function verifyVaultBrowser(o: { browser: Browser; origin: string; 
       await page.getByText('You can withdraw up to', { exact: false }).waitFor();
     }
     results.push('Two strategies, filtering, legacy redirect, real previews/caps/positions, hidden curator, 375/1280 screenshots and no overflow');
+    results.push('Every card/detail discloses permissionless listing; only original operator-owned vault has team badge; real 12.5% exit gap blocks approval until acknowledged and resets on amount change');
     // Exercise defensive states using read-only RPC overrides on the local chain.
     // Real transaction checks below restore the untouched Anvil responses.
     const maxSelector = encodeFunctionData({ abi: parseAbi(['function maxDeposit(address) view returns (uint256)']), functionName: 'maxDeposit', args: [o.investor] }).slice(0, 10);
@@ -136,7 +150,57 @@ export async function verifyVaultBrowser(o: { browser: Browser; origin: string; 
     await ctx.unrouteAll({ behavior: 'wait' });
     results.push('Closed-deposit reason and zero-share rejection verified through local read-only RPC overrides');
 
-    await page.goto(`${o.origin}/vaults/${o.deployment.vault}`);
+    const exitSelector = encodeFunctionData({ abi: parseAbi(['function previewRedeem(uint256) view returns (uint256)']), functionName: 'previewRedeem', args: [1n] }).slice(0, 10);
+    const ownerSelector = encodeFunctionData({ abi: parseAbi(['function owner() view returns (address)']), functionName: 'owner' });
+    let exitValue: bigint | undefined = 98_000n;
+    let failExit = false;
+    await ctx.route(o.rpc, async route => {
+      const payload = route.request().postDataJSON();
+      const calls = Array.isArray(payload) ? payload : [payload];
+      const response = await route.fetch();
+      const original = await response.json();
+      const replies = Array.isArray(original) ? original : [original];
+      for (const call of calls) {
+        if (call.method !== 'eth_call') continue;
+        const reply = replies.find((r: { id: unknown }) => r.id === call.id);
+        if (!reply) continue;
+        if (call.params[0].data === ownerSelector) reply.result = `0x${o.investor.slice(2).padStart(64, '0')}`;
+        if (String(call.params[0].data).startsWith(exitSelector) && BigInt(`0x${String(call.params[0].data).slice(10)}`) === 100_000_000_000n) {
+          if (failExit) { delete reply.result; reply.error = { code: -32000, message: 'Exit preview unavailable' }; }
+          else if (exitValue !== undefined) reply.result = `0x${exitValue.toString(16).padStart(64, '0')}`;
+        }
+      }
+      await route.fulfill({ response, json: Array.isArray(original) ? replies : replies[0] });
+    });
+    for (const [value, percent, required] of [[100_000n, undefined, false], [98_001n, '2', false], [98_000n, '2', false], [97_999n, '2.01', true]] as const) {
+      exitValue = value;
+      await page.reload();
+      await page.getByRole('heading', { name: 'Bondrail Credit', exact: true }).waitFor();
+      assert.equal(await page.getByText('Created by the Bondrail team', { exact: true }).count(), 0, 'Owner mismatch suppresses team badge');
+      await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('0.1');
+      await page.getByText('You receive ≈', { exact: false }).waitFor();
+      if (percent) await page.getByText(`(${percent}% less)`, { exact: false }).waitFor();
+      else assert.equal(await page.locator('#vault-gap-warning').count(), 0);
+      const ack = page.getByRole('checkbox');
+      assert.equal(await ack.count(), required ? 1 : 0);
+      if (required) {
+        assert.equal(await page.locator('#vault-submit').isEnabled(), false);
+        await ack.check(); await page.locator('#vault-submit:enabled').waitFor();
+        exitValue = 95_000n;
+        await page.getByText('(5% less)', { exact: false }).waitFor({ timeout: 15_000 });
+        assert.equal(await ack.isChecked(), false, 'Changed exit quote requires fresh acknowledgement');
+        assert.equal(await page.locator('#vault-submit').isEnabled(), false);
+      } else await page.locator('#vault-submit:enabled').waitFor();
+    }
+    failExit = true;
+    await page.reload();
+    await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('0.1');
+    await page.getByText('Could not refresh balances or preview. Retry before continuing.', { exact: true }).waitFor();
+    assert.equal(await page.locator('#vault-submit').isEnabled(), false);
+    await ctx.unrouteAll({ behavior: 'wait' });
+    results.push('Local read-only overrides: owner mismatch removes badge; zero/below/exactly/above 2% gaps; changed quote resets acknowledgement; failed exit preview blocks submission');
+
+    await page.reload();
     await page.getByRole('heading', { name: 'Bondrail Credit', exact: true }).waitFor();
     await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('5');
     await page.getByText('Insufficient asset balance.', { exact: true }).waitFor();
@@ -146,12 +210,15 @@ export async function verifyVaultBrowser(o: { browser: Browser; origin: string; 
     await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('0.1');
     const approve = page.getByRole('button', { name: 'Approve testUSDC', exact: true });
     await approve.waitFor();
+    await page.getByRole('checkbox', { name: 'I understand that withdrawing right away would return less than I deposit.' }).check();
     await approve.click();
     await page.getByText(/Approval confirmed in/).waitFor({ timeout: 30_000 });
     const deposit = page.locator('#vault-submit').filter({ hasText: /^Deposit$/ });
-    await deposit.click();
+    await page.getByRole('checkbox', { name: 'I understand that withdrawing right away would return less than I deposit.' }).check();
+    // Approval waits for all vault queries (including indexer history) to refresh before clearing busy.
+    await deposit.click({ timeout: 60_000 });
     await page.getByText(/Deposit confirmed in/).waitFor({ timeout: 30_000 });
-    await page.getByRole('button', { name: 'Withdraw', exact: true }).first().click();
+    await page.getByRole('button', { name: 'Withdraw', exact: true }).first().click({ timeout: 60_000 });
     await page.getByLabel('Amount (testUSDC)', { exact: true }).fill('0.05');
     await page.getByRole('button', { name: 'Withdraw', exact: true }).last().click();
     await page.getByText(/Withdrawal confirmed in/).waitFor({ timeout: 30_000 });

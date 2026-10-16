@@ -10,7 +10,11 @@ RUN deploy-resume
 PASS Overwrite refused; --force resumes identical contracts
 RUN vault-factory-plan
 RUN vault-factory-deploy
+RUN vault-registration-match
+RUN vault-registration-mismatch
+PASS Registration preflight uses only eth_call: matching runtime passes, metadata mismatch fails with both hashes, registry unchanged
 RUN vault-factory-resume
+RUN vault-registration-already
 PASS Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw
 RUN accounts
 RUN native-history
@@ -52,15 +56,16 @@ PASS Current and judged deployment manifests unchanged; only isolated anvil used
 ├─────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┼────────┤
 │ 0       │ 'Full deployment, role bindings and reviewed template'                                                                                                              │ 'PASS' │
 │ 1       │ 'Overwrite refused; --force resumes identical contracts'                                                                                                            │ 'PASS' │
-│ 2       │ 'Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw'                                                                 │ 'PASS' │
-│ 3       │ 'Native traffic and x402 HTTP payments through facilitator/account.settle; replay safe'                                                                             │ 'PASS' │
-│ 4       │ 'History warp, three recorded bonds, CurveLab open raise; vault allocates in Funding and NAV = 2 USDC'                                                              │ 'PASS' │
-│ 5       │ 'Second vault allocates to eligible Funding bond and withdraws from raise within hard limits'                                                                       │ 'PASS' │
-│ 6       │ 'Watched HTTP observation/activation; x402 repayment 2500 + issuer 7500 in same transaction'                                                                        │ 'PASS' │
-│ 7       │ 'Low-revenue trigger fires; share 40%; exit NAV 1750080, entry NAV 2000000; withdrawals idle-capped'                                                                │ 'PASS' │
-│ 8       │ 'Demo and full deploy reruns retain accounts/bonds/allocation'                                                                                                      │ 'PASS' │
-│ 9       │ 'Local indexer serves all bonds and x402; real attester relays valid, complete profile with matching evidence'                                                      │ 'PASS' │
-│ 10      │ 'Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots' │ 'PASS' │
-│ 11      │ 'Current and judged deployment manifests unchanged; only isolated anvil used'                                                                                       │ 'PASS' │
+│ 2       │ 'Registration preflight uses only eth_call: matching runtime passes, metadata mismatch fails with both hashes, registry unchanged'                                  │ 'PASS' │
+│ 3       │ 'Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw'                                                                 │ 'PASS' │
+│ 4       │ 'Native traffic and x402 HTTP payments through facilitator/account.settle; replay safe'                                                                             │ 'PASS' │
+│ 5       │ 'History warp, three recorded bonds, CurveLab open raise; vault allocates in Funding and NAV = 2 USDC'                                                              │ 'PASS' │
+│ 6       │ 'Second vault allocates to eligible Funding bond and withdraws from raise within hard limits'                                                                       │ 'PASS' │
+│ 7       │ 'Watched HTTP observation/activation; x402 repayment 2500 + issuer 7500 in same transaction'                                                                        │ 'PASS' │
+│ 8       │ 'Low-revenue trigger fires; share 40%; exit NAV 1750080, entry NAV 2000000; withdrawals idle-capped'                                                                │ 'PASS' │
+│ 9       │ 'Demo and full deploy reruns retain accounts/bonds/allocation'                                                                                                      │ 'PASS' │
+│ 10      │ 'Local indexer serves all bonds and x402; real attester relays valid, complete profile with matching evidence'                                                      │ 'PASS' │
+│ 11      │ 'Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots' │ 'PASS' │
+│ 12      │ 'Current and judged deployment manifests unchanged; only isolated anvil used'                                                                                       │ 'PASS' │
 └─────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┴────────┘
-E2E LOCAL PASS (12 checks). Logs: /Users/adokiye/Nervos_Development/slice-next/.data/e2e-local. Services stop automatically.
+E2E LOCAL PASS (13 checks). Logs: /Users/adokiye/Nervos_Development/slice-next/.data/e2e-local. Services stop automatically.

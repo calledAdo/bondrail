@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { formatUnits } from 'viem';
 import { type VaultView } from '@bondrail/sdk/vault';
 import { useVaultCards, useVaultDirectory, useVaultHistory } from '@/lib/vaults';
-import { chain, safeNetwork } from '@/lib/wallet';
+import { chain, deployment, safeNetwork } from '@/lib/wallet';
 import { short } from '@/lib/protocol';
 import type { VaultSnapshot } from '@/lib/vault-data';
+import { isTeamVault, vaultDisclosure } from '@/lib/vault-data';
 import { Badge, Empty, Figure, Panel } from './ui';
 import { Term } from './term';
 import { vaultControl, vaultMoney } from './vault-actions';
@@ -15,6 +16,12 @@ export function AddressLink({ address, full = false }: { address: string; full?:
   const label = full ? address : short(address);
   return chain.blockExplorers ? <a href={`${chain.blockExplorers.default.url}/address/${address}`} title={address} target="_blank" rel="noreferrer" className="break-all font-mono underline underline-offset-4">{label}</a>
     : <span title={address} className="break-all font-mono">{label}</span>;
+}
+export function VaultDisclosure({ vault }: { vault: VaultView }) {
+  return <div className="space-y-2 text-sm text-foreground/80">
+    {isTeamVault(vault, deployment) && <Badge>Created by the Bondrail team</Badge>}
+    <p>{vaultDisclosure}</p>
+  </div>;
 }
 export function VaultTrend({ snapshots, vault }: { snapshots: VaultSnapshot[]; vault: VaultView }) {
   const rows = snapshots.filter(s => s.vault.toLowerCase() === vault.address.toLowerCase()).sort((a, b) => a.day - b.day).slice(-30);
@@ -54,6 +61,7 @@ export function VaultDirectory() {
     <div className="grid gap-5 lg:grid-cols-2">{visible.map(v => <Panel className="[&_dd]:break-words [&_dd]:text-base" key={v.address} title={<Link className="underline-offset-4 hover:underline" href={`/vaults/${v.address}`}>{v.name}</Link>} aside={<Badge>{v.maxDeposit > 0n ? 'Open to deposits' : 'Closed to deposits'}</Badge>}>
       <p className="mb-2 text-sm text-foreground/80">{v.strategy?.description || 'Diversified revenue bonds under fixed allocation limits'}</p>
       <p className="mb-5 text-xs text-foreground/70">Curator <AddressLink address={v.curator} /> · {v.assetSymbol}</p>
+      <div className="mb-5"><VaultDisclosure vault={v} /></div>
       <dl className="grid grid-cols-2 gap-5 sm:grid-cols-3">
         <Figure label={<Term term="nav">NAV</Term>} value={vaultMoney(v.nav, v)} bracket={false} />
         <Figure label="Withdrawable now" value={vaultMoney(v.idle, v)} bracket={false} />

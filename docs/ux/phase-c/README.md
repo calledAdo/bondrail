@@ -1,4 +1,4 @@
-# Phase C acceptance
+# Phase C acceptance — Task 23b review corrections
 
 Local branch `next`; no push, tag, publish, deployment to a remote chain, or remote configuration
 change. All transaction tests use an isolated Anvil on chain 31337. Public deployment manifests
@@ -11,8 +11,8 @@ are compared byte-for-byte by the rehearsal. The SDK version is 0.2.0 and remain
 ```text
 forge test: 192 tests passed, 0 failed, 0 skipped (10 suites)
 forge build --sizes: BondrailVaultFactory 19,291 B; verifier 14,562 B; named vault 12,671 B
-pnpm check:all: PASS (217 workspace tests, 17 script tests, 10 indexer tests; types/codegen/both builds)
-pnpm e2e:local: E2E LOCAL PASS (12 checks)
+pnpm check:all: PASS (219 workspace tests, 17 script tests, 10 indexer tests; types/codegen/both builds)
+pnpm e2e:local: E2E LOCAL PASS (13 checks)
 sdk:verify: PASS: all 11 entry points imported with plain Node
 contracts:verify: 12 sources byte-identical; 11 factory interface selectors match; 2 consumer tests pass
 browser: 10 screenshots; 0 page errors; no horizontal overflow at 375/1280
@@ -22,6 +22,8 @@ Full output: [check:all](check-all.log), [Anvil/browser rehearsal](e2e-local.log
 [SDK verification](sdk-verify.log), [contracts verification](contracts-verify.log),
 [sizes](sizes.txt), [indexer tests](indexer-tests.log), and [browser checks](browser-results.json).
 The [local rehearsal result](e2e-result.json) includes protected-manifest hashes.
+The [registration preflight evidence](registration-preflight.json) records matching and mismatching
+runtime hashes, registration outcomes, and the enforced `eth_call`-only transport.
 
 ## Implementation decisions
 
@@ -46,6 +48,28 @@ Portfolio reads shares/value/withdrawable cash from the chain. Remaining deposit
 indexed deposits, with pro-rata removal on burns and transfer to the recipient on share transfers.
 It is shown only when indexed shares agree with the live balance. Each position links to its next
 action; the withdrawal link opens the withdrawal form directly.
+
+## Review corrections
+
+Every directory card and vault detail page identifies its curator and carries the permissionless-listing,
+non-endorsement disclosure. The original registered vault gets “Created by the Bondrail team” only when
+its live owner equals the operator exported from the deployment manifest. Names and strategy text do
+not confer that badge; the second registered vault has the same owner but does not receive it.
+
+Deposit previews pin `previewDeposit(assets)` and `previewRedeem(shares)` to one block. The warning above
+the submission button shows the immediate exit value and percentage loss. A loss strictly above 2%
+requires an explicit checkbox before approval/deposit. The comparison uses integer asset units; the
+shown percentage rounds upward to two decimal places so a loss just over 2% is visibly over 2%.
+Acknowledgement resets on input changes and becomes invalid when the quote/account changes. Missing
+or failed exit reads block submission. Idle-cash limits and execution-time pricing still apply.
+
+`scripts/check-vault-registration.ts --rpc <URL> --manifest <path>` imports no operational key helpers.
+It uses only `eth_call`, verifies the deployed verifier against the local compiler build, reports both
+runtime hashes, and simulates registration from the manifest operator. Local acceptance changes only
+one candidate metadata byte and verifies a mismatch/`InvalidVault`; the matching build passes without
+persisting registration or the reference contract. An already registered vault reports `AlreadyRegistered`
+and exits nonzero. The runbook documents creating a fresh registered vault and marking the original
+legacy if exact verification cannot succeed.
 
 ## Indexed events and history
 
@@ -76,6 +100,10 @@ amount/share withdrawal modes, idle caps, wallet absence, wrong network and reco
 balance, approval/deposit/withdrawal receipts, curator visibility/headroom/allocation/raise withdrawal,
 Portfolio cost basis, overflow and page errors. Closed-deposit and zero-share cases use explicit
 read-only RPC overrides on the same local chain; overrides are removed before transaction tests.
+Additional browser checks cover owner mismatch, no gap, below/exactly/above 2%, acknowledgement reset
+on amount or quote changes, and failed exit-preview reads. All ten screenshots were recaptured after
+the corrections at 375 and 1280 px; the deposit captures show 0.1 testUSDC → 0.087504 testUSDC (12.5% less),
+an unchecked acknowledgement, and disabled approval.
 
 ## Operator procedure
 

@@ -250,7 +250,14 @@ forge build --root contracts
 pnpm tsx scripts/deploy-vault-factory.ts --register-existing
 
 # Operator only, after approving the plan. Never run this as part of acceptance.
-# deployer.key must match the intended immutable factory owner.
+# deployer.key must match the intended immutable factory owner. Deploy the factory first.
+pnpm tsx scripts/deploy-vault-factory.ts --execute --force
+
+# Read-only preflight against the now-recorded factory; no key reads or broadcasts.
+pnpm tsx scripts/check-vault-registration.ts \
+  --rpc "$BONDRAIL_RPC_URL" --manifest docs/deployments/10143.json
+
+# Only after code=MATCH, simulation=PASS, ready=true:
 pnpm tsx scripts/deploy-vault-factory.ts --execute --force --register-existing
 # Safe resume: same command verifies protocol/owner and skips completed registration.
 
@@ -265,6 +272,30 @@ The script preserves existing manifest fields, saves `vaultFactory` and `vaultFa
 immediately after deployment, and resumes registration. Keep the existing `vault` address as the default.
 The manifest's original `startBlock` is retained so legacy deposits can be indexed from inception.
 Set web `NEXT_PUBLIC_VAULT_FACTORY_ADDRESS` to the new manifest address when separately releasing the app.
+Set `NEXT_PUBLIC_OPERATOR_ADDRESS` from the same manifest's `deployer` (or `roles.deployer`);
+`scripts/web-env.ts` generates it. The team-origin badge requires a configured registry, the original
+`NEXT_PUBLIC_VAULT_ADDRESS`, and an on-chain owner equal to this operator. Missing/mismatched identity
+means no badge. A vault name or strategy never establishes endorsement.
+
+The preflight accepts explicit RPC and manifest paths and uses **only `eth_call`**, pinned to one block.
+Creation calls return chain identity, runtime code, and a constructor-built reference without persisting
+contracts. It checks the deployed verifier against the local build (including metadata), reports
+`candidateCodeHash` / `referenceCodeHash` and `MATCH` / `MISMATCH`, then simulates `registerExisting` as
+the manifest operator. Exit 0 means both hashes match and registration succeeds; exit 1 means stop.
+`AlreadyRegistered` is reported separately from a hash mismatch. This is a point-in-time check; state
+may change before a later operator broadcast. An RPC must support contract-creation `eth_call` and
+enough simulation gas for the reference vault. No private key or key-directory setting is needed.
+
+If exact legacy registration fails because the original used different compiler settings or metadata,
+do not remove or relax the verification. Create a **fresh vault through `createVault`** using the reviewed
+factory and a clearly disclosed curator/strategy. Mark the original **legacy** in deployment records and
+user-facing documentation, preserving its address, inception block and withdrawal instructions. List the
+fresh registered vault as the available deposit destination, and identify the original separately as
+unregistered legacy; never call it factory-verified or silently replace its history. Existing shares and
+assets remain in the original contract: holders withdraw subject to its idle-cash limits and may separately
+deposit into the fresh vault. There is no automatic migration. Keep the original `vault` identity for audit
+history; do not relabel a new vault as the original to obtain the team badge. Releasing fallback UI/configuration
+and broadcasting creation remain separate operator actions.
 
 To create a vault after the factory exists (operator supplies the addresses; metadata hash is optional):
 

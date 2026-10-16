@@ -7,7 +7,7 @@ import type { VaultView } from '@bondrail/sdk/vault';
 import { vaultAbi } from '@/lib/abi';
 import { chain, safeNetwork } from '@/lib/wallet';
 import { receiptTimed } from '@/lib/tx';
-import { vaultAmount, vaultInputError } from '@/lib/vault-data';
+import { depositGap, vaultAmount, vaultInputError } from '@/lib/vault-data';
 import { useVaultBalance } from '@/lib/vaults';
 import { Panel } from './ui';
 import { Term } from './term';
@@ -58,42 +58,55 @@ export function VaultActions({ vault: v, initialAction = 'deposit' }: { vault: V
   const [mode, setMode] = useState<'deposit' | 'withdraw'>(initialAction);
   const [unit, setUnit] = useState<'assets' | 'shares'>('assets');
   const [text, setText] = useState('');
+  const [acknowledgedQuote, setAcknowledgedQuote] = useState<string>();
   const balance = useVaultBalance(v.address, v.asset, address);
   const tx = useVaultTransaction();
   const deposit = mode === 'deposit', byShares = !deposit && unit === 'shares';
   const amount = vaultAmount(text, byShares ? v.decimals : v.assetDecimals);
   const preview = useQuery({ queryKey: ['vault-preview', chain.id, v.address, mode, unit, amount?.toString()], enabled: !!client && amount !== undefined && amount > 0n,
     staleTime: 3000, refetchInterval: tx.busy ? false : 5000, retry: 1,
-    queryFn: async () => client!.readContract({ address: v.address, abi: vaultAbi,
-      functionName: deposit ? 'previewDeposit' : byShares ? 'previewRedeem' : 'previewWithdraw', args: [amount!] }),
+    queryFn: async () => {
+      const blockNumber = await client!.getBlockNumber({ cacheTime: 0 });
+      const base = { address: v.address, abi: vaultAbi, blockNumber } as const;
+      const value = await client!.readContract({ ...base,
+        functionName: deposit ? 'previewDeposit' : byShares ? 'previewRedeem' : 'previewWithdraw', args: [amount!] });
+      const exitAssets = deposit ? await client!.readContract({ ...base, functionName: 'previewRedeem', args: [value] }) : undefined;
+      return { value, exitAssets };
+    },
   });
+  const previewValue = preview.data?.value;
+  const gap = deposit && amount !== undefined && preview.data?.exitAssets !== undefined
+    ? depositGap(amount, preview.data.exitAssets) : undefined;
+  const quoteKey = `${chain.id}:${v.address}:${address}:${amount}:${previewValue}:${preview.data?.exitAssets}`;
+  const acknowledged = acknowledgedQuote === quoteKey;
   const b = balance.data;
   const maximum = deposit ? b?.maxDeposit ?? v.maxDeposit : byShares ? b?.maxRedeem : b?.maxWithdraw;
   const closed = deposit && maximum === 0n;
   const reason = vaultInputError({ connected: !!address, correctNetwork: chainId === chain.id && safeNetwork,
-    amount, balance: deposit ? b?.cash : b?.shares, preview: preview.data, max: maximum, deposit, closed,
+    amount, balance: deposit ? b?.cash : b?.shares, preview: previewValue, max: maximum, deposit, closed,
     readError: balance.isError || preview.isError });
   const error = reason && (text !== '' || !address || closed || chainId !== chain.id || balance.isError) ? reason : undefined;
   const approved = b !== undefined && amount !== undefined && b.allowance >= amount;
-  const valid = !reason && tx.ready && !balance.isFetching && !preview.isFetching;
+  const valid = !reason && tx.ready && !balance.isFetching && !preview.isFetching && (!gap?.requiresAcknowledgement || acknowledged);
+  function changeAmount(value: string) { setText(value); setAcknowledgedQuote(undefined); }
   function max() {
     const value = deposit ? b && (b.cash < b.maxDeposit ? b.cash : b.maxDeposit) : maximum;
-    if (value !== undefined) setText(formatUnits(value, byShares ? v.decimals : v.assetDecimals));
+    if (value !== undefined) changeAmount(formatUnits(value, byShares ? v.decimals : v.assetDecimals));
   }
   return <Panel title="Your deposit & withdrawal" className="min-w-0">
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-2" role="group" aria-label="Vault action">
         {(['deposit', 'withdraw'] as const).map(m => <button key={m} type="button" disabled={tx.busy} aria-pressed={mode === m}
           className={`${vaultControl} ${mode === m ? 'bg-foreground text-background' : ''}`}
-          onClick={() => { if (mode !== m) { setMode(m); setText(''); } }}>{m === 'deposit' ? 'Deposit' : 'Withdraw'}</button>)}
+          onClick={() => { if (mode !== m) { setMode(m); changeAmount(''); } }}>{m === 'deposit' ? 'Deposit' : 'Withdraw'}</button>)}
       </div>
       {!deposit && <fieldset className="flex flex-wrap gap-4 text-sm"><legend className="mb-1 text-foreground/70">Withdraw by</legend>
-        {(['assets', 'shares'] as const).map(u => <label key={u} className="flex min-h-11 items-center gap-2"><input type="radio" name="withdraw-unit" checked={unit === u} disabled={tx.busy} onChange={() => { setUnit(u); setText(''); }} />{u === 'assets' ? 'Asset amount' : 'Shares'}</label>)}
+        {(['assets', 'shares'] as const).map(u => <label key={u} className="flex min-h-11 items-center gap-2"><input type="radio" name="withdraw-unit" checked={unit === u} disabled={tx.busy} onChange={() => { setUnit(u); changeAmount(''); }} />{u === 'assets' ? 'Asset amount' : 'Shares'}</label>)}
       </fieldset>}
       <div>
         <label htmlFor="vault-amount" className="mb-2 block text-sm">Amount ({byShares ? 'shares' : v.assetSymbol})</label>
         <div className="flex gap-2"><input id="vault-amount" inputMode="decimal" autoComplete="off" placeholder="0.00" value={text} disabled={tx.busy}
-          onChange={e => setText(e.target.value)} aria-describedby="vault-balance vault-input-error" aria-invalid={!!text && !!reason && !reason.startsWith('Reading')}
+          onChange={e => changeAmount(e.target.value)} aria-describedby="vault-balance vault-input-error" aria-invalid={!!text && !!reason && !reason.startsWith('Reading')}
           className={`${vaultControl} min-w-0 flex-1 font-mono`} />
           <button type="button" onClick={max} disabled={!b || tx.busy} className={vaultControl}>Max</button></div>
         <p id="vault-balance" className="mt-2 text-xs text-foreground/70">{!address ? 'Connect to see your balance.' : b
@@ -101,10 +114,10 @@ export function VaultActions({ vault: v, initialAction = 'deposit' }: { vault: V
           : 'Reading your balance…'}</p>
       </div>
       <div className="min-h-16 rounded-lg border border-foreground/15 p-3 text-sm" aria-live="polite">
-        {preview.data !== undefined && amount !== undefined && amount > 0n ? deposit
-          ? <>You receive ≈ <strong>{formatUnits(preview.data, v.decimals)} shares</strong> at the entry price of {vaultMoney(v.entryPrice, v)}.</>
-          : byShares ? <>You receive ≈ <strong>{vaultMoney(preview.data, v)}</strong> for {formatUnits(amount, v.decimals)} shares at the exit price.</>
-          : <>You burn ≈ <strong>{formatUnits(preview.data, v.decimals)} shares</strong> to receive {vaultMoney(amount, v)} at the exit price.</>
+        {previewValue !== undefined && amount !== undefined && amount > 0n ? deposit
+          ? <>You receive ≈ <strong>{formatUnits(previewValue, v.decimals)} shares</strong> at the entry price of {vaultMoney(v.entryPrice, v)}.</>
+          : byShares ? <>You receive ≈ <strong>{vaultMoney(previewValue, v)}</strong> for {formatUnits(amount, v.decimals)} shares at the exit price.</>
+          : <>You burn ≈ <strong>{formatUnits(previewValue, v.decimals)} shares</strong> to receive {vaultMoney(amount, v)} at the exit price.</>
           : <span className="text-foreground/70">{preview.isFetching ? 'Reading the current price…' : `Enter an amount to preview ${deposit ? 'your shares' : 'your withdrawal'}.`}</span>}
       </div>
       <div className="space-y-2 text-sm text-foreground/80">
@@ -124,6 +137,14 @@ export function VaultActions({ vault: v, initialAction = 'deposit' }: { vault: V
       </ol>}
       <p id="vault-input-error" role={error && !error.startsWith('Reading') ? 'alert' : 'status'} className="min-h-5 text-sm">{error}</p>
       {!!address && chainId !== chain.id && <button type="button" onClick={() => switchChain({ chainId: chain.id })} className={`${vaultControl} w-full`}>Switch to {chain.name}</button>}
+      {gap && previewValue !== 0n && <div className="space-y-2 rounded-lg border border-amber-600/60 bg-amber-50 p-3 text-sm text-amber-950 dark:bg-amber-950 dark:text-amber-100">
+        <p id="vault-gap-warning" role="status">If you withdrew right away you&apos;d get ≈ <strong>{vaultMoney(gap.exitAssets, v)}</strong> ({gap.percent}% less) — the gap closes as impaired bonds repay or settle.</p>
+        {gap.requiresAcknowledgement && <label className="flex min-h-11 cursor-pointer items-start gap-3 py-2">
+          <input type="checkbox" className="mt-1 size-4 shrink-0 accent-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2" checked={acknowledged} disabled={tx.busy}
+            aria-describedby="vault-gap-warning" onChange={e => setAcknowledgedQuote(e.target.checked ? quoteKey : undefined)} />
+          <span>I understand that withdrawing right away would return less than I deposit.</span>
+        </label>}
+      </div>}
       <button id="vault-submit" type="button" disabled={!valid} className={`${vaultControl} w-full bg-primary font-medium text-primary-foreground`}
         onClick={() => {
           if (!valid || amount === undefined || !address) return;
