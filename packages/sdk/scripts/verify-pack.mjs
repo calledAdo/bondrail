@@ -9,7 +9,7 @@ const sdkDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const repoDir = resolve(sdkDir, '../..');
 const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const entryPoints = ['.', './abis', './client', './permit', './x402', './x402-guard',
-  './data', './credit', './yield', './trigger'];
+  './data', './credit', './yield', './trigger', './vault'];
 
 // Do not let workspace loaders, conditions or NODE_PATH make the consumer pass accidentally.
 const env = { ...process.env };

@@ -1,6 +1,6 @@
 {
   "name": "@bondrail/sdk",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "type": "module",
   "description": "Typed clients, contract ABIs, x402 payments and credit analytics for Bondrail revenue bonds.",
   "exports": {
@@ -53,6 +53,11 @@
       "types": "./dist/trigger.d.ts",
       "import": "./dist/trigger.js",
       "default": "./dist/trigger.js"
+    },
+    "./vault": {
+      "types": "./dist/vault.d.ts",
+      "import": "./dist/vault.js",
+      "default": "./dist/vault.js"
     }
   },
   "scripts": {

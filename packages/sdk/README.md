@@ -258,3 +258,20 @@ required for the isolated install. `prepublishOnly` runs this same check for npm
 publishing with `--ignore-scripts` bypasses lifecycle safeguards.
 
 MIT licensed. No release or deployment is performed by the build or pack scripts.
+
+### Vaults (0.2.0)
+
+```ts
+import { listVaults, getVault, previewDeposit, previewWithdraw, previewRedeem } from '@bondrail/sdk/vault';
+const page = await listVaults(publicClient, vaultFactory, { offset: 0n, limit: 25 });
+const vault = await getVault(publicClient, page[0], { registry: vaultFactory });
+const shares = await previewDeposit(publicClient, page[0], assets);
+const burn = await previewWithdraw(publicClient, page[0], assets);
+const proceeds = await previewRedeem(publicClient, page[0], shares);
+```
+
+Registry pages contain at most 100 vaults. Continue by offset until `vaultCount()` is reached.
+`getVault` pins all reads to one block; share prices are asset base units per whole vault share.
+Vault shares have six more decimals than their asset. Previews use contract rounding: deposits
+use entry NAV, withdrawals use exit NAV. A preview does not reserve liquidity; read `maxWithdraw`
+or `maxRedeem` for the holder and simulate before sending. The current fixed mandate cannot be loosened.

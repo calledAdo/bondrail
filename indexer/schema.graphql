@@ -226,3 +226,62 @@ type LatestCreditAttestation {
   account: String! @index
   attestation: CreditAttestation!
 }
+
+# Registry membership and current disclosed mandate; RPC valuation is pinned to indexed blocks.
+type Vault {
+  id: ID!
+  chainId: Int! @index
+  registry: String! @index
+  asset: String! @index
+  curator: String!
+  owner: String!
+  name: String!
+  symbol: String!
+  strategy: String!
+  metadataHash: String!
+  pendingCurator: String
+  curatorChangeAfter: BigInt
+  createdAt: BigInt!
+}
+
+type VaultActivity {
+  id: ID!
+  chainId: Int!
+  vault: String! @index
+  kind: String!
+  actor: String!
+  receiver: String!
+  bond: String!
+  assets: BigInt!
+  shares: BigInt!
+  timestamp: BigInt!
+  block: BigInt!
+  txHash: String!
+}
+
+# Mint/burn/transfer accounting; remaining deposit cost follows transferred shares pro rata.
+type VaultPosition {
+  id: ID!
+  vault: String! @index
+  holder: String! @index
+  shares: BigInt!
+  costBasis: BigInt!
+  deposited: BigInt!
+  withdrawn: BigInt!
+}
+
+# Last observed block in each UTC day, plus a sample on quiet days (300-block cadence).
+# Never synthesize intermediate days or read latest state for a historical block.
+type VaultDailySnapshot {
+  id: ID!
+  vault: String! @index
+  day: Int! @index
+  timestamp: BigInt!
+  block: BigInt!
+  entryPrice: BigInt!
+  exitPrice: BigInt!
+  nav: BigInt!
+  entryNav: BigInt!
+  idle: BigInt!
+  totalSupply: BigInt!
+}

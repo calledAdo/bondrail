@@ -4,6 +4,7 @@
 //
 //   BONDRAIL_CHAIN_ID=31337 pnpm tsx scripts/dev-indexer.ts        listens on http://127.0.0.1:8546
 import http from 'node:http';
+import { localVaultIndex } from './local-vault-index.ts';
 import { parseAbiItem, type Address } from 'viem';
 import { artifact, chainId, publicClient, readDeployment } from './lib.ts';
 
@@ -141,6 +142,7 @@ async function snapshot() {
   }
   const checks = await logs(ev.observation, d.covenant);
   return {
+    ...await localVaultIndex(publicClient, d),
     Issuer,
     Bond: Bond.sort((a, b) => Number(b.createdAt) - Number(a.createdAt)),
     DailyRevenue: [...daily.values()].map((x) => ({ ...x, id: `${x.account}-${x.day}`, gross: String(x.gross), verified: String(x.verified), x402: String(x.x402) })),
@@ -171,6 +173,8 @@ http
       let body = '';
       for await (const chunk of req) { body += chunk; if (body.length > 16384) throw new Error('Request too large'); }
       const { variables: v = {} } = body ? JSON.parse(body) : {};
+      if (v.holder) data.VaultPosition = data.VaultPosition.filter(p => p.holder === low(v.holder));
+      if (v.vaults) data.VaultDailySnapshot = data.VaultDailySnapshot.filter(p => v.vaults.map(low).includes(p.vault) && p.day >= (v.day ?? 0));
       if (v.account) {
         const target = low(v.account);
         data.Issuer = data.Issuer.filter(i => i.id === target && (!v.chain || v.chain === chainId));

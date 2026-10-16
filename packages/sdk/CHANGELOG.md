@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.0
+
+- Add vault factory ABI, bounded `listVaults`, block-pinned `getVault`, and entry/exit `previewDeposit`, `previewWithdraw`, `previewRedeem` helpers via `@bondrail/sdk/vault`.
+- Preserve ERC-4626 rounding and distinguish preview pricing from idle-capped execution.
+- Local package only; not published.
+
 ## 0.1.1
 
 - Fix: package exports pointed at sources not included in the package (0.1.0 is broken; use 0.1.1)

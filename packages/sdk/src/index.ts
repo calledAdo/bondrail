@@ -6,3 +6,4 @@ export * from './permit';
 export * from './x402';
 export * from './data';
 export * from './credit';
+export * from './vault';

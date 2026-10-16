@@ -506,3 +506,6 @@ indexer.onEvent({ contract: 'BondrailCreditRegistry', event: 'Attested' }, async
     timestamp: BigInt(event.block.timestamp), txHash: event.transaction.hash });
   context.LatestCreditAttestation.set({ id: key, registry, account, attestation_id: id });
 });
+
+// Vault registry, share accounting and block-pinned history.
+import "./vault";
