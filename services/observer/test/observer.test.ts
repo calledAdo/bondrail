@@ -4,9 +4,9 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { recoverTypedDataAddress, type Hex } from 'viem';
-import { Observer } from '../src/index.js';
-import { LocalStore } from '../src/store.js';
-import { publicAddress, validateURL } from '../src/fetch.js';
+import { Observer } from '../src/index';
+import { LocalStore } from '../src/store';
+import { publicAddress, validateURL } from '../src/fetch';
 import {
   classify,
   endpointsToCheck,
@@ -18,7 +18,7 @@ import {
   observationTypes,
   typedObservation,
   type WatchPolicy,
-} from '../src/protocol.js';
+} from '../src/protocol';
 const OTHER = '0x4444444444444444444444444444444444444444';
 const p: WatchPolicy = {
   id: 'research',

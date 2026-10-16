@@ -21,9 +21,9 @@ The opening reuses the actual recorded October12 testnet payment from the techni
 Existing capture is sufficient. Do not repeat the historical payment.
 
 ```sh
-/tmp/slice-video-venv/bin/python demo/video/narrate_envio.py
-/tmp/slice-video-venv/bin/python demo/video/render_envio.py
-/tmp/slice-video-venv/bin/python demo/video/verify_envio.py
+/tmp/bondrail-video-venv/bin/python demo/video/narrate_envio.py
+/tmp/bondrail-video-venv/bin/python demo/video/render_envio.py
+/tmp/bondrail-video-venv/bin/python demo/video/verify_envio.py
 ```
 
 Capture sources: `envio-preflight.mjs`, `envio-evidence.mjs`, `capture-envio.mjs`; narration `envio.json`.

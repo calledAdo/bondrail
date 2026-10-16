@@ -2,7 +2,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 export default async function handler(req: IncomingMessage & { body?: unknown }, res: ServerResponse) {
   const action = new URL(req.url ?? '/', 'http://localhost').pathname.split('/').pop();
-  const expected = action === 'supported' ? 'GET' : ['verify', 'settle'].includes(action ?? '') ? 'POST' : undefined;
+  const expected = ['supported', 'health'].includes(action ?? '') ? 'GET' : ['verify', 'settle'].includes(action ?? '') ? 'POST' : undefined;
   if (!expected || req.method !== expected) { res.writeHead(404).end(); return; }
   try {
     const origin = new URL(process.env.FACILITATOR_UPSTREAM_URL ?? '');

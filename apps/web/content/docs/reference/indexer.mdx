@@ -1,20 +1,29 @@
 ---
 title: Indexer
-description: The Envio HyperIndex GraphQL schema.
+description: Envio HyperIndex events, attribution, trigger state and registry history.
 ---
 
-Accounts, bonds, payments (classified `native`, `x402` or `transfer`), per-payer totals, daily revenue, treasury
-funding links and covenant checks. Query it with any GraphQL client.
+Monad testnet; not audited. Query the selected deployment's GraphQL endpoint with any GraphQL client.
+The [production runbook](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/RUNBOOK.md)
+records its configuration. Production uses project **bondrail-next**, release branch
+**envio-next**, and `https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql`.
+Keep that release branch as-is when updating app deployment names. Indexer history is a read model; reconcile important results with the chain.
 
-**Performance triggers — not yet deployed:** `Bond.triggered` starts false at issuance and follows
-`BondrailBond.TriggerChanged(bool)`, including recovery. The handler also records `Triggered` and
-`TriggerRecovered` timeline events. Regenerate the config/codegen and rebuild the data for the new
-non-null flag before serving the updated web query. Trigger revenue is the on-chain account counter,
-including issuer self-payments; it is separate from the attributed-revenue analysis below.
+`BondrailAccount.Settled` attributes account-mediated x402 payments; `Revenue` records the split and
+avoids counting that settlement again as Native revenue. `Collected` records Native volume.
+Token `AuthorizationUsed` / `Transfer` evidence can attribute direct-to-token x402 receipts. Payment
+identities deduplicate settlement and token evidence. Other inflows are unclassified. Native payer
+attribution uses account events, including calls through another contract; it is not limited to the
+transaction's top-level recipient.
 
-Limits, stated plainly: funding links are one hop (a wallet the issuer's treasury paid directly) and are tracked
-for the indexed asset (USDC); a Native payment is attributed when the transaction calls the project directly, so
-a payment routed through another contract shows as an unclassified transfer. "Attributed" means a proven payer
-with no detected link to the issuer, not proof of an independent customer.
+`Bond.triggered` follows `BondrailBond.TriggerChanged`, including recovery; timeline events record
+`Triggered` and `TriggerRecovered`. The on-chain trigger sums all booked account revenue, including
+self-payments, independently of attributed revenue. `BondRecorded` and `Attested` track registry-scoped
+membership and assessment history when the registry is configured. Evaluate expiry and current signer
+through `attestedProfile`; stored event history does not establish current validity or completeness.
+
+Funding-link detection is one hop for the indexed asset. “Attributed” means a proven payer without a
+detected related-party link under that policy, not an independent customer or delivered service.
+Coverage, late indexing and omissions matter; see [credit profiles](/docs/concepts/credit-profiles).
 
 <Source file="indexer/schema.graphql" />

@@ -27,6 +27,7 @@ import { days, fmt, short, useProtocol, type AccountView, type BondView } from '
 import { cn } from '@/lib/cn';
 import { Badge, Empty } from './ui';
 import { confirmedIn, receiptTimed } from '@/lib/tx';
+import { nativeReviewLabel, nativeReviewStatus } from '@/lib/native-review';
 import { parseTriggerTerms } from '@bondrail/sdk/trigger';
 
 const KURU_ROUTER: Address = '0x7EFbE105Ca7415dE98F96622173458ac1c054630';
@@ -368,7 +369,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
         <Step index={5} title="Code review" status={s(!!approved, !!boundProject)} summary={approved ? 'approved' : undefined}>
           <p className="text-foreground/70">
             Deploy a reviewed template (<code>BondrailFactory.deployNative</code>) and you qualify at once; a custom contract waits for the disclosed reviewer to check that every fee goes through <code>BondrailEarner</code>. History keeps accruing meanwhile.{' '}
-            {approved ? (fromTemplate ? 'Reviewed template.' : 'Approved.') : 'Not yet approved.'}
+            {nativeReviewLabel[nativeReviewStatus(approvedDirect, template, templateOk)]}.
           </p>
         </Step>
       )}
@@ -384,7 +385,7 @@ function Checklist({ account, bonds, live, tx }: { account?: AccountView; bonds:
         {live && (
           <>
             <p className="text-foreground/70">
-              Share <Link href={`/bonds/${live.address}`} className="font-mono underline-offset-4 hover:underline">/bonds/{short(live.address)}</Link>. Activate once the raise is full: {live.firstReleasePct}% is released to you and investors start receiving {live.revenueShare}% of every payment.
+              Share <Link href={`/bonds/${live.address}`} className="font-mono underline-offset-4 hover:underline">/bonds/{short(live.address)}</Link>. Activate once the raise is full: {live.firstReleasePct}% is released to you and investors start receiving {live.revenueShare}% of booked revenue.
             </p>
             {live.phase === 'Funding' && (
               <Action disabled={tx.busy || live.raised < live.raise || !factory} onClick={() => tx.send('Activate', { address: factory!, abi: factoryAbi as Abi, functionName: 'activate', args: [live.address] })}>
@@ -578,7 +579,7 @@ function TermsBuilder({
           <input value={t.symbol} onChange={(e) => setT({ ...t, symbol: e.target.value.toUpperCase() })} className={cn(input, 'font-mono')} />
         </Field>
         {n('raise', `Raise (${account.asset.symbol})`)}
-        {n('share', 'Revenue share (%)', 'Of every payment while the bond is live')}
+        {n('share', 'Revenue share (%)', 'Of booked revenue while the bond collects repayment')}
         {n('termHours', 'Term (hours after funding)')}
         {n('fundingHours', 'Funding window (hours)')}
         <Field label={`Repayment cap (${account.asset.symbol})`} hint={`Suggested ${suggested.toFixed(2)} from your attributed revenue (coverage 1.5×)`}>

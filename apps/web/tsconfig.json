@@ -28,6 +28,12 @@
       ],
       "@source/*": [
         "./.source/*"
+      ],
+      "@bondrail/sdk": [
+        "../../packages/sdk/src/index.ts"
+      ],
+      "@bondrail/sdk/*": [
+        "../../packages/sdk/src/*"
       ]
     }
   },

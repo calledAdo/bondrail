@@ -20,7 +20,7 @@ The rehearsal retains `docs/deployments/31337-next.json`, `.data/e2e-local/resul
 
 Integration fixes found during rehearsal: import the used connectors from Wagmi core exports to avoid resolving unused Solana dependencies during the production build; run Next from `apps/web` so build-time source snippets resolve; scope build-time deployment docs and video key paths; retain demo roles when resuming the full deploy. Indexer tests require `indexer/` as their working directory. These checks were rerun successfully after correction.
 
-The local adapter verifies the app/attester interface and settlement attribution; Envio's separate tests cover its handlers. Local deployer stands in for the CRE forwarder after a signed HTTP observation. Remote Vercel/Envio/systemd/CRE operation, faucet balances and live service health remain owner checks in [NEXT-RUNBOOK.md](NEXT-RUNBOOK.md). The funding table totals 9.8 test USDC and 7.1 MON balance targets, plus deployment/ongoing gas (recommended reserves: 12 USDC, 20 MON).
+The local adapter verifies the app/attester interface and settlement attribution; Envio's separate tests cover its handlers. Local deployer stands in for the CRE forwarder after a signed HTTP observation. Remote Vercel/Envio/systemd/CRE operation, faucet balances and live service health remain owner checks in [archived rollout runbook](archive/NEXT-RUNBOOK.md). The funding table totals 9.8 test USDC and 7.1 MON balance targets, plus deployment/ongoing gas (recommended reserves: 12 USDC, 20 MON).
 
 ## Successful rehearsal tail
 

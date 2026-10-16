@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import { VaultPositions } from './vault-positions';
 import { useAccount, useReadContracts } from 'wagmi';
 import { formatUnits } from 'viem';
 import { bondAbi } from '@/lib/abi';
@@ -25,14 +26,16 @@ export function Portfolio() {
       <header className="space-y-3">
         <p className="font-mono text-xs text-foreground/60">(portfolio)</p>
         <h1 className="text-4xl font-semibold">Your positions</h1>
-        <p className="text-foreground/60">Claims you hold, what they are worth if redeemed now, and where each bond stands.</p>
+        <p className="text-foreground/60">Your bond claims and vault shares, their current value, and the next action available.</p>
       </header>
+      <VaultPositions />
+      {!!address && <h2 className="text-2xl font-semibold">Your bond claims</h2>}
       {!address ? (
-        <Empty title="Connect a wallet">Your claim balances are read straight from each bond.</Empty>
+        <Empty title="Connect a wallet">Your balances are read straight from each bond and vault.</Empty>
       ) : loading || balances.isLoading ? (
         <div className="h-48 animate-pulse rounded-xl border border-foreground/10" />
       ) : held.length === 0 ? (
-        <Empty title="No claims yet">
+        <Empty title="No bond claims yet">
           <Link href="/markets" className="underline-offset-4 hover:underline">Browse markets</Link>
         </Empty>
       ) : (
@@ -52,6 +55,7 @@ export function Portfolio() {
                       <dd className="font-mono tabular">[{fmt(units * b.backingPerToken, b.asset)}]</dd>
                     </div>
                   </dl>
+                  <p className="mt-4 text-sm underline underline-offset-4">{b.phase === 'Closed' ? 'Redeem claims' : b.phase === 'Cancelled' ? 'Claim refund' : b.phase === 'Funding' ? 'Manage funding' : 'Review repayment and exit'} →</p>
                 </Panel>
               </Link>
             );

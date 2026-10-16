@@ -2,7 +2,7 @@ import { defineConfig } from 'tsup';
 
 export default defineConfig({
   entry: ['src/index.ts', 'src/abis.ts', 'src/client.ts', 'src/x402.ts', 'src/x402-guard.ts',
-    'src/permit.ts', 'src/data.ts', 'src/credit.ts', 'src/yield.ts', 'src/trigger.ts'],
+    'src/permit.ts', 'src/data.ts', 'src/credit.ts', 'src/yield.ts', 'src/trigger.ts', 'src/vault.ts'],
   format: ['esm'],
   target: 'node20',
   platform: 'neutral',

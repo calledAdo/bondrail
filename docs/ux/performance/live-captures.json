@@ -1,0 +1,73 @@
+{
+  "measuredAt": "2026-10-16T01:11:12.872030+00:00",
+  "results": [
+    {
+      "page": "pumplab",
+      "width": 375,
+      "path": "docs/ux/performance/live-pumplab-375.png",
+      "overflow": false,
+      "sentence": "PumpLab raised $2.00 of $2.00. Claim holders receive 25% of its revenue (rising to 40% if revenue falls below $0.01 over 1 day) until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.00 repaid so far.",
+      "vaultLinks": 1
+    },
+    {
+      "page": "curvelab",
+      "width": 375,
+      "path": "docs/ux/performance/live-curvelab-375.png",
+      "overflow": false,
+      "sentence": "CurveLab is raising $2.00. If fully funded by Oct 19, 2026, claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $0.00, rising as more capital is released) or Oct 24, 2026. $0.00 repaid so far.",
+      "vaultLinks": 0
+    },
+    {
+      "page": "agent",
+      "width": 375,
+      "path": "docs/ux/performance/live-agent-375.png",
+      "overflow": false,
+      "sentence": "Oracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.0775 repaid so far.",
+      "vaultLinks": 0
+    },
+    {
+      "page": "pumplab",
+      "width": 1280,
+      "path": "docs/ux/performance/live-pumplab-1280.png",
+      "overflow": false,
+      "sentence": "PumpLab raised $2.00 of $2.00. Claim holders receive 25% of its revenue (rising to 40% if revenue falls below $0.01 over 1 day) until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.00 repaid so far.",
+      "vaultLinks": 1
+    },
+    {
+      "page": "curvelab",
+      "width": 1280,
+      "path": "docs/ux/performance/live-curvelab-1280.png",
+      "overflow": false,
+      "sentence": "CurveLab is raising $2.00. If fully funded by Oct 19, 2026, claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $0.00, rising as more capital is released) or Oct 24, 2026. $0.00 repaid so far.",
+      "vaultLinks": 0
+    },
+    {
+      "page": "agent",
+      "width": 1280,
+      "path": "docs/ux/performance/live-agent-1280.png",
+      "overflow": false,
+      "sentence": "Oracle Agent raised $2.00 of $2.00. Claim holders receive 25% of its revenue until up to $2.40 has been repaid (currently up to $1.20, rising as more capital is released) or Oct 24, 2026. $0.0775 repaid so far.",
+      "vaultLinks": 0
+    },
+    {
+      "page": "markets",
+      "graphql": 1,
+      "rpcHttpRequests": 2,
+      "methods": [
+        "terms",
+        "name",
+        "symbol",
+        "terms",
+        "name",
+        "symbol",
+        "terms",
+        "name",
+        "symbol",
+        "depositAllowed",
+        "depositAllowed",
+        "depositAllowed"
+      ]
+    }
+  ],
+  "errors": []
+}

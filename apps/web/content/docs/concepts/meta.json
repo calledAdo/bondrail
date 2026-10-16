@@ -1,1 +1,12 @@
-{ "title": "Concepts", "pages": ["account", "bond", "tiers", "milestones", "defaults"] }
+{
+  "title": "Concepts",
+  "pages": [
+    "account",
+    "bond",
+    "tiers",
+    "milestones",
+    "defaults",
+    "credit-vault",
+    "credit-profiles"
+  ]
+}

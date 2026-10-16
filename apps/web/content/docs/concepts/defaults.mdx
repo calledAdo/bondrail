@@ -1,14 +1,30 @@
 ---
 title: Defaults and recovery
-description: What investors get back when things go wrong.
+description: Contract-triggered recovery, evidence windows and the limits of investor protection.
 ---
 
-| Event | Effect |
-|---|---|
-| Milestone missed | Undrawn capital becomes investor recovery |
-| Watched default (two adjacent violations, or 24 h dark while active) | Stake slashed into the pool; undrawn capital to recovery; ERC-8004 feedback for agents |
-| Funding deadline unfilled | Bond cancelled; investors refund 1:1; stake returned |
-| Maturity | Bond closes; holders redeem the pool |
+Monad testnet; not audited. These outcomes are distinct:
 
-Recovery never claws back capital already released to the business. Investors are protected by what is still
-in the bond and by the stake.
+| Event / function | Effect |
+| --- | --- |
+| Missed milestone deadline: `bond.expireUndrawn()` | Moves undrawn principal to investor recovery; no clawback of released capital |
+| Watched default: covenant calls `bond.markDefault(evidenceHash)` | Records default, recovers undrawn principal and slashes held stake into the pool |
+| Still Funding after deadline: `account.cancelFunding(bond)` | Cancels the raise; holders call `bond.refund` 1:1; stake becomes issuer return credit |
+| Maturity: `account.closeBondAtMaturity(bond)` | Ends collection, recovers undrawn principal and closes or starts the Watched evidence grace |
+| End of grace: `bond.finalizeSettlement()` | Moves Closing to Closed and credits remaining stake for issuer return |
+
+`BondrailCovenant.onReport` requires the pinned forwarder and observer signature. Two qualifying
+Violation reports in adjacent 30-second epochs must refer to the active collection period. Watched
+bonds remain in Closing for 120 seconds to accept eligible late evidence from before collection closed.
+A run of Unknown reports with gaps no longer than one hour blocks deposits after one hour; after
+24 hours during Active it can default. No reports alone do not establish a dark period or default.
+The contract's evidence rules do not guarantee reporter availability or detection latency.
+
+A performance trigger (`checkTrigger`) increases revenue share; it does not by itself set `defaultedAt`
+or slash stake. A bond can close at maturity below its cap without a routing breach. Already released
+capital cannot be recovered by these contracts. Remaining pool assets and stake may not cover losses.
+
+`redeem` burns claims, including during Active/Closing, and gives up future recoveries on those claims.
+The last outstanding claim waits for Closed. The vault has stricter behavior: `BondrailVault.collect`
+only burns positions after Cancelled/Closed. ERC-8004 feedback is a separate explicit script action,
+not an automatic effect of contract default.

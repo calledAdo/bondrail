@@ -50,7 +50,7 @@ export async function settleThroughAccount(
 }
 
 export interface PaymentRecord {
-  state: 'processing' | 'work_failed' | 'settlement_pending' | 'complete';
+  state: 'processing' | 'work_failed' | 'settlement_pending' | 'settlement_retryable' | 'complete';
   binding: string;
   payloadHash: string;
   requirements: PaymentRequirements;
@@ -189,11 +189,51 @@ export async function handlePaidRequest(r: PaidRequest): Promise<Response> {
   const binding = digest({ resource: r.resource }),
     payloadHash = digest(payload),
     old = await r.store.get(key);
+  async function settleResult(record: PaymentRecord, raw: string): Promise<Response> {
+    try {
+      const settlement = await r.facilitator.settle(payload, record.requirements);
+      if (!settlement.success && settlement.transaction === '' && settlement.network === record.requirements.network &&
+          settlement.payer?.toLowerCase() === payer &&
+          ['insufficient_gas_funds', 'wallet_busy', 'wallet_nonce_blocked', 'gas_fee_cap_exceeded'].includes(settlement.errorReason ?? '')) {
+        const retryable = { ...record, state: 'settlement_retryable' as const, settlement };
+        if (!await r.store.cas(key, raw, JSON.stringify(retryable))) throw new Error('Payment journal conflict');
+        return response(503, { error: settlement.errorReason, charged: false, retryable: true, paymentKey: key,
+          message: 'Retry the same signed request after facilitator recovery.' }, { 'Retry-After': '15' });
+      }
+      if (
+        !settlement.success ||
+        !/^0x[0-9a-fA-F]{64}$/.test(settlement.transaction) ||
+        settlement.network !== required.network ||
+        settlement.payer?.toLowerCase() !== payer
+      )
+        return response(202, { status: 'settlement_pending', paymentKey: key }, { 'Retry-After': '5' });
+      record = { ...record, state: 'complete', settlement };
+      if (!(await r.store.cas(key, raw, JSON.stringify(record)))) throw new Error('Payment journal conflict');
+      return completed(record);
+    } catch {
+      return response(
+        202,
+        {
+          status: 'settlement_pending',
+          paymentKey: key,
+          message: 'Payment outcome needs receipt reconciliation; reuse the same authorization.',
+        },
+        { 'Retry-After': '5' },
+      );
+    }
+  }
   if (old) {
     const record = JSON.parse(old) as PaymentRecord;
     if (record.binding !== binding || record.payloadHash !== payloadHash)
       return response(409, { error: 'authorization_already_bound_to_another_request' });
     if (record.state === 'complete') return completed(record);
+    if (record.state === 'settlement_retryable') {
+      const pending = { ...record, state: 'settlement_pending' as const };
+      const raw = JSON.stringify(pending);
+      if (!await r.store.cas(key, old, raw))
+        return response(202, { status: 'settlement_pending', paymentKey: key }, { 'Retry-After': '5' });
+      return settleResult(pending, raw);
+    }
     return response(
       record.state === 'work_failed' ? 502 : 202,
       {
@@ -239,30 +279,8 @@ export async function handlePaidRequest(r: PaidRequest): Promise<Response> {
   const pending = JSON.stringify(record);
   if (!(await r.store.cas(key, raw, pending))) throw new Error('Payment journal conflict');
   raw = pending;
-  // Journal the result before settlement: a timeout leaves reconcilable work; never rerun or re-charge.
-  try {
-    const settlement = await r.facilitator.settle(payload, required);
-    if (
-      !settlement.success ||
-      !/^0x[0-9a-fA-F]{64}$/.test(settlement.transaction) ||
-      settlement.network !== required.network ||
-      settlement.payer?.toLowerCase() !== payer
-    )
-      return response(202, { status: 'settlement_pending', paymentKey: key }, { 'Retry-After': '5' });
-    record = { ...record, state: 'complete', settlement };
-    if (!(await r.store.cas(key, raw, JSON.stringify(record)))) throw new Error('Payment journal conflict');
-    return completed(record);
-  } catch {
-    return response(
-      202,
-      {
-        status: 'settlement_pending',
-        paymentKey: key,
-        message: 'Payment outcome needs receipt reconciliation; reuse the same authorization.',
-      },
-      { 'Retry-After': '5' },
-    );
-  }
+  // Journal the result before settlement; a definitive refusal can retry without rerunning work.
+  return settleResult(record, raw);
 }
 
 /** Facilitator over HTTP (e.g. Monad's https://x402-facilitator.molandak.org). */

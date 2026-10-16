@@ -1,0 +1,32 @@
+{
+  "match": {
+    "chainId": 31337,
+    "block": "17",
+    "vault": "0x0dcd1bf9a1b36ce34237eeafef220932846bcd82",
+    "factory": "0x0b306bf915c4d645ff596e518faf3f9669b97016",
+    "operator": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "verifier": "0x524F04724632eED237cbA3c37272e018b3A7967e",
+    "candidateCodeHash": "0x9dd27ef67c26ea268001b091936a569dc4d6e420fce33603c16f9178ee7ad8ea",
+    "referenceCodeHash": "0x9dd27ef67c26ea268001b091936a569dc4d6e420fce33603c16f9178ee7ad8ea",
+    "code": "MATCH",
+    "simulation": "PASS",
+    "ready": true
+  },
+  "mismatch": {
+    "chainId": 31337,
+    "block": "17",
+    "vault": "0x0dcd1bf9a1b36ce34237eeafef220932846bcd82",
+    "factory": "0x0b306bf915c4d645ff596e518faf3f9669b97016",
+    "operator": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "verifier": "0x524F04724632eED237cbA3c37272e018b3A7967e",
+    "candidateCodeHash": "0x3a6a4018a80c2e095101ed4239ab3bec88a8f914eb3490653441d853fb8ecce9",
+    "referenceCodeHash": "0x9dd27ef67c26ea268001b091936a569dc4d6e420fce33603c16f9178ee7ad8ea",
+    "code": "MISMATCH",
+    "simulation": "InvalidVault",
+    "ready": false
+  },
+  "methods": [
+    "eth_call"
+  ],
+  "registryUnchanged": true
+}

@@ -1,0 +1,38 @@
+{
+  "capturedAt": "2026-10-15T22:55:07.238Z",
+  "base": "http://127.0.0.1:3210",
+  "liveData": true,
+  "registry": "Read-only snapshot from bondrail.vercel.app/api/registry",
+  "wallet": "Injected read-only address; signing and sending blocked",
+  "errors": [],
+  "results": [
+    {
+      "check": "desktop: stats render before scrolling; landing has no overflow",
+      "stats": "[$0.46]\n\nRevenue routed\n\n[58]\n\nPayments booked\n\n[$0.08]\n\nCollected for investors\n\n[2]\n\nLive bonds\n\nLive from Monad testnet via Envio. Dollar totals use the deployment’s USDC; counts include all indexed accounts. Collected means revenue sent to bond pools, not holder redemptions. Demo businesses and traffic are run by the Bondrail team."
+    },
+    {
+      "check": "desktop: Funding deposit primary, reviewed template, numeric par yield, collapsed maintenance"
+    },
+    {
+      "check": "desktop: secondary redemption; quote, acknowledgement, cancel, Escape, changed amount, balance/precision/last-holder guards; modal focus; no overflow",
+      "confirmation": "Confirm early redemption\n\nThis permanently burns your selected claims for their current cash backing. You give up all future receipts on those claims, including revenue and any later capital or stake recovery.\n\nClaims burned\n0.1\nCash received now\n0.003875 USDC\nEstimated additional revenue by maturity\n$0.0481\nEstimated total if held\n$0.052\n\nEstimate uses the trailing attributed daily revenue and current investor share, capped at the remaining revenue cap through maturity. It assumes the claim supply and terms stay unchanged and excludes future capital or stake recovery. It is not a guarantee. Cash is based on the latest read; the transaction uses the pool and supply when executed.\n\nI understand that these claims are burned and I give up their future receipts.\nKeep my claims\nBurn claims and redeem"
+    },
+    {
+      "check": "mobile: stats render before scrolling; landing has no overflow",
+      "stats": "[$0.46]\n\nRevenue routed\n\n[58]\n\nPayments booked\n\n[$0.08]\n\nCollected for investors\n\n[2]\n\nLive bonds\n\nLive from Monad testnet via Envio. Dollar totals use the deployment’s USDC; counts include all indexed accounts. Collected means revenue sent to bond pools, not holder redemptions. Demo businesses and traffic are run by the Bondrail team."
+    },
+    {
+      "check": "mobile: Funding deposit primary, reviewed template, numeric par yield, collapsed maintenance"
+    },
+    {
+      "check": "mobile: secondary redemption; quote, acknowledgement, cancel, Escape, changed amount, balance/precision/last-holder guards; modal focus; no overflow",
+      "confirmation": "Confirm early redemption\n\nThis permanently burns your selected claims for their current cash backing. You give up all future receipts on those claims, including revenue and any later capital or stake recovery.\n\nClaims burned\n0.1\nCash received now\n0.003875 USDC\nEstimated additional revenue by maturity\n$0.0481\nEstimated total if held\n$0.052\n\nEstimate uses the trailing attributed daily revenue and current investor share, capped at the remaining revenue cap through maturity. It assumes the claim supply and terms stay unchanged and excludes future capital or stake recovery. It is not a guarantee. Cash is based on the latest read; the transaction uses the pool and supply when executed.\n\nI understand that these claims are burned and I give up their future receipts.\nKeep my claims\nBurn claims and redeem"
+    },
+    {
+      "check": "Synthetic Closing phase response: correct action and warning behavior; no transaction attempted"
+    },
+    {
+      "check": "Synthetic Closed phase response: correct action and warning behavior; no transaction attempted"
+    }
+  ]
+}

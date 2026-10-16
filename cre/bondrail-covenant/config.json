@@ -1,19 +1,19 @@
 {
   "schedule": "*/30 * * * * *",
-  "observerURL": "http://127.0.0.1:8787/observe",
+  "observerURL": "http://127.0.0.1:8790/observe",
   "simulationLoopbackObserver": true,
-  "observerSigner": "0x0c95c87Ce958d75f6aF56E6bd921884752cbC12B",
+  "observerSigner": "0xF2ba730a97852E327d3E06C1A7dB342a34845C04",
   "gasLimit": "700000",
   "policy": {
     "id": "bondrail-agent",
     "chainId": 10143,
     "chainSelector": "2183018362218727504",
-    "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
-    "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
-    "manifestUrl": "https://slice-agent.vercel.app/.well-known/bondrail.json",
+    "covenant": "0x901021116203aaf92fbc427ce8a440a4c4ccfcda",
+    "bond": "0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+    "manifestUrl": "https://bondrail-next-agent.vercel.app/.well-known/bondrail.json",
     "endpoints": [
       {
-        "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+        "url": "https://bondrail-next-agent.vercel.app/api/oracle",
         "minAmount": "10000"
       }
     ],
@@ -23,7 +23,7 @@
     },
     "network": "eip155:10143",
     "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
-    "expectedPayTo": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
+    "expectedPayTo": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54",
     "maxTimeoutSeconds": 300,
     "parserVersion": "bondrail-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,

@@ -1,59 +1,84 @@
 {
   "schemaVersion": 1,
+  "deployment": "main",
   "chainId": 10143,
   "network": "Monad Testnet",
-  "deployedAt": "2026-10-11T02:42:21.838Z",
-  "startBlock": "69994909",
-  "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
-  "factory": "0xef7916dc8c95338cd060d498528484e97aa3c597",
-  "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
-  "forwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
-  "observer": "0x0c95c87Ce958d75f6aF56E6bd921884752cbC12B",
-  "milestoneSigner": "0xafa1A1589E0E05edD67CF82C41dff802b0f8cBca",
-  "reviewer": "0x10Be6883Ebbd9B610C43a97f338512a5e66f5893",
+  "deployedAt": "2026-10-15T07:10:17.779Z",
+  "startBlock": "71189277",
+  "deployer": "0x5e5111439F79140ACe0b7712992f48c2d0Bf0384",
+  "roles": {
+    "deployer": "0x5e5111439F79140ACe0b7712992f48c2d0Bf0384",
+    "observer": "0xF2ba730a97852E327d3E06C1A7dB342a34845C04",
+    "milestone": "0x00778C71271137C5150982507EdCCfD807e5BEB4",
+    "reviewer": "0xbFAaF97B7fd74279b68962F990a9876Eb8968B46",
+    "attester": "0x0500a7eDeD5425a7F94045674aBDc5BC0e55119E",
+    "curator": "0xc927A118aDb0b19CDE4d51f77a34bA59b36B3c9b",
+    "facilitator": "0x0CE7D559B9A87E600a117F5A3EdBb6B552028B36",
+    "worker": "0x67da9d77B633dBEd7F73e66409847FCcA460192B",
+    "pumplab-issuer": "0x3FFfb2De63f1Efd3250b2ffCad40e6633f92baD3",
+    "investor": "0x6ccAc746F1A380E429FB91D57631D39F5F481c22",
+    "curvelab-issuer": "0xb7ee001B6207830A69Ca5B4e9CCF86DCc01006Ef",
+    "agent-issuer": "0xAB6E9EA14274DC3d82486DDc3A66f1E5b14B4360",
+    "vault-depositor": "0x5416766277D4C344aD4194B85D676f25B683f787"
+  },
   "minHistory": 600,
-  "bondImplementation": "0x9e1d7292897719203f3dce5879ed9d915f246ce2",
-  "accountImplementation": "0xd5f796aec221da934879f490ad7b88eeb48c350e",
+  "templateHash": "0x9f6766e6a4fa785edaf08a911577da1228ca2ac5f6c303f79e11a2045357eef0",
   "issuers": {
     "pumplab": {
       "name": "PumpLab",
       "tier": "native",
-      "issuer": "0x3711031Ff66392A249d6f052D5BECdacCb00324f",
-      "account": "0xd5edc79C2a8589c268d37353d77183374897799a",
-      "source": "0x72E53DD9D209512788e6F3859ce07c56f47983E9",
-      "token": "0x7eC24b914917AeEfFdfD0752B6B0FBe8da0A658f",
-      "bond": "0x80e0EB68a1731d545E80e6e9e997f66e6b38dEd0",
-      "kuruMarket": "0x6492423ca48E33C8D82D085a97B830C9f86a5720",
-      "kuruVault": "0xE714Adae8c3F7E459dEcbA4120E246C8C8223Cf5"
-    },
-    "agent": {
-      "name": "Oracle Agent",
-      "tier": "watched",
-      "issuer": "0xd1ef0BD715Ca18d1cCe7198111A0eF2BB26d56bb",
-      "account": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
-      "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
-      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health"
+      "issuer": "0x3FFfb2De63f1Efd3250b2ffCad40e6633f92baD3",
+      "account": "0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5",
+      "source": "0x158B28949fDd1bC4Bb21B851dF28Eaad434dAeeD",
+      "token": "0x41EE28EbdD499c00bFEBa81885CC14C65bE166E8",
+      "bond": "0xb6f44e47C7468c42A32d9679170cC3C4B145099B"
     },
     "curvelab": {
       "name": "CurveLab",
       "tier": "native",
-      "issuer": "0x7c6E3612cD66C66385487AB9150E72E1E7633cB7",
-      "account": "0x4295ba874FDf591AF88fD33C87A61b2e7A97b6D0",
-      "source": "0xe45b023483B9323e7a41baBeb0e5186EC1FA8afB",
-      "token": "0x0F548a4cb1EC9d6e0e8DFd668109b0f7E9597c05",
-      "bond": "0xD4E5901cce4A7173903F75e6e0327020f5C18B05"
+      "issuer": "0xb7ee001B6207830A69Ca5B4e9CCF86DCc01006Ef",
+      "account": "0x9decB240F7e063fcC090AF740341b956B7A3B079",
+      "source": "0x08B9b87c418c030c711A66aEad1305e90B3A95c4",
+      "token": "0xbee3a8D6Af4524D16Ec39CC79957329184624E05",
+      "bond": "0x16813A1Ba366Ea5d1375F5B64B0BC8348642a735"
+    },
+    "agent": {
+      "name": "Oracle Agent",
+      "tier": "watched",
+      "issuer": "0xAB6E9EA14274DC3d82486DDc3A66f1E5b14B4360",
+      "account": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54",
+      "bond": "0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+      "endpoint": "https://bondrail-next-agent.vercel.app/api/oracle"
     }
   },
+  "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+  "forwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
+  "bondImplementation": "0x95427c18841dc8a5b6240a5337a9a4382f380c69",
+  "accountImplementation": "0xf1ad610cf89fd047d1718fbff843e0288eea86c5",
+  "covenant": "0x901021116203aaf92fbc427ce8a440a4c4ccfcda",
+  "factory": "0x94c86517a520e56f104c6c82b96632643b3f5d81",
+  "creditRegistry": "0x8cb78ff328cd4982030f275d017892fd2fa512f8",
+  "vault": "0x57fd6a271a6a4e96b151e5d0732c7f61e3059f07",
+  "observer": "0xF2ba730a97852E327d3E06C1A7dB342a34845C04",
+  "milestoneSigner": "0x00778C71271137C5150982507EdCCfD807e5BEB4",
+  "reviewer": "0xbFAaF97B7fd74279b68962F990a9876Eb8968B46",
+  "attester": "0x0500a7eDeD5425a7F94045674aBDc5BC0e55119E",
+  "curator": "0xc927A118aDb0b19CDE4d51f77a34bA59b36B3c9b",
+  "vaultAllocation": {
+    "bond": "0xb6f44e47C7468c42A32d9679170cC3C4B145099B",
+    "amount": "500000",
+    "deposit": "2000000"
+  },
   "watchPolicy": {
-    "id": "slice-agent",
+    "id": "bondrail-agent",
     "chainId": 10143,
     "chainSelector": "2183018362218727504",
-    "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
-    "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
-    "manifestUrl": "https://slice-agent.vercel.app/.well-known/slice.json",
+    "covenant": "0x901021116203aaf92fbc427ce8a440a4c4ccfcda",
+    "bond": "0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+    "manifestUrl": "https://bondrail-next-agent.vercel.app/.well-known/bondrail.json",
     "endpoints": [
       {
-        "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+        "url": "https://bondrail-next-agent.vercel.app/api/oracle",
         "minAmount": "10000"
       }
     ],
@@ -63,10 +88,12 @@
     },
     "network": "eip155:10143",
     "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
-    "expectedPayTo": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
+    "expectedPayTo": "0x067861e4bf4803a66DB97cF74E252B6F4927FA54",
     "maxTimeoutSeconds": 300,
-    "parserVersion": "slice-x402-v2-exact-eip3009/2",
+    "parserVersion": "bondrail-x402-v2-exact-eip3009/2",
     "epochSeconds": 30,
     "freshnessSeconds": 90
-  }
+  },
+  "vaultFactoryStartBlock": "71423044",
+  "vaultFactory": "0x11bcdba6d344c61f6f7c7a9f64ee87ba8a7fc7d2"
 }

@@ -1,0 +1,158 @@
+[
+  {
+    "capture": "fixture-active-1280",
+    "width": 1280,
+    "before": 3766,
+    "after": 3229
+  },
+  {
+    "capture": "fixture-active-375",
+    "width": 375,
+    "before": 5708,
+    "after": 3642
+  },
+  {
+    "capture": "fixture-active-defaulted-1280",
+    "width": 1280,
+    "before": 3860,
+    "after": 3381
+  },
+  {
+    "capture": "fixture-active-defaulted-375",
+    "width": 375,
+    "before": 5486,
+    "after": 3984
+  },
+  {
+    "capture": "fixture-active-market-1280",
+    "width": 1280,
+    "before": 3744,
+    "after": 3317
+  },
+  {
+    "capture": "fixture-active-market-375",
+    "width": 375,
+    "before": 5770,
+    "after": 3783
+  },
+  {
+    "capture": "fixture-active-triggered-1280",
+    "width": 1280,
+    "before": 3766,
+    "after": 3229
+  },
+  {
+    "capture": "fixture-active-triggered-375",
+    "width": 375,
+    "before": 5731,
+    "after": 3670
+  },
+  {
+    "capture": "fixture-cancelled-1280",
+    "width": 1280,
+    "before": 3726,
+    "after": 2984
+  },
+  {
+    "capture": "fixture-cancelled-375",
+    "width": 375,
+    "before": 4792,
+    "after": 3292
+  },
+  {
+    "capture": "fixture-closed-1280",
+    "width": 1280,
+    "before": 3744,
+    "after": 3108
+  },
+  {
+    "capture": "fixture-closed-375",
+    "width": 375,
+    "before": 5463,
+    "after": 3352
+  },
+  {
+    "capture": "fixture-closing-1280",
+    "width": 1280,
+    "before": 3794,
+    "after": 3243
+  },
+  {
+    "capture": "fixture-closing-375",
+    "width": 375,
+    "before": 5824,
+    "after": 3731
+  },
+  {
+    "capture": "fixture-funding-1280",
+    "width": 1280,
+    "before": 3744,
+    "after": 3282
+  },
+  {
+    "capture": "fixture-funding-375",
+    "width": 375,
+    "before": 5646,
+    "after": 3761
+  },
+  {
+    "capture": "fixture-funding-light-1280",
+    "width": 1280,
+    "before": 3744,
+    "after": 3282
+  },
+  {
+    "capture": "fixture-funding-light-375",
+    "width": 375,
+    "before": 5646,
+    "after": 3761
+  },
+  {
+    "capture": "fixture-funding-paused-1280",
+    "width": 1280,
+    "before": 3726,
+    "after": 3234
+  },
+  {
+    "capture": "fixture-funding-paused-375",
+    "width": 375,
+    "before": 5670,
+    "after": 3781
+  },
+  {
+    "capture": "live-agent-1280",
+    "width": 1280,
+    "before": 3802,
+    "after": 3333
+  },
+  {
+    "capture": "live-agent-375",
+    "width": 375,
+    "before": 5858,
+    "after": 3792
+  },
+  {
+    "capture": "live-curvelab-1280",
+    "width": 1280,
+    "before": 3582,
+    "after": 3180
+  },
+  {
+    "capture": "live-curvelab-375",
+    "width": 375,
+    "before": 5313,
+    "after": 3563
+  },
+  {
+    "capture": "live-pumplab-1280",
+    "width": 1280,
+    "before": 3604,
+    "after": 3137
+  },
+  {
+    "capture": "live-pumplab-375",
+    "width": 375,
+    "before": 5464,
+    "after": 3495
+  }
+]

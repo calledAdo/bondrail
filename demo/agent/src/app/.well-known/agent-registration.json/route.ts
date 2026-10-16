@@ -3,7 +3,7 @@
 const IDENTITY_REGISTRY = '0x8004A818BFB912233c491871b3d84c89A494BD9e';
 
 export function GET() {
-  const base = process.env.AGENT_PUBLIC_URL ?? 'https://slice-agent.vercel.app';
+  const base = process.env.AGENT_PUBLIC_URL ?? 'https://bondrail-next-agent.vercel.app';
   const id = process.env.AGENT_ERC8004_ID;
   return Response.json(
     {

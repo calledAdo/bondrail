@@ -1,26 +1,72 @@
 {
   "name": "@bondrail/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "description": "Typed clients, contract ABIs, x402 payments and credit analytics for Bondrail revenue bonds.",
   "exports": {
-    ".": "./src/index.ts",
-    "./abis": "./src/abis.ts",
-    "./client": "./src/client.ts",
-    "./permit": "./src/permit.ts",
-    "./x402": "./src/x402.ts",
-    "./x402-guard": "./src/x402-guard.ts",
-    "./data": "./src/data.ts",
-    "./credit": "./src/credit.ts",
-    "./yield": "./src/yield.ts",
-    "./trigger": "./src/trigger.ts"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./abis": {
+      "types": "./dist/abis.d.ts",
+      "import": "./dist/abis.js",
+      "default": "./dist/abis.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "default": "./dist/client.js"
+    },
+    "./permit": {
+      "types": "./dist/permit.d.ts",
+      "import": "./dist/permit.js",
+      "default": "./dist/permit.js"
+    },
+    "./x402": {
+      "types": "./dist/x402.d.ts",
+      "import": "./dist/x402.js",
+      "default": "./dist/x402.js"
+    },
+    "./x402-guard": {
+      "types": "./dist/x402-guard.d.ts",
+      "import": "./dist/x402-guard.js",
+      "default": "./dist/x402-guard.js"
+    },
+    "./data": {
+      "types": "./dist/data.d.ts",
+      "import": "./dist/data.js",
+      "default": "./dist/data.js"
+    },
+    "./credit": {
+      "types": "./dist/credit.d.ts",
+      "import": "./dist/credit.js",
+      "default": "./dist/credit.js"
+    },
+    "./yield": {
+      "types": "./dist/yield.d.ts",
+      "import": "./dist/yield.js",
+      "default": "./dist/yield.js"
+    },
+    "./trigger": {
+      "types": "./dist/trigger.d.ts",
+      "import": "./dist/trigger.js",
+      "default": "./dist/trigger.js"
+    },
+    "./vault": {
+      "types": "./dist/vault.d.ts",
+      "import": "./dist/vault.js",
+      "default": "./dist/vault.js"
+    }
   },
   "scripts": {
     "generate": "tsx scripts/generate-abis.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/*.test.ts",
     "build": "tsup",
-    "prepack": "pnpm run build"
+    "prepack": "npm run build",
+    "prepublishOnly": "node scripts/verify-pack.mjs"
   },
   "dependencies": {
     "@x402/core": "2.28.0",
@@ -60,58 +106,6 @@
     "viem": "^2.54.2"
   },
   "publishConfig": {
-    "access": "public",
-    "exports": {
-      ".": {
-        "types": "./dist/index.d.ts",
-        "import": "./dist/index.js",
-        "default": "./dist/index.js"
-      },
-      "./abis": {
-        "types": "./dist/abis.d.ts",
-        "import": "./dist/abis.js",
-        "default": "./dist/abis.js"
-      },
-      "./client": {
-        "types": "./dist/client.d.ts",
-        "import": "./dist/client.js",
-        "default": "./dist/client.js"
-      },
-      "./permit": {
-        "types": "./dist/permit.d.ts",
-        "import": "./dist/permit.js",
-        "default": "./dist/permit.js"
-      },
-      "./x402": {
-        "types": "./dist/x402.d.ts",
-        "import": "./dist/x402.js",
-        "default": "./dist/x402.js"
-      },
-      "./x402-guard": {
-        "types": "./dist/x402-guard.d.ts",
-        "import": "./dist/x402-guard.js",
-        "default": "./dist/x402-guard.js"
-      },
-      "./data": {
-        "types": "./dist/data.d.ts",
-        "import": "./dist/data.js",
-        "default": "./dist/data.js"
-      },
-      "./credit": {
-        "types": "./dist/credit.d.ts",
-        "import": "./dist/credit.js",
-        "default": "./dist/credit.js"
-      },
-      "./yield": {
-        "types": "./dist/yield.d.ts",
-        "import": "./dist/yield.js",
-        "default": "./dist/yield.js"
-      },
-      "./trigger": {
-        "types": "./dist/trigger.d.ts",
-        "import": "./dist/trigger.js",
-        "default": "./dist/trigger.js"
-      }
-    }
+    "access": "public"
   }
 }

@@ -52,5 +52,5 @@ Dialogue: 0,0:00:00.00,{ass_time(duration)},Note,,0,0,0,,MOTION STUDY / VOICE PE
  subprocess.run([FF,'-hide_banner','-loglevel','error','-y','-i',source,'-vf',filters,'-an','-t',str(duration),'-c:v','libx264','-preset','fast','-crf','18','-threads','4',str(target)],check=True)
  files.append(target);print('Motion shot',i,flush=True)
 listing=EDIT/'concat.txt';listing.write_text(''.join(f"file '{p}'\n" for p in files))
-subprocess.run([FF,'-hide_banner','-loglevel','error','-y','-f','concat','-safe','0','-i',str(listing),'-c','copy','-movflags','+faststart',str(OUT/'slice-motion-v2-preview.mp4')],check=True)
-print('Preview:',OUT/'slice-motion-v2-preview.mp4',flush=True)
+subprocess.run([FF,'-hide_banner','-loglevel','error','-y','-f','concat','-safe','0','-i',str(listing),'-c','copy','-movflags','+faststart',str(OUT/'bondrail-motion-v2-preview.mp4')],check=True)
+print('Preview:',OUT/'bondrail-motion-v2-preview.mp4',flush=True)

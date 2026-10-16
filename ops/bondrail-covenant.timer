@@ -1,0 +1,8 @@
+[Unit]
+Description=Schedule Bondrail covenant
+[Timer]
+OnCalendar=*:00,30
+Persistent=true
+Unit=bondrail-covenant.service
+[Install]
+WantedBy=timers.target

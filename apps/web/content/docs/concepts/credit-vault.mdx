@@ -1,0 +1,94 @@
+---
+title: Credit vault
+description: Curated bond allocations, carried-cost valuation, income vesting and limited exit liquidity.
+---
+
+<Callout type="warn">Monad testnet; not audited. The current manifest includes a `BondrailVault`.
+See [selected deployment addresses](/docs/reference/deployments). The `/vault` app page is read-only;
+deposits and withdrawals are contract calls.</Callout>
+
+`BondrailVault` accepts one exact-transfer, non-rebasing asset and issues transferable ERC-4626 shares.
+The curator uses `allocate(bond, amount)` to fund eligible bonds from its immutable factory. Share value
+includes cash and carried bond positions; it is not a guaranteed redemption balance.
+
+## Carried cost and losses
+
+`costBasis(bond)` records allocation cost. `holdingRealizedValue(bond)` is the vault's claims'
+pro-rata share of the current bond `pool()` (1:1 claims during Funding/Cancelled).
+`holdingRecovered(bond)` uses cumulative revenue, principal recovery and stake recovery for the current
+claims and supply. Unrecovered cost is cost basis minus recovered value, floored at zero.
+
+`holdingEntryValue` and `holdingValue` apply these rules before the vault-wide income deduction:
+
+| Bond condition | Entry value | Exit value |
+| --- | --- | --- |
+| Funding / Cancelled | Realized backing | Realized backing |
+| Active, healthy, before maturity | Realized + unrecovered cost | Same |
+| Active, `triggered()` | Realized + unrecovered cost | Realized + 50% of unrecovered cost |
+| Active, defaulted or past maturity | Realized + unrecovered cost | Realized + remaining cost written down linearly over 30 days |
+| Closing / Closed | Realized backing only | Realized backing only |
+
+Active values are capped at the position's share of `effectiveRevenueCap + undrawnPrincipal +
+principalRecovery + stakeRecovery - totalRedeemed`. This includes refundable principal separately
+from the revenue cap, which scales with released capital. Unslashed issuer stake is excluded.
+
+The write-down starts at `defaultedAt()` or maturity, whichever applies first; a late default cannot
+restart it. The default/maturity rule takes precedence over the trigger haircut and starts with zero
+time-based haircut. A fresh default can therefore initially increase a previously triggered position's
+carrying value; this is not a monotonic risk score. Repayment shrinks unrecovered cost and increases
+backing. A later `checkTrigger()` can clear the trigger haircut, but default flags do not clear.
+
+## Entry price differs from exit price
+
+`entryAssets()` ignores unrealized trigger/default impairments; `totalAssets()` is **exit NAV**, including
+those impairments. Both subtract `unvestedIncome()`. Final Closing/Closed losses affect both.
+
+- Quote `deposit(assets, receiver)` with `previewDeposit` (shares round down).
+- Quote `mint(shares, receiver)` with `previewMint` (assets round up).
+- Quote `withdraw` / `redeem` with `previewWithdraw` / `previewRedeem` at exit NAV.
+- `convertToAssets` and `convertToShares` use exit NAV; they are not entry quotes when impaired.
+
+Entries stay open throughout bond lifecycles. Entering at the higher price prevents new deposits buying
+unrealized impairments at the exit discount; it does not protect entrants from final losses. OpenZeppelin
+virtual assets/shares and a six-decimal offset affect rounding (a six-decimal asset has 12-decimal shares).
+Zero-asset or zero-share movements revert. Transactions have no built-in user slippage argument.
+
+## Seven-day income vesting
+
+Profit is realized backing above cost, not projected revenue. `unvestedIncome()` excludes all newly
+observed profit from both prices, including profit not yet checkpointed. Anyone can call
+`checkpointIncome()`; successful vault money movements also checkpoint. New profit merges with the
+still-unvested remainder and starts a fresh **seven-day** linear schedule. With no new profit, a
+checkpoint does not restart time. Reading a price alone does not start vesting.
+
+Vesting starts when a write observes profit, not at its original payment block. Later inflows can
+extend the old remainder's tail; fully vested income is not relocked. `collect()` moves Closed backing
+to idle cash without unlocking profit early. This is not an entitlement snapshot: new holders who
+stay invested participate as income vests. Direct asset donations affect price immediately.
+
+## Curator powers and hard limits
+
+`allocate` only accepts same-asset, factory-registered Funding bonds with `depositAllowed(bond) == true`.
+At each allocation, fixed limits enforce **25% of pre-allocation exit NAV per bond**, **16 holdings**,
+and **20% of exit NAV remaining idle**. These are allocation checks; withdrawals, losses and recoveries
+can change concentrations and consume the buffer. There is no issuer-diversification guarantee.
+
+The curator can `withdrawFromRaise` while bond withdrawal is allowed, or `collect` entire positions
+after Cancelled/Closed. It cannot redeem Active/Closing claims, sell claims, call arbitrary contracts,
+rescue assets or charge fees. The immutable owner's only administrative power is `proposeCurator` and
+`acceptCurator` after two days; replacing a proposal restarts that delay. There is no upgrade or pause.
+
+## Liquidity and risks
+
+`maxWithdraw(holder)` and `maxRedeem(holder)` limit exits to idle cash. A preview gives a price, not an
+availability promise. There is no queue or automatic bond liquidation; first exits can exhaust cash.
+Even realized bond backing can remain unavailable until cancellation or final settlement.
+
+Carrying at cost assumes healthy bonds keep paying. Exit NAV can exceed pool backing and is neither a
+market quote nor a liquidation floor. Consider issuer losses/correlation, curator availability,
+reviewer/observer trust, delayed trigger checks/default reports, settlement pricing, vesting timing,
+token freezes, donations, rounding and dust. No principal or yield is guaranteed.
+
+The [design specification](https://github.com/calledAdo/bondrail/blob/main/docs/vault/DESIGN.md) gives
+the exact arithmetic; its original pre-deployment status is historical. The implementation is
+[`BondrailVault.sol`](https://github.com/calledAdo/bondrail/blob/main/contracts/src/BondrailVault.sol).

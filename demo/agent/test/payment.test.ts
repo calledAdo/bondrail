@@ -155,3 +155,43 @@ test('durable admin mutation requires matching revision and keeps history', asyn
     await assert.rejects(updateConfig(s, 0, config.payTo));
     assert.equal((await getConfig(s)).payTo, next.payTo);
   }));
+
+test('funding refusal is an uncharged retryable 503; concurrent same-request retries reuse the cached answer', async () =>
+  withStore(async s => {
+    const counters = { verify: 0, answer: 0, settle: 0 };
+    const b = backend(counters);
+    const settle = b.settle;
+    b.settle = async () => ({ success: false, payer, transaction: '', network: 'eip155:10143',
+      errorReason: 'insufficient_gas_funds' });
+    const first = await handlePaidRequest('hello', header(), env, config, s, b);
+    assert.equal(first.status, 503);
+    const body = await first.json();
+    assert.equal(body.error, 'insufficient_gas_funds');
+    assert.equal(body.charged, false);
+    assert.equal(body.retryable, true);
+    assert.equal((await handlePaidRequest('different', header('different'), env, config, s, b)).status, 409);
+    b.settle = settle;
+    const retries = await Promise.all([
+      handlePaidRequest('hello', header(), env, config, s, b),
+      handlePaidRequest('hello', header(), env, config, s, b),
+    ]);
+    assert.ok(retries.some(r => r.status === 200));
+    assert.deepEqual(counters, { verify: 1, answer: 1, settle: 1 });
+    assert.equal((await handlePaidRequest('hello', header(), env, config, s, b)).status, 200);
+  }));
+
+test('a funding error carrying a transaction hash remains ambiguous and never claims no charge', async () =>
+  withStore(async s => {
+    const counters = { verify: 0, answer: 0, settle: 0 };
+    const b = backend(counters);
+    b.settle = async () => {
+      counters.settle++;
+      return { success: false, payer, transaction: `0x${'66'.repeat(32)}`, network: 'eip155:10143',
+        errorReason: 'insufficient_gas_funds' };
+    };
+    const response = await handlePaidRequest('hello', header(), env, config, s, b);
+    assert.equal(response.status, 202);
+    assert.equal((await response.json()).charged, undefined);
+    assert.equal((await handlePaidRequest('hello', header(), env, config, s, b)).status, 202);
+    assert.equal(counters.settle, 1);
+  }));

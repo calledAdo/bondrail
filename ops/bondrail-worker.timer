@@ -1,0 +1,8 @@
+[Unit]
+Description=Schedule Bondrail worker
+[Timer]
+OnCalendar=*:05/10
+Persistent=true
+Unit=bondrail-worker.service
+[Install]
+WantedBy=timers.target

@@ -16,7 +16,7 @@ const manifest = deploymentPath(path.resolve(here, '..'), chainId, name);
 const dep = JSON.parse(fs.readFileSync(manifest, 'utf8'));
 if (String(dep.chainId) !== chainId || (dep.deployment ?? 'main') !== name) throw new Error('Deployment identity mismatch');
 const startBlock = dep.startBlock ?? 0;
-// A separate checkout for envio-next keeps generated source/config away from the live project.
+// Production Envio stays on its existing envio-next release branch; generation here is local only.
 const output = path.resolve(process.env.BONDRAIL_INDEXER_DIR ?? here);
 for (const file of ['config.yaml', 'src/deployment.ts']) assertWritable(path.join(output, file));
 fs.mkdirSync(path.join(output, 'src'), { recursive: true });
@@ -79,6 +79,20 @@ contracts:
     events:
       - event: "BondRecorded(address indexed account, address indexed bond)"${tx}
       - event: "Attested(address indexed account, address indexed signer, uint256 chainId, uint64 periodStart, uint64 periodEnd, uint256 attributedRevenue, uint256 excludedRevenue, uint256 distinctPayers, uint16 topPayerShareBps, uint256 creditLine, bytes32 evidenceHash, uint64 issuedAt, uint64 expiresAt, uint256 nonce)"${tx}
+  - name: BondrailVaultFactory
+    events:
+      - event: "VaultCreated(address indexed vault, address indexed asset, address indexed curator, address owner, string name, string symbol, (string description, bytes32 metadataHash) strategy)"${tx}
+  - name: BondrailVault
+    events:
+      - event: "Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)"${tx}
+      - event: "Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)"${tx}
+      - event: "Transfer(address indexed from, address indexed to, uint256 value)"${tx}
+      - event: "Allocated(address indexed bond, uint256 assets)"${tx}
+      - event: "Collected(address indexed bond, uint256 claims, uint256 assets)"${tx}
+      - event: "RaiseWithdrawn(address indexed bond, uint256 assets)"${tx}
+      - event: "CuratorProposed(address indexed curator, uint256 executableAt)"${tx}
+      - event: "CuratorChanged(address indexed previousCurator, address indexed curator)"${tx}
+      - event: "IncomeCheckpointed(uint256 newIncome, uint256 lockedIncome)"${tx}
   - name: USDC
     events:
       - event: "Transfer(address indexed from, address indexed to, uint256 value)"
@@ -94,8 +108,11 @@ chains:
         address: "${dep.covenant}"
       - name: USDC
         address: "${dep.asset}"
-      # Not deployed unless an explicit registry address is supplied.
+      # Registry from the selected manifest, or an explicit address override.
       - name: BondrailCreditRegistry${creditRegistry ? `\n        address: "${creditRegistry}"` : ''}
+      - name: BondrailVaultFactory${dep.vaultFactory ? `\n        address: "${dep.vaultFactory}"\n        start_block: ${dep.vaultFactoryStartBlock ?? startBlock}` : ''}
+      # Index legacy vault from inception so pre-registration share cost basis is retained.
+      - name: BondrailVault${dep.vault ? `\n        address: "${dep.vault}"` : ''}
       - name: BondrailAccount
       - name: BondrailBond
 `,

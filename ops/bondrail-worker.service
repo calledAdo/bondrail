@@ -1,0 +1,14 @@
+[Unit]
+OnFailure=bondrail-alert@%n.service
+Description=Bondrail worker
+After=network-online.target
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bondrail
+Environment=HOME=/root
+Environment=PATH=/root/.cre/bin:/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=/etc/bondrail.env
+EnvironmentFile=-/etc/bondrail-worker.env
+ExecStart=/usr/bin/env node --import tsx scripts/service.ts worker
+TimeoutStartSec=600
+MemoryMax=700M

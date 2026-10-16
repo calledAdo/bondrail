@@ -16,9 +16,9 @@ import {
   type SignedObservation,
   type Observation,
   type FetchedResponse,
-} from './protocol.js';
-import type { DurableStore } from './store.js';
-import { fetchURL, validateURL } from './fetch.js';
+} from './protocol';
+import type { DurableStore } from './store';
+import { fetchURL, validateURL } from './fetch';
 
 export async function loadRegistry(path: string, local = false): Promise<WatchPolicy[]> {
   const data: unknown = JSON.parse(await readFile(path, 'utf8'));

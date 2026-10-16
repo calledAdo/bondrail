@@ -1,18 +1,23 @@
 'use client';
-// Bond page and account (credit profile) page: a wide evidence column and a narrower decision panel.
+// Bond decisions in reading order; the account page retains its full credit history.
 import Link from 'next/link';
 import { useState } from 'react';
 import { useReadContract } from 'wagmi';
 import { AlertTriangle, ArrowLeft, ExternalLink } from 'lucide-react';
 import { bondAbi, covenantAbi } from '@/lib/abi';
 import { chain } from '@/lib/wallet';
-import { days, fmt, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
+import { days, fmt, short, useBond, useAccountPage, useNativeReview, indexedPhase, unit, type AccountView, type BondView, type IndexerData } from '@/lib/protocol';
 import { cn } from '@/lib/cn';
 import { creditLine, defaultCreditTerms } from '@bondrail/sdk/credit';
 import { RegistryCreditProfile } from './credit-profile';
 import { BondActions } from './bond-actions';
-import { Trade } from './trade';
-import { ImpliedYieldPanel } from './implied-yield';
+import { BondSummary, BondTimeline, IndexedBondSummary } from './bond-summary';
+import { DecisionLinks, DecisionPanel, type BondIntent } from './bond-decisions';
+import { BondPlaceholders, BondSection } from './bond-section';
+import { bondRisks, bondDate } from '@/lib/bond-decision';
+import { Term, TermsText } from './term';
+import { ImpliedYieldPanel, WhatYouGet } from './implied-yield';
+import { nativeReviewLabel } from '@/lib/native-review';
 import { Badge, Empty, Figure, Panel, PhaseBadge, RevenueBars, Ribbon, TierBadge } from './ui';
 
 const explorer = (kind: 'address' | 'tx', v: string) => `${chain.blockExplorers?.default.url}/${kind}/${v}`;
@@ -25,10 +30,13 @@ const REASONS: Record<string, string> = {
 };
 type NansenResult = { address: string; labels: { label: string }[] | null; error?: string };
 
-function Payers({ a }: { a: AccountView }) {
+function Payers({ a, compact = false }: { a: AccountView; compact?: boolean }) {
   const [nansen, setNansen] = useState<Record<string, NansenResult>>({});
   const [note, setNote] = useState('');
+  const [showAll, setShowAll] = useState(false);
+  const [screening, setScreening] = useState(false);
   async function screen() {
+    setScreening(true);
     setNote('Asking Nansen…');
     try {
       const r = await fetch('/api/nansen', {
@@ -42,45 +50,49 @@ function Payers({ a }: { a: AccountView }) {
       setNote('');
     } catch (e) {
       setNote((e as Error).message);
-    }
+    } finally { setScreening(false); }
   }
   const excluded = a.payers.filter((p) => p.related).length;
   return (
-    <Panel title="Payers" aside={<Badge>{excluded} of {a.payers.length} excluded</Badge>}>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
-        <button type="button" onClick={screen} disabled={!a.payers.length || !!note} className="h-9 rounded-lg border border-foreground/15 px-3 text-sm hover:bg-foreground/5 disabled:opacity-40">
+    <Panel compact={compact} title="Payers" className={compact ? "p-4 sm:p-6" : undefined} aside={<Badge>{excluded} of {a.payers.length} excluded</Badge>}>
+      <details open={!compact} className="mb-3">
+        <summary className={compact ? "min-h-11 cursor-pointer py-2 text-sm" : "hidden"}>Check payer labels with Nansen</summary>
+        <div className="flex flex-wrap items-center gap-3">
+        <button type="button" onClick={screen} disabled={!a.payers.length || screening} className="min-h-11 rounded-lg border border-foreground/15 px-3 text-sm hover:bg-foreground/5 disabled:opacity-40">
           Screen top payers with Nansen
         </button>
-        <span className="text-xs text-foreground/60">{note || 'Labels from Monad mainnet (Nansen does not cover testnet).'}</span>
-      </div>
+        <span className="text-xs text-foreground/70">{note || 'Mainnet labels only; Nansen does not cover testnet.'}</span>
+        </div>
+      </details>
       {a.payers.length === 0 ? (
-        <p className="text-sm text-foreground/60">No payments indexed yet.</p>
+        <p className="text-sm text-foreground/70">No payments indexed yet. Payers appear here when customers pay the business.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="text-left text-xs text-foreground/60">
+            <thead className="text-left text-xs text-foreground/70">
               <tr className="border-b border-foreground/10">
                 <th className="py-2 font-normal">Payer</th>
-                <th className="py-2 font-normal">How</th>
-                <th className="py-2 text-right font-normal">Payments</th>
+                <th className={compact ? "hidden py-2 font-normal sm:table-cell" : "py-2 font-normal"}>How</th>
+                <th className={compact ? "hidden py-2 text-right font-normal sm:table-cell" : "py-2 text-right font-normal"}>Payments</th>
                 <th className="py-2 text-right font-normal">Paid</th>
-                <th className="py-2 pl-4 font-normal">Counted</th>
+                <th className={compact ? "hidden py-2 pl-4 font-normal sm:table-cell" : "py-2 pl-4 font-normal"}>Counted</th>
                 {Object.keys(nansen).length > 0 && <th className="py-2 font-normal">Nansen</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-foreground/5">
-              {a.payers.slice(0, 25).map((p) => (
+              {a.payers.slice(0, showAll ? a.payers.length : compact ? 3 : 5).map((p) => (
                 <tr key={p.payer}>
                   <td className="py-2 font-mono text-xs">
                     <a href={explorer('address', p.payer)} target="_blank" rel="noreferrer" className="hover:underline">
                       {short(p.payer)}
                     </a>
+                    {compact && <p className="mt-1 font-sans text-xs text-foreground/70 sm:hidden">{p.source === 'native' ? 'Pulled fee' : p.source === 'x402' ? 'x402 (signed)' : 'Plain transfer'} · {p.related ? p.reasons.map(r => REASONS[r] ?? r).join(', ') || 'Excluded' : 'No link found'}</p>}
                   </td>
-                  <td className="py-2 text-foreground/70">{p.source === 'x402' ? 'x402 (signed)' : p.source === 'native' ? 'Pulled fee' : 'Plain transfer'}</td>
-                  <td className="py-2 text-right font-mono tabular">{p.payments}</td>
-                  <td className="py-2 text-right font-mono tabular">{fmt(p.amount, a.asset)}</td>
-                  <td className="py-2 pl-4">
-                    {p.related ? <Badge tone="warn">{p.reasons.map((r) => REASONS[r] ?? r).join(', ') || 'Excluded'}</Badge> : <span className="text-foreground/60">No link found</span>}
+                  <td className={compact ? "hidden py-2 text-foreground/70 sm:table-cell" : "py-2 text-foreground/70"}>{p.source === 'x402' ? <><Term term="x402">x402</Term> (signed)</> : p.source === 'native' ? 'Pulled fee' : 'Plain transfer'}</td>
+                  <td className={compact ? "hidden py-2 text-right font-mono tabular sm:table-cell" : "py-2 text-right font-mono tabular"}>{p.payments}</td>
+                  <td className="py-2 text-right font-mono tabular">{fmt(p.amount, a.asset)}{compact && <p className="mt-1 font-sans text-xs text-foreground/70 sm:hidden">{p.payments} payments</p>}</td>
+                  <td className={compact ? "hidden py-2 pl-4 sm:table-cell" : "py-2 pl-4"}>
+                    {p.related ? <Badge tone="warn" className="text-foreground">{p.reasons.map((r) => REASONS[r] ?? r).join(', ') || 'Excluded'}</Badge> : <span className="text-foreground/70">No link found</span>}
                   </td>
                   {Object.keys(nansen).length > 0 && (
                     <td className="py-2 text-xs text-foreground/70">{nansen[p.payer]?.labels?.map((l) => l.label).join(', ') || '–'}</td>
@@ -91,21 +103,23 @@ function Payers({ a }: { a: AccountView }) {
           </table>
         </div>
       )}
+      {a.payers.length > (compact ? 3 : 5) && <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll} className="mt-3 min-h-11 text-sm underline underline-offset-4">{showAll ? `Show top ${compact ? 3 : 5}` : `Show all ${a.payers.length} payers`}</button>}
     </Panel>
   );
 }
 
-function History({ a }: { a: AccountView }) {
+function History({ a, compact = false }: { a: AccountView; compact?: boolean }) {
   const feeRate = a.volume ? (a.revenue / a.volume) * 100 : null;
   return (
-    <Panel title="Credit history" aside={<span className="font-mono text-xs text-foreground/60">since {a.firstRevenueAt ? date(a.firstRevenueAt).slice(0, 10) : '–'}</span>}>
-      <dl className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
-        <Figure label="Attributed revenue" value={fmt(a.verified, a.asset)} hint={`raw ${fmt(a.revenue, a.asset)}`} />
-        <Figure label="Attributed per day" value={fmt(a.verifiedDaily, a.asset)} hint="trailing 7 days" />
-        <Figure label="Attributed payers" value={a.uniquePayers} hint={a.topPayerShare ? `top payer ${(a.topPayerShare * 100).toFixed(0)}%` : undefined} />
+    <Panel compact={compact} title="Revenue history" className={compact ? "p-4 sm:p-6" : undefined} aside={<span className="font-mono text-xs text-foreground/70">since {a.firstRevenueAt ? date(a.firstRevenueAt).slice(0, 10) : '–'}</span>}>
+      <dl className={compact ? "mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4" : "mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4"}>
+        <Figure label={<TermsText>Attributed revenue</TermsText>} value={fmt(a.verified, a.asset)} hint={`raw ${fmt(a.revenue, a.asset)}`} />
+        <Figure label={<TermsText>Attributed per day</TermsText>} value={fmt(a.verifiedDaily, a.asset)} hint="trailing 7 days" />
+        <Figure label={<TermsText>Attributed payers</TermsText>} value={a.uniquePayers} hint={a.topPayerShare ? `top payer ${(a.topPayerShare * 100).toFixed(0)}%` : undefined} />
         <Figure label={feeRate !== null ? 'Fee rate' : 'History'} value={feeRate !== null ? `${feeRate.toFixed(2)}%` : days(a.ageDays)} hint={feeRate !== null ? `on ${fmt(a.volume!, a.asset)} volume` : 'account age'} />
       </dl>
-      <RevenueBars daily={a.daily} label={`Daily revenue for the last ${a.daily.length} days`} />
+      <p className="mb-4 text-sm text-foreground/70"><Term term="attributed">Attributed revenue</Term> excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.</p>
+      <RevenueBars compact={compact} daily={a.daily} label={`Daily revenue for the last ${a.daily.length} days`} />
     </Panel>
   );
 }
@@ -114,27 +128,21 @@ const REPORT_INTERVAL = 30 * 60; // the reporter's schedule (ops/covenant-server
 const ago = (s: number) => (s < 90 ? `${s} s` : s < 5400 ? `${Math.round(s / 60)} min` : `${Math.round(s / 3600)} h`);
 
 function Health({ b, a }: { b: BondView; a?: AccountView }) {
-  const covenant = useReadContract({ address: b.address, abi: bondAbi, functionName: 'covenant', chainId: chain.id, query: { enabled: b.tier === 'Watched' } });
+  const covenant = useReadContract({ address: b.address, abi: bondAbi, functionName: 'covenant', chainId: chain.id, query: { enabled: b.tier === 'Watched', staleTime: Infinity } });
   const dark = useReadContract({
     address: covenant.data as `0x${string}` | undefined,
     abi: covenantAbi,
     functionName: 'darkFor',
     args: [b.address],
     chainId: chain.id,
-    query: { enabled: !!covenant.data, refetchInterval: 15_000 },
+    query: { enabled: !!covenant.data, staleTime: 15_000, refetchInterval: 15_000 },
   });
-  if (b.tier === 'Native')
-    return (
-      <Panel title="Source" aside={<TierBadge tier="Native" />}>
-        <p className="text-sm text-foreground/70">
-          Built on Bondrail: every fee moves through the account, which is fixed into the project&apos;s code. There is no other fee path.
-        </p>
-        <p className={cn('mt-3 text-sm', a?.reviewed ? 'text-foreground' : 'text-orange-500')}>
-          {a?.reviewed ? 'Reviewed: the disclosed reviewer checked that every fee goes through BondrailEarner.' : 'Awaiting review: history accrues, but the project cannot raise until its code is reviewed.'}
-        </p>
-        {b.minFeeBps > 0 && <p className="mt-3 text-sm text-foreground/70">Fee floor while live: {(b.minFeeBps / 100).toFixed(2)}% of each payment.</p>}
-      </Panel>
-    );
+  if (b.tier === 'Native') return <Panel compact className="p-4 sm:p-6" title="Source">
+    <p className="text-sm leading-relaxed text-foreground/80"><TermsText>{a?.nativeReview === 'template'
+      ? 'Native · reviewed template: the factory deployed approved fee-routing code through this account. No individual project review; future revenue is not guaranteed.'
+      : a?.nativeReview === 'individual' ? 'Native · reviewed contract: this project’s fee routing through the account was approved individually. Future revenue is not guaranteed.'
+      : 'Native approval could not be verified as current. New deposits and releases require approval; existing repayment continues.'}</TermsText></p>
+  </Panel>;
   const last = b.checks[0];
   const darkFor = Number(dark.data ?? 0);
   const drop = a?.revenueDrop;
@@ -156,38 +164,23 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
               : { dot: 'bg-orange-500', text: `Unknown at the last check (${ago(age)} ago): the offer was unreachable or unreadable` };
   const dropped = !!drop && last?.result === 1 && !stale && drop.last24h < drop.dailyAverage / 4;
   return (
-    <Panel title="Monitoring" aside={<TierBadge tier="Watched" />}>
-      <p className="text-sm text-foreground/70">
-        Chainlink CRE checks the manifest and every paid endpoint every 30 minutes. A violation is re-checked in the next 30-second
-        epoch; two adjacent violations default the bond and slash the stake. A day of Unknown reports (the offer unreachable) also
-        defaults it; a monitor outage does not.
-      </p>
+    <Panel compact className="p-4 sm:p-6" title="Source" aside={<Badge><Term term="watched">Paid API · watched by Chainlink</Term></Badge>}>
+      <p className="text-sm leading-relaxed text-foreground/80"><TermsText>Chainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.</TermsText></p>
+      <p className="mt-3 text-sm text-foreground/70">Last observation: {last ? `${bondDate(last.at)} · ${last.result === 1 ? 'compliant' : last.result === 2 ? 'violation' : 'unknown'}` : 'none yet — payment routing has not been observed.'}</p>
       <div className="mt-4 flex items-start gap-2 text-sm">
         <span className={cn('mt-1.5 size-2 shrink-0 rounded-full', status.dot)} />
-        <span>{status.text}</span>
+        <span><TermsText>{status.text}</TermsText></span>
       </div>
       {darkFor > 0 && (
-        <p className="mt-3 flex gap-2 text-sm text-orange-500">
+        <p className="mt-3 flex gap-2 text-sm text-foreground/80">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" /> Unreachable to the monitor for {Math.round(darkFor / 60)} min.{' '}
           {darkFor >= 3600 ? 'Deposits are paused; a full day while live defaults the bond.' : 'After an hour, deposits pause.'}
         </p>
       )}
       {dropped && (
-        <p className="mt-3 flex gap-2 text-sm text-orange-500">
+        <p className="mt-3 flex gap-2 text-sm text-foreground/80">
           <AlertTriangle className="mt-0.5 size-4 shrink-0" /> Attributed x402 revenue yesterday ({fmt(drop!.last24h, b.asset)}) was under a quarter of the 7-day average before it ({fmt(drop!.dailyAverage, b.asset)}) while monitoring reports compliant. Customers may be shown a different payTo; only guarded buyers verify it.
         </p>
-      )}
-      {b.checks.length > 0 && (
-        <ul className="mt-4 space-y-1 font-mono text-xs text-foreground/60">
-          {b.checks.slice(0, 6).map((c) => (
-            <li key={c.txHash + c.at}>
-              {date(c.at)} · {c.result === 1 ? 'compliant' : c.result === 2 ? 'violation' : 'unknown'} ·{' '}
-              <a href={explorer('tx', c.txHash)} target="_blank" rel="noreferrer" className="hover:underline">
-                {short(c.txHash)}
-              </a>
-            </li>
-          ))}
-        </ul>
       )}
     </Panel>
   );
@@ -195,9 +188,11 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
 
 function Terms({ b }: { b: BondView }) {
   const rows: [string, string][] = [
+    ['Claim symbol', b.symbol],
+    ['Contract phase', b.phase],
     ['Raise', fmt(b.raise, b.asset)],
     ['Repayment cap', `${fmt(b.cap, b.asset)} (${b.multiple.toFixed(2)}×)`],
-    ['Base revenue share', `${b.baseRevenueShare}% of each payment`],
+    ['Base revenue share', `${b.baseRevenueShare}% of booked revenue`],
     ...(b.triggerWindowDays > 0 ? [
       ['Revenue trigger', `Below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC days`],
       ['Stepped-up share', `${b.stepUpShare}%`],
@@ -208,103 +203,108 @@ function Terms({ b }: { b: BondView }) {
     ['Funding deadline', date(b.fundingDeadline)],
     ['Maturity', date(b.maturity)],
     ['Issuer stake', b.stake ? fmt(b.stake, b.asset) : 'None'],
+    ['Current revenue share', `${b.revenueShare}%`],
+    ...(b.minOperatingPeriod === undefined ? [] : [['Minimum operating period', `${b.minOperatingPeriod / 86400} days`]] satisfies [string, string][]),
+    ['Fee floor', `${(b.minFeeBps / 100).toFixed(2)}% of each payment while active`],
   ];
   return (
-    <Panel title="Terms" aside={<span className="font-mono text-xs text-foreground/60">fixed at issuance</span>}>
+    <Panel title="Terms" aside={<span className="font-mono text-xs text-foreground/70">fixed at issuance</span>}>
       <dl className="divide-y divide-foreground/5 text-sm">
         {rows.map(([k, v]) => (
-          <div key={k} className="flex justify-between gap-6 py-2">
-            <dt className="text-foreground/60">{k}</dt>
-            <dd className="text-right font-mono text-xs tabular sm:text-sm">{v}</dd>
+          <div key={k} className="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,2fr)] sm:gap-6">
+            <dt className="text-foreground/70"><TermsText>{k}</TermsText></dt>
+            <dd className="min-w-0 break-words font-mono text-xs tabular sm:text-right sm:text-sm"><TermsText>{v}</TermsText></dd>
           </div>
         ))}
       </dl>
+      {b.minOperatingPeriod === undefined && <p className="mt-3 text-sm">The minimum operating period could not be read from the bond.</p>}
+      {b.triggerWindowDays > 0 && <p className="mt-4 text-xs text-foreground/70"><TermsText>{`Trigger checks start after ${b.triggerWindowDays} complete UTC days following activation. The activation day and current day are excluded; issuer self-payments count. Payments use the last checked share until another check.`}</TermsText></p>}
     </Panel>
   );
 }
 
 function Back() {
   return (
-    <Link href="/markets" className="inline-flex items-center gap-1.5 text-sm text-foreground/60 hover:text-foreground">
+    <Link href="/markets" className="inline-flex items-center gap-1.5 text-sm text-foreground/70 hover:text-foreground">
       <ArrowLeft className="size-4" /> Markets
     </Link>
   );
 }
 
-export function BondPage({ address }: { address: string }) {
-  const { data, loading, error, configured } = useProtocol();
-  if (!configured) return <Empty title="No indexer configured" />;
-  if (loading) return <div className="h-96 animate-pulse rounded-xl border border-foreground/10" />;
-  if (error) return <Empty title="Couldn't reach the indexer">{error.message}</Empty>;
-  const b = data!.bonds.find((x) => x.address.toLowerCase() === address.toLowerCase());
-  if (!b) return <Empty title="No bond at this address">It may not be indexed yet.</Empty>;
-  const a = data!.accounts.find((x) => x.address === b.account);
-  return (
-    <div className="space-y-8">
-      <Back />
-      <header className="flex flex-wrap items-end justify-between gap-6">
-        <div className="space-y-3">
-          <div className="flex flex-wrap gap-1.5">
-            <TierBadge tier={b.tier} />
-            <PhaseBadge phase={b.phase} defaulted={b.defaulted} />
-            {b.triggered && b.phase === 'Active' && <Badge tone="warn">Triggered</Badge>}
-            <Badge>repays in {b.asset.symbol}</Badge>
-          </div>
-          <h1 className="text-4xl font-semibold">{b.name}</h1>
-          <p className="text-sm text-foreground/70">
-            Share {b.baseRevenueShare}%
-            {b.triggerWindowDays > 0 && <> · steps up to {b.stepUpShare}% if revenue &lt; {fmt(b.triggerRevenue, b.asset)} over {b.triggerWindowDays} days</>}
-          </p>
-          {b.triggerWindowDays > 0 && (
-            <p className="text-xs text-foreground/60">
-              Current share: {b.revenueShare}%. Checks start after {b.triggerWindowDays} complete UTC days
-              following the activation day. The activation day and current day are excluded; issuer self-payments count.
-            </p>
-          )}
-          <p className="font-mono text-xs text-foreground/60">
-            {b.symbol} ·{' '}
-            <a href={explorer('address', b.address)} target="_blank" rel="noreferrer" className="hover:underline">
-              {short(b.address)} <ExternalLink className="inline size-3" />
-            </a>{' '}
-            · account <Link href={`/accounts/${b.account}`} className="hover:underline">{short(b.account)}</Link>
-          </p>
-        </div>
-      </header>
-      {b.flags.length > 0 && (
-        <p className="flex items-start gap-2 rounded-xl border border-orange-500/30 p-4 text-sm text-orange-500">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0" /> {b.flags.join(' · ')}
-        </p>
-      )}
-      <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
-        <div className="space-y-6">
-          <Panel>
-            <dl className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
-              <Figure label={b.phase === 'Funding' ? 'Raised' : 'Repaid'} value={fmt(b.phase === 'Funding' ? b.raised : b.collected, b.asset)} hint={`of ${fmt(b.phase === 'Funding' ? b.raise : b.effectiveCap, b.asset)}`} />
-              <Figure label="Backing per claim" value={b.backingPerToken.toFixed(4)} hint="redeemable now" />
-              <Figure label="Coverage" value={b.coverage === null ? '–' : `${b.coverage.toFixed(2)}×`} hint="projected repayment ÷ remaining cap" />
-              <Figure label="Principal at risk" value={`${b.atRiskPct.toFixed(0)}%`} hint="released to the business" />
-            </dl>
-            <Ribbon b={b} />
-          </Panel>
-          <ImpliedYieldPanel b={b} account={a} />
-          {a && <History a={a} />}
-          <Health b={b} a={a} />
-          <Terms b={b} />
-          {a && <Payers a={a} />}
-        </div>
-        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
-          {b.kuru && (b.phase === 'Active' || b.phase === 'Closing') && (
-            <Panel title="Trade on Kuru">
-              <Trade b={b} />
-            </Panel>
-          )}
-          <Panel title="Act">
-            <BondActions b={b} onDone={() => undefined} />
-          </Panel>
-        </aside>
+export function BondPage({ address, initialData, indexedAt }: { address: string; initialData?: IndexerData; indexedAt?: number }) {
+  const { row, b, a, assets, loading, error, configured, refetch, termsError, evidenceLoading, liveLoading, checksLoading, checksError } = useBond(address, initialData, indexedAt);
+  const review = useNativeReview(a?.tier === 'Native' ? a.project : undefined);
+  const account = a && review.data && !review.isError ? { ...a, nativeReview: review.data, reviewed: review.data === 'template' || review.data === 'individual' } : a;
+  if (!row) return <div className="space-y-6"><Back /><BondPlaceholders
+    error={!configured ? 'No indexer configured.' : loading ? undefined : error ? 'The bond data could not be reached.' : 'No bond is indexed at this address yet.'}
+    retry={() => void refetch()} /></div>;
+  if (!b) return <div className="space-y-3" data-testid="bond-page"><Back />
+    <IndexedBondSummary b={row} account={account} asset={account?.asset ?? [...assets.values()][0]} />
+    <BondPlaceholders omitSummary evidence={account && <section aria-label="Evidence" className="space-y-3"><h2 className="text-xl font-semibold">Evidence</h2><History a={account} compact /><Payers a={account} compact /><RegistryCreditProfile account={row.account} compact estimate={account} /></section>} error={error ? 'The account data could not be read.' : termsError ? 'The bond terms could not be read.' : undefined} retry={() => void refetch()} />
+  </div>;
+  return <BondDetailView key={b.address} b={b} a={account} refreshError={!!error} evidenceLoading={evidenceLoading} liveLoading={liveLoading} checksLoading={checksLoading} checksError={!!checksError} />;
+}
+
+/** Shared by the live route and development-only deterministic review fixtures. */
+export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = false, evidenceLoading = false, liveLoading = false, checksLoading = false, checksError = false }: { b: BondView; a?: AccountView; now?: number; refreshError?: boolean; evidenceLoading?: boolean; liveLoading?: boolean; checksLoading?: boolean; checksError?: boolean }) {
+  const [intent, setIntent] = useState<BondIntent | null>(null);
+  function select(value: BondIntent) {
+    setIntent(value);
+    requestAnimationFrame(() => document.getElementById('bond-actions')?.scrollIntoView({ block: 'start' }));
+  }
+  return <div className="-mx-2 -mt-4 -mb-4 space-y-3 sm:mt-0 sm:mb-0 sm:mx-0 sm:space-y-6" data-testid="bond-page">
+    <Back />
+    {refreshError && <p role="alert" className="text-sm">Some data could not be refreshed. Available bond facts remain visible; reload before making a decision.</p>}
+    <BondSection title="Bond summary"><BondSummary b={b} account={a} now={now} actions={<DecisionLinks b={b} now={now} onSelect={select} />} /></BondSection>
+    <BondSection title="How this bond works">{liveLoading ? <Panel title="How this bond works"><p role="status">Reading lifecycle dates…</p></Panel> : <BondTimeline b={b} now={now} />}</BondSection>
+    <BondSection title="What you get"><WhatYouGet b={b} account={a} now={now} /></BondSection>
+    <section aria-labelledby="bond-evidence" className="space-y-3 sm:space-y-4">
+      <h2 id="bond-evidence" className="text-xl font-semibold">Evidence</h2>
+      <BondSection title="Revenue history">{a ? <History a={a} compact /> : <Panel title="Revenue history" className="p-4 sm:p-6"><p role={evidenceLoading ? "status" : undefined}>{evidenceLoading ? "Reading revenue history…" : "Revenue history is unavailable. It shows how much the business has earned from counted payers."}</p></Panel>}</BondSection>
+      <BondSection title="Payers">{a ? <Payers a={a} compact /> : <Panel title="Payers"><p role={evidenceLoading ? "status" : undefined}>{evidenceLoading ? "Reading payers…" : "Payer data is unavailable. This table helps you see whether revenue comes from a few addresses."}</p></Panel>}</BondSection>
+      <BondSection title="Source">{checksLoading ? <Panel title="Source"><p role="status">Reading source observations…</p></Panel> : checksError ? <Panel title="Source"><p role="alert">Source observations could not be read.</p></Panel> : <Health b={b} a={a} />}</BondSection>
+      <BondSection title="Credit profile"><RegistryCreditProfile account={b.account} compact estimate={a} /></BondSection>
+    </section>
+    <BondSection title="How you could lose money"><Panel compact title="How you could lose money" className="p-4 sm:p-6">
+      <ul className="list-disc space-y-2 pl-5 text-sm leading-[1.5] sm:space-y-3 sm:leading-relaxed">{bondRisks(b, now).map(risk => <li key={risk}><TermsText>{risk}</TermsText></li>)}</ul>
+    </Panel></BondSection>
+    <BondSection title="What you can do now"><DecisionPanel b={b} account={a} now={now} intent={intent} onSelect={select} /></BondSection>
+    <BondSection title="Maintenance"><BondActions b={b} account={a} mode="maintenance" onDone={() => undefined} /></BondSection>
+    <BondSection title="Full terms & technical details"><details className="rounded-xl border border-foreground/10 p-4 sm:p-6">
+      <summary className="min-h-11 cursor-pointer py-2 font-semibold">Full terms &amp; technical details</summary>
+      <div className="mt-5 space-y-6">
+        <Terms b={b} />
+        <Panel title="Investor metrics">
+          <dl className="grid gap-5 sm:grid-cols-3">
+            {b.coverage !== null && <Figure label={<Term term="coverage">Coverage</Term>} value={`${b.coverage.toFixed(2)}×`} hint="projected repayment ÷ remaining cap" />}
+            <Figure label="Principal at risk" value={`${b.atRiskPct.toFixed(0)}%`} hint={b.phase === 'Funding' ? 'initial release if activated' : 'released to the business'} />
+            <Figure label={<Term term="backing">Backing per claim</Term>} value={fmt(b.backingPerToken, b.asset, 4)} hint="current repayment pool ÷ supply" />
+          </dl>
+          {b.coverage === null && <p className="mt-3 text-sm">Coverage cannot be calculated without a revenue projection and a remaining repayment cap.</p>}
+          <div className="mt-5"><Ribbon b={b} /></div>
+          {b.flags.length > 0 && <p className="mt-4 text-sm"><TermsText>{b.flags.join(' · ')}</TermsText></p>}
+        </Panel>
+        <ImpliedYieldPanel b={b} account={a} />
+        <Panel title="Addresses & policy">
+          <dl className="space-y-3 text-sm">{[
+            ['Bond / claim', b.address], ['Business account', b.account], ['Issuer', a?.issuer], ['Asset', b.asset.address],
+            ['Project', a?.project], ['Source', b.source], ['Kuru market', b.kuru?.market], ['Kuru vault', b.kuru?.vault],
+          ].filter(([, address]) => !!address).map(([label, address]) => <div key={label}><dt className="text-foreground/70"><TermsText>{label!}</TermsText></dt><dd className="break-all font-mono text-xs"><a href={explorer('address', address!)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-4">{address}</a></dd></div>)}
+            {b.policyHash && <div><dt className="text-foreground/70">Policy hash</dt><dd className="break-all font-mono text-xs">{b.policyHash}</dd></div>}
+          </dl>
+          {!a && <p className="mt-3 text-sm">The business account could not be read, so issuer and project addresses are omitted.</p>}
+          {a && !a.project && <p className="mt-3 text-sm">This account has no project address configured.</p>}
+          {!b.kuru && <p className="mt-3 text-sm">No Kuru market or Kuru vault is configured for this bond.</p>}
+          {!b.source && <p className="mt-3 text-sm">The bond's source address could not be read.</p>}
+          {!b.policyHash && <p className="mt-3 text-sm">The bond's policy hash could not be read.</p>}
+        </Panel>
+        <Panel title={<><Term term="covenant">Covenant</Term> checks</>}>
+          {b.tier === 'Watched' && <p className="mb-4 text-sm text-foreground/70"><TermsText>Two qualifying violations in adjacent 30-second report epochs can record default. Qualifying Unknown reports pause deposits after one hour and can default an active bond after 24 hours; a monitor outage alone does not. Closing allows 120 seconds for late evidence, then anyone must finalize settlement.</TermsText></p>}
+          {b.checks.length ? <ul className="space-y-3 text-sm">{b.checks.map(c => <li key={c.txHash + c.at}>{bondDate(c.at)} · {c.result === 1 ? 'compliant' : c.result === 2 ? 'violation' : 'unknown'} · <a href={explorer('tx', c.txHash)} target="_blank" rel="noreferrer" className="font-mono underline">{short(c.txHash)}</a></li>)}</ul> : <p className="text-sm">{b.tier === 'Native' ? 'Native bonds use reviewed contract routing rather than API observations.' : 'No observations yet. Checks provide evidence of payment routing at the time observed.'}</p>}
+        </Panel>
       </div>
-    </div>
-  );
+    </details></BondSection>
+  </div>;
 }
 
 /** What this history supports: the largest raise at standard terms, priced only on attributed revenue. */
@@ -315,7 +315,7 @@ function CreditLinePanel({ a }: { a: AccountView }) {
   return (
     <Panel title="Credit line">
       <p className="font-mono text-2xl tabular">[{fmt(c.maxRaise, a.asset)}]</p>
-      <p className="mt-1 text-xs text-foreground/60">
+      <p className="mt-1 text-xs text-foreground/70">
         {c.eligible
           ? `largest raise this history supports at ${t.revenueBps / 100}% of revenue for ${t.termDays} days, ${t.capMultiple}× cap, ${t.targetCoverage}× coverage`
           : c.reason}
@@ -331,7 +331,7 @@ function CreditLinePanel({ a }: { a: AccountView }) {
           ] as const
         ).map(([k, v]) => (
           <div key={k} className="flex justify-between gap-4">
-            <dt className="text-foreground/60">{k}</dt>
+            <dt className="text-foreground/70"><TermsText>{k}</TermsText></dt>
             <dd className="font-mono tabular">{v}</dd>
           </div>
         ))}
@@ -341,32 +341,35 @@ function CreditLinePanel({ a }: { a: AccountView }) {
 }
 
 export function AccountPage({ address }: { address: string }) {
-  const { data, loading, error, configured } = useProtocol();
-  const a = data?.accounts.find((x) => x.address.toLowerCase() === address.toLowerCase());
+  const { data, loading, error, configured, bondsLoading } = useAccountPage(address);
+  const indexedAccount = data?.accounts.find((x) => x.address.toLowerCase() === address.toLowerCase());
+  const review = useNativeReview(indexedAccount?.tier === 'Native' ? indexedAccount.project : undefined);
+  const a = indexedAccount && review.data && !review.isError ? { ...indexedAccount, nativeReview: review.data, reviewed: review.data === 'individual' || review.data === 'template' } : indexedAccount;
   if (!a) return <div className="space-y-8"><Back /><h1 className="text-4xl font-semibold">Credit profile</h1>
     <RegistryCreditProfile account={address} />
     <Empty title={!configured ? 'No indexer configured' : loading ? 'Loading indexed estimates…' : error ? "Couldn't reach the indexer" : 'No indexed account yet'}>
       Registry reads are independent of the indexed estimates below.
     </Empty>
   </div>;
-  const bonds = data!.bonds.filter((b) => b.account === a.address);
+  const bonds = data!.indexedBonds;
   return (
     <div className="space-y-8">
       <Back />
       <header className="space-y-3">
         <div className="flex flex-wrap gap-1.5">
           {a.tier && <TierBadge tier={a.tier} />}
-          {a.tier === 'Native' && <Badge tone={a.reviewed ? 'neutral' : 'warn'}>{a.reviewed ? 'Reviewed' : 'Awaiting review'}</Badge>}
+          {a.tier === 'Native' && <Badge tone={a.reviewed ? 'neutral' : 'warn'}>{nativeReviewLabel[a.nativeReview]}</Badge>}
           <Badge>earns in {a.asset.symbol}</Badge>
         </div>
         <h1 className="text-4xl font-semibold">Credit profile</h1>
-        <p className="font-mono text-xs text-foreground/60">
+        <p className="break-all font-mono text-xs text-foreground/70">
           <a href={explorer('address', a.address)} target="_blank" rel="noreferrer" className="hover:underline">
             {a.address}
           </a>{' '}
           · issuer {short(a.issuer)}
         </p>
       </header>
+      {error && <p role="alert">Some account data could not be refreshed. Showing the last available indexed history.</p>}
       <RegistryCreditProfile account={a.address} />
       <h2 className="text-xl font-semibold">Indexer estimates · unsigned</h2>
       <div className="grid gap-6 lg:grid-cols-[1fr_22rem]">
@@ -376,20 +379,20 @@ export function AccountPage({ address }: { address: string }) {
         </div>
         <aside className="space-y-6">
           <CreditLinePanel a={a} />
-          <Panel title="Bonds" aside={<span className="font-mono text-xs text-foreground/60">[{bonds.length}]</span>}>
-            {bonds.length === 0 ? (
-              <p className="text-sm text-foreground/60">No bonds yet. This account is building history.</p>
+          <Panel title="Bonds" aside={<span className="font-mono text-xs text-foreground/70">[{bonds.length}]</span>}>
+            {bondsLoading ? <p role="status" className="text-sm">Reading this account’s bonds…</p> : bonds.length === 0 ? (
+              <p className="text-sm text-foreground/70">No bonds yet. This account is building history.</p>
             ) : (
               <ul className="space-y-3">
                 {bonds.map((b) => (
-                  <li key={b.address}>
-                    <Link href={`/bonds/${b.address}`} className="block rounded-lg border border-foreground/10 p-3 hover:border-foreground/25">
+                  <li key={b.id}>
+                    <Link href={`/bonds/${b.id}`} className="block rounded-lg border border-foreground/10 p-3 hover:border-foreground/25">
                       <div className="flex items-center justify-between gap-2">
-                        <span className="font-medium">{b.symbol}</span>
-                        <PhaseBadge phase={b.phase} defaulted={b.defaulted} />
+                        <span className="font-medium">{short(b.id)}</span>
+                        <PhaseBadge phase={indexedPhase(b)} defaulted={b.defaulted} />
                       </div>
-                      <p className="mt-1 text-xs text-foreground/60">
-                        {fmt(b.collected, b.asset)} repaid of {fmt(b.effectiveCap, b.asset)} · {b.multiple.toFixed(2)}×
+                      <p className="mt-1 text-xs text-foreground/70">
+                        {fmt(unit(b.revenueCollected, a.asset), a.asset)} repaid of {fmt(unit(b.effectiveCap, a.asset), a.asset)} (current cap)
                       </p>
                     </Link>
                   </li>
@@ -399,7 +402,7 @@ export function AccountPage({ address }: { address: string }) {
           </Panel>
           <Panel title="Collected for investors">
             <p className="font-mono text-2xl tabular">[{fmt(a.toInvestors, a.asset)}]</p>
-            <p className="mt-1 text-xs text-foreground/60">across all bonds, split inside each payment</p>
+            <p className="mt-1 text-xs text-foreground/70">Revenue sent to bond pools across all bonds. Native fees and Bondrail-facilitated account settlements split immediately; plain transfers split when swept. This is not the amount redeemed by holders.</p>
           </Panel>
         </aside>
       </div>

@@ -1,0 +1,71 @@
+> bondrail@0.1.0 sdk:verify /Users/adokiye/Nervos_Development/slice-next
+> node packages/sdk/scripts/verify-pack.mjs
+
+[sdk:verify] Building SDK
+
+> @bondrail/sdk@0.2.0 build
+> tsup
+
+CLI Building entry: src/abis.ts, src/client.ts, src/credit.ts, src/data.ts, src/index.ts, src/permit.ts, src/trigger.ts, src/vault.ts, src/x402-guard.ts, src/x402.ts, src/yield.ts
+CLI Using tsconfig: tsconfig.json
+CLI tsup v8.5.0
+CLI Using tsup config: /Users/adokiye/Nervos_Development/slice-next/packages/sdk/tsup.config.ts
+CLI Target: node20
+CLI Cleaning output folder
+ESM Build start
+ESM dist/x402-guard.js     4.15 KB
+ESM dist/x402.js           477.00 B
+ESM dist/yield.js          1.90 KB
+ESM dist/index.js          1.87 KB
+ESM dist/abis.js           415.00 B
+ESM dist/data.js           201.00 B
+ESM dist/chunk-MKF6BKKF.js 9.87 KB
+ESM dist/client.js         199.00 B
+ESM dist/chunk-2MAOKF7R.js 9.14 KB
+ESM dist/credit.js         397.00 B
+ESM dist/chunk-2MNHCEAH.js 1.89 KB
+ESM dist/permit.js         91.00 B
+ESM dist/trigger.js        91.00 B
+ESM dist/chunk-MOXVUOCC.js 5.59 KB
+ESM dist/chunk-7AW7LZNK.js 3.92 KB
+ESM dist/vault.js          239.00 B
+ESM dist/chunk-SPZV5H2Q.js 1.44 KB
+ESM dist/chunk-MWWCN2OT.js 4.75 KB
+ESM dist/chunk-EVGBWROF.js 1.58 KB
+ESM dist/chunk-6VT32D7Q.js 88.13 KB
+ESM ⚡️ Build success in 11ms
+DTS Build start
+DTS ⚡️ Build success in 1388ms
+DTS dist/index.d.ts      1.24 KB
+DTS dist/client.d.ts     4.20 KB
+DTS dist/credit.d.ts     4.42 KB
+DTS dist/abis.d.ts       154.96 KB
+DTS dist/permit.d.ts     556.00 B
+DTS dist/trigger.d.ts    396.00 B
+DTS dist/vault.d.ts      2.00 KB
+DTS dist/x402-guard.d.ts 1.75 KB
+DTS dist/yield.d.ts      2.67 KB
+DTS dist/x402.d.ts       4.25 KB
+DTS dist/data.d.ts       3.84 KB
+npm notice
+npm notice New major version of npm available! 10.9.8 -> 12.2.0
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.0
+npm notice To update run: npm install -g npm@12.2.0
+npm notice
+[sdk:verify] Packing with npm --ignore-scripts
+[sdk:verify] @bondrail/sdk@0.2.0: all exports/main/types targets exist in dist/
+[sdk:verify] Installing tarball + viem into an isolated consumer
+
+added 17 packages in 11s
+OK @bondrail/sdk (40 exports)
+OK @bondrail/sdk/abis (8 exports)
+OK @bondrail/sdk/client (4 exports)
+OK @bondrail/sdk/permit (1 exports)
+OK @bondrail/sdk/x402 (9 exports)
+OK @bondrail/sdk/x402-guard (4 exports)
+OK @bondrail/sdk/data (5 exports)
+OK @bondrail/sdk/credit (7 exports)
+OK @bondrail/sdk/yield (1 exports)
+OK @bondrail/sdk/trigger (1 exports)
+OK @bondrail/sdk/vault (5 exports)
+[sdk:verify] PASS: all 11 entry points imported with plain Node

@@ -30,7 +30,7 @@ async function main() {
   const d = readDeployment();
   const agent = d.issuers.agent;
   if (!agent?.bond) throw new Error('Oracle Agent bond not set up');
-  const base = agent.endpoint ? new URL(agent.endpoint).origin : 'https://slice-agent.vercel.app';
+  const base = agent.endpoint ? new URL(agent.endpoint).origin : 'https://bondrail-next-agent.vercel.app';
 
   if (cmd === 'register') {
     if (agent.agentId) return console.log(`Already registered: agentId ${agent.agentId}`);

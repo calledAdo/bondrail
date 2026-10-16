@@ -1,0 +1,254 @@
+Compiling 59 files with Solc 0.8.28
+Solc 0.8.28 finished in 36.16s
+Compiler run successful!
+
+Ran 2 tests for test/IntegrationInterfaces.t.sol:IntegrationInterfacesTest
+[PASS] testBondrailCreditRegistrySelectors() (gas: 121)
+[PASS] testBondrailVaultSelectors() (gas: 140)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 9.01ms (3.68ms CPU time)
+
+Ran 19 tests for test/Native.t.sol:NativeTest
+[PASS] testAccountRefusesAProjectThatDoesNotPointAtIt() (gas: 1593580)
+[PASS] testBackToPassthroughAfterTheCap() (gas: 1844183)
+[PASS] testCannotWithdrawMoreThanHeld() (gas: 928120)
+[PASS] testCreditModeSplitsEachFeeImmediately() (gas: 1775388)
+[PASS] testHistoryAccruesFromDayOneInPassthrough() (gas: 601489)
+[PASS] testInvestorWithdrawsDuringFundingAndActivationNeedsTheGapFilled() (gas: 1494321)
+[PASS] testNativeBondRequiresTheBoundLaunchpad() (gas: 84849)
+[PASS] testNoWithdrawAfterTheDeadlineOnlyRefund() (gas: 1079856)
+[PASS] testOnchainMilestoneReleasesOnlyAfterRevenueAndTime() (gas: 2702162)
+[PASS] testOnlyTheBoundProjectCanPull() (gas: 93367)
+[PASS] testOnlyTheReviewerApproves() (gas: 35520)
+[PASS] testPermitBuyNeedsNoStandingApproval() (gas: 470428)
+[PASS] testSellFeeIsPaidByTheTrader() (gas: 630408)
+[PASS] testSignedModeRejectsOnchainRelease() (gas: 2741875)
+[PASS] testTemplateCannotRebindAnAccount() (gas: 1628015)
+[PASS] testTemplateDeployBindsAndQualifiesWithoutReview() (gas: 2271487)
+[PASS] testTemplateRejectsUnreviewedCodeOtherAccountsAndStrangers() (gas: 703590)
+[PASS] testTemplateRevocationBlocksItsProjects() (gas: 1749256)
+[PASS] testUnreviewedProjectBuildsHistoryButCannotRaise() (gas: 501587)
+Suite result: ok. 19 passed; 0 failed; 0 skipped; finished in 16.68ms (5.71ms CPU time)
+
+Ran 13 tests for test/Settle.t.sol:SettleTest
+[PASS] testCapClosesBondInSettlementTransaction() (gas: 2195331)
+[PASS] testDirectTokenFrontRunLeavesOnlySweepableFunds() (gas: 381127)
+[PASS] testExpiredAuthorizationReverts() (gas: 84919)
+[PASS] testNativeActiveSplitAndRoundingCarry() (gas: 2212592)
+[PASS] testNotYetValidAuthorizationReverts() (gas: 87106)
+[PASS] testPassthroughProvesPayerAndCountsEachPayment() (gas: 751181)
+[PASS] testPreExistingBalanceOnlyBookedBySweep() (gas: 2180979)
+[PASS] testReplayRevertsWithoutBookingTwice() (gas: 384844)
+[PASS] testSelfPayerReverts() (gas: 58855)
+[PASS] testShortTransferRollsBackAuthorizationAndAccounting() (gas: 1565646)
+[PASS] testWrongSignedRecipientReverts() (gas: 94135)
+[PASS] testZeroPayerReverts() (gas: 58400)
+[PASS] testZeroValueReverts() (gas: 60735)
+Suite result: ok. 13 passed; 0 failed; 0 skipped; finished in 16.80ms (10.76ms CPU time)
+
+Ran 6 tests for test/AssetsAndFees.t.sol:AssetsAndFeesTest
+[PASS] testAccountInAnEighteenDecimalAssetRaisesAndRepaysInIt() (gas: 2177692)
+[PASS] testAnyTokenContractCanBeAnAccountsAsset() (gas: 430697)
+[PASS] testDownwardRebaseNeverBricksTheAccount() (gas: 1177121)
+[PASS] testFeeFloorBindsOnlyWhileTheBondIsActive() (gas: 2674667)
+[PASS] testSellerIsPaidThroughTheAccountWithoutAnyApproval() (gas: 2462333)
+[PASS] testWatchedBondsTakeNoFeeFloor() (gas: 352232)
+Suite result: ok. 6 passed; 0 failed; 0 skipped; finished in 28.60ms (2.73ms CPU time)
+
+Ran 17 tests for test/CreditRegistry.t.sol:CreditRegistryTest
+[PASS] testAccountViewsAndUnknownTier() (gas: 934418)
+[PASS] testAttesterRotationTimelockAndOriginalSigner() (gas: 992248)
+[PASS] testCapClosedDefaultRemainsDisclosedDuringGrace() (gas: 2337870)
+[PASS] testCoverageIncompleteUntilEveryBondIsRecorded() (gas: 3042315)
+[PASS] testFactoryCounterIncrementsOncePerSuccessfulBond() (gas: 3441177)
+[PASS] testFuzzTotalsEqualRecordedBonds(uint8,uint256) (runs: 256, μ: 5474128, ~: 4794828)
+[PASS] testRecordRejectsNonBondAndDuplicate() (gas: 955069)
+[PASS] testRejectExpired() (gas: 55231)
+[PASS] testRejectInvalidAccountAndTimeBounds() (gas: 211532)
+[PASS] testRejectNonceReuseAcrossPeriods() (gas: 408133)
+[PASS] testRejectOlderPeriodAndStaleCorrection() (gas: 695250)
+[PASS] testRejectWrongChain() (gas: 54645)
+[PASS] testRejectWrongSignerAndDomain() (gas: 133571)
+[PASS] testRejects65thBond() (gas: 62682072)
+[PASS] testRepaymentRecordAcrossLifecycles() (gas: 9220566)
+[PASS] testThirdPartyRecordsHiddenDefault() (gas: 2067492)
+[PASS] testValidSignatureStoredAndExpires() (gas: 486173)
+Suite result: ok. 17 passed; 0 failed; 0 skipped; finished in 640.43ms (228.19ms CPU time)
+
+Ran 15 tests for test/Trigger.t.sol:TriggerTest
+[PASS] testClosingAndClosedCannotCheck() (gas: 1662935)
+[PASS] testCurrentPartialDayExcludedAndNoAutomaticPaymentEvaluation() (gas: 1834259)
+[PASS] testDisabledTriggerKeepsBaseShare() (gas: 1676728)
+[PASS] testFundingAndCancelledCannotCheck() (gas: 917397)
+[PASS] testFuzzActivationDayRevenueNeverCounted(uint16,uint16,bool) (runs: 256, μ: 2642635, ~: 2559253)
+[PASS] testFuzzFirstEligibleDay(uint8,uint32,bool) (runs: 256, μ: 1488319, ~: 1454068)
+[PASS] testFuzzPaymentsUseEffectiveShare(uint256,bool) (runs: 256, μ: 6161464, ~: 6083283)
+[PASS] testFuzzValidationAllOrNoneAndBounds(uint8,uint16,uint16) (runs: 256, μ: 222264, ~: 79927)
+[PASS] testLowRevenueStepsUpWithExactCarryAndRecovery() (gas: 2722857)
+[PASS] testNeedsFullWindowAndExcludesEarlierDays() (gas: 1559970)
+[PASS] testOncePerUtcDayAndOnlyChangesEmitChanged() (gas: 1364847)
+[PASS] testSteppedUpCapClosesAtExactAmount() (gas: 2528790)
+[PASS] testThirtyDayWindowAndMaximumShare() (gas: 1768980)
+[PASS] testValidationExplicitBoundaries() (gas: 904039)
+[PASS] testWatchedTriggerAndDefaultFreeze() (gas: 2099264)
+Suite result: ok. 15 passed; 0 failed; 0 skipped; finished in 640.48ms (820.16ms CPU time)
+
+Ran 43 tests for test/VaultFactory.t.sol:VaultFactoryTest
+[PASS] testAllocationRejectsNonBondAndWrongAsset() (gas: 2434578)
+[PASS] testAllocationRejectsRevokedNativeAndWatchedViolation() (gas: 3105911)
+[PASS] testAllocationUsesExitNAVAfterTriggerImpairment() (gas: 4041086)
+[PASS] testCancelledRefundAndDeadlineBoundary() (gas: 2198203)
+[PASS] testCapSubtractsPriorRedemptionsAndIncludesStagedPrincipal() (gas: 3250882)
+[PASS] testClaimGiftsCannotAddUnboundedHoldings() (gas: 4581906)
+[PASS] testConcentrationLimitIncludesExistingClaims() (gas: 2047722)
+[PASS] testCreateEvent() (gas: 2867767)
+[PASS] testCreationMetadataProtocolAndRegistry() (gas: 2973199)
+[PASS] testCuratorRotationOnlyOwnerAndTimelocked() (gas: 2005192)
+[PASS] testDefaultKeepsRealizedRecoveryRevenueAndSlashedStake() (gas: 4168256)
+[PASS] testDefaultLinearWritedownAndRecoveryReversesLoss() (gas: 4814407)
+[PASS] testDelegatedWithdrawalNeedsShareAllowance() (gas: 309218)
+[PASS] testDepositMintWithdrawRedeemIdle() (gas: 511704)
+[PASS] testDepositsAndMintsStayOpenAcrossActivationAndClosing() (gas: 3882005)
+[PASS] testFrontRunningRepaymentCannotCaptureImmediateIncome() (gas: 2975453)
+[PASS] testFundingDeadlineRollsBackTrackingAndApproval() (gas: 1626207)
+[PASS] testFundingWithdrawalAndEvents() (gas: 2323499)
+[PASS] testFuzzExitNAVNeverExceedsEntryNAV(uint128,uint32,uint8) (runs: 256, μ: 4607307, ~: 4617815)
+[PASS] testFuzzFixedConcentrationCannotLoosen(uint64) (runs: 256, μ: 1659233, ~: 1732276)
+[PASS] testFuzzInflationAttackCannotProfit(uint96,uint64) (runs: 256, μ: 440832, ~: 455418)
+[PASS] testFuzzMaximaAreExecutable(uint128,uint64) (runs: 256, μ: 3439514, ~: 3464280)
+[PASS] testFuzzMetadataBound(uint16) (runs: 256, μ: 1828138, ~: 2836631)
+[PASS] testFuzzRealizedBackingMatchesReceiptsAndSettlementNAV(uint128,bool) (runs: 256, μ: 10906557, ~: 10855470)
+[PASS] testIdleBufferBoundaryAndNoOverdraft() (gas: 7185999)
+[PASS] testIdleBufferRoundsUp() (gas: 6733893)
+[PASS] testInvalidAmountsStatesAndUntrackedBonds() (gas: 2460407)
+[PASS] testInvalidCreationConfiguration() (gas: 434123)
+[PASS] testMaturityWritedownWithoutSettlementAndLateDefaultDoesNotRestart() (gas: 3187346)
+[PASS] testMaximumBondsAndSlotReuse() (gas: 32067603)
+[PASS] testNAVFundingActiveRevenueClosedCollect() (gas: 3345084)
+[PASS] testNeverRedeemActiveOrClosingEvenAfterGrace() (gas: 3446093)
+[PASS] testNewProfitMergesOnlyUnvestedRemainderAndSlotsCanBeReused() (gas: 7176669)
+[PASS] testProfitVestsLinearlyAndCollectDoesNotUnlockIt() (gas: 3369599)
+[PASS] testReentrancyDepositWithdrawalAndCuratorPaths() (gas: 4257163)
+[PASS] testRegisterExistingOnceOwnerOnly() (gas: 2998438)
+[PASS] testRegisterRejectsNamedAndWrongProtocolAndEOA() (gas: 5683777)
+[PASS] testRejectsInvalidConfigurationAndShortDeposit() (gas: 9271)
+[PASS] testSettledSubUnitDustIsZeroNAVAndDoesNotBlockEntry() (gas: 3180811)
+[PASS] testTotalLossCollectRemovesHoldingWithoutEarlyBurn() (gas: 2701949)
+[PASS] testTriggerSeparatesEntryAndExitPricesAndReverses() (gas: 4259841)
+[PASS] testUnauthorizedAndNoArbitraryDestinationOrSweep() (gas: 1560433)
+[PASS] testWithdrawalsUseOnlyIdleWithoutBurningClaims() (gas: 2412019)
+Suite result: ok. 43 passed; 0 failed; 0 skipped; finished in 640.41ms (1.63s CPU time)
+
+Ran 40 tests for test/Bondrail.t.sol:BondrailTest
+[PASS] testACompliantReportEndsTheDarkPeriod() (gas: 11188214)
+[PASS] testAnHourDarkBlocksDepositsUntilCompliant() (gas: 1976382)
+[PASS] testBlockedIssuerCannotPreventClosingOrStakeCredit() (gas: 1990641)
+[PASS] testCapBeforeSecondDrawCancelsCommitmentAndFinalBuyerRedeems() (gas: 2007785)
+[PASS] testClosingAcceptsHistoricalEvidenceAndNeverPostCutoff() (gas: 2281972)
+[PASS] testClosingWindowCannotBlockNewIssuanceOrDetachIt() (gas: 2350359)
+[PASS] testDarkDuringFundingNeverDefaults() (gas: 6475486)
+[PASS] testDefaultAfterSecondReleaseNeverClawsBackReleasedCapital() (gas: 2291348)
+[PASS] testDepositsStopWhenTheNativeReviewIsRevoked() (gas: 1102927)
+[PASS] testDirectBondDonationIsNotRevenueOrPool() (gas: 1701911)
+[PASS] testEachBondHasItsOwnNameAndSymbol() (gas: 781972)
+[PASS] testEarlyRedemptionTakesTodaysShareAndStaysFairForLaterHolders() (gas: 2117998)
+[PASS] testExpiredAndTooShortMilestoneRejected() (gas: 1414915)
+[PASS] testFinalSweepIncludesPostMaturityPreCloseAndCapWins() (gas: 1895687)
+[PASS] testForgedAndCrossChainMilestoneRejected() (gas: 1389398)
+[PASS] testFundingMintTransferBoundaryCancelAndRefund() (gas: 1420850)
+[PASS] testFundingViolationsCannotBecomeActiveDefault() (gas: 1831758)
+[PASS] testFuzzCurveRoundTripNoRoundingProfit(uint96) (runs: 256, μ: 683211, ~: 683217)
+[PASS] testFuzzStagedRatioAndCap(uint128,uint8) (runs: 256, μ: 1484763, ~: 1485802)
+[PASS] testFuzzSweepPartitionConservation(uint128,uint128,uint128) (runs: 256, μ: 2009222, ~: 2028046)
+[PASS] testGoingDarkForADayDefaultsTheBond() (gas: 7553826)
+[PASS] testIssuanceWaitsForMinimumHistory() (gas: 1285035)
+[PASS] testLastClaimCannotBeBurnedBeforeClose() (gas: 1551541)
+[PASS] testMonitoringGapsRestartTheDarkPeriod() (gas: 8595031)
+[PASS] testNoRedemptionWhileFunding() (gas: 984448)
+[PASS] testObservationsOnlyThroughCreForwarder() (gas: 869238)
+[PASS] testPreactivationFeesStayIssuerAndFirstReleaseIsStaged() (gas: 1552881)
+[PASS] testPumpCurveRoundTripPaysOnlyFeesNeverVirtualBacking() (gas: 2171264)
+[PASS] testReleaseDeadlineRecoversWithoutStakeSlash() (gas: 1621640)
+[PASS] testReportAtSettlementBoundaryCannotSlashReturnedStake() (gas: 1831798)
+[PASS] testReportSignatureForwarderReplayAndFreshness() (gas: 1164850)
+[PASS] testRoundingCarryPreventsMicroSweepAvoidance() (gas: 2190256)
+[PASS] testSameEpochEquivocationAndFutureObservationRejected() (gas: 1131812)
+[PASS] testSecondReleaseSignedAndOneShot() (gas: 1734020)
+[PASS] testTotalLossStillAllowsFinalBurn() (gas: 1727871)
+[PASS] testTwoAdjacentViolationsOutOfOrderSlashExactlyOnce() (gas: 2140746)
+[PASS] testUnknownAndNonAdjacentViolationsNeverDefault() (gas: 1883324)
+[PASS] testWatchedDepositsStopWhileTheLatestObservationIsAViolation() (gas: 1482812)
+[PASS] testWatchedRequiresHealthyObservationForActivationAndDraw() (gas: 2237767)
+[PASS] testZeroValueRedemptionAndTinyNonzeroPoolProtection() (gas: 2118047)
+Suite result: ok. 40 passed; 0 failed; 0 skipped; finished in 640.48ms (314.27ms CPU time)
+
+Ran 36 tests for test/Vault.t.sol:VaultTest
+[PASS] testAllocationRejectsNonBondAndWrongAsset() (gas: 2434527)
+[PASS] testAllocationRejectsRevokedNativeAndWatchedViolation() (gas: 3105877)
+[PASS] testAllocationUsesExitNAVAfterTriggerImpairment() (gas: 4040918)
+[PASS] testCancelledRefundAndDeadlineBoundary() (gas: 2198100)
+[PASS] testCapSubtractsPriorRedemptionsAndIncludesStagedPrincipal() (gas: 3250831)
+[PASS] testClaimGiftsCannotAddUnboundedHoldings() (gas: 4581742)
+[PASS] testConcentrationLimitIncludesExistingClaims() (gas: 2047693)
+[PASS] testCuratorRotationOnlyOwnerAndTimelocked() (gas: 2005039)
+[PASS] testDefaultKeepsRealizedRecoveryRevenueAndSlashedStake() (gas: 4168227)
+[PASS] testDefaultLinearWritedownAndRecoveryReversesLoss() (gas: 4814378)
+[PASS] testDelegatedWithdrawalNeedsShareAllowance() (gas: 309130)
+[PASS] testDepositMintWithdrawRedeemIdle() (gas: 511567)
+[PASS] testDepositsAndMintsStayOpenAcrossActivationAndClosing() (gas: 3881905)
+[PASS] testFrontRunningRepaymentCannotCaptureImmediateIncome() (gas: 2975424)
+[PASS] testFundingDeadlineRollsBackTrackingAndApproval() (gas: 1626148)
+[PASS] testFundingWithdrawalAndEvents() (gas: 2323388)
+[PASS] testFuzzExitNAVNeverExceedsEntryNAV(uint128,uint32,uint8) (runs: 256, μ: 4590582, ~: 4617786)
+[PASS] testFuzzInflationAttackCannotProfit(uint96,uint64) (runs: 256, μ: 441722, ~: 455394)
+[PASS] testFuzzMaximaAreExecutable(uint128,uint64) (runs: 256, μ: 3439696, ~: 3464229)
+[PASS] testFuzzRealizedBackingMatchesReceiptsAndSettlementNAV(uint128,bool) (runs: 256, μ: 10907040, ~: 10854762)
+[PASS] testIdleBufferBoundaryAndNoOverdraft() (gas: 7185839)
+[PASS] testIdleBufferRoundsUp() (gas: 6733777)
+[PASS] testInvalidAmountsStatesAndUntrackedBonds() (gas: 2460268)
+[PASS] testMaturityWritedownWithoutSettlementAndLateDefaultDoesNotRestart() (gas: 3187273)
+[PASS] testMaximumBondsAndSlotReuse() (gas: 32066850)
+[PASS] testNAVFundingActiveRevenueClosedCollect() (gas: 3344915)
+[PASS] testNeverRedeemActiveOrClosingEvenAfterGrace() (gas: 3446064)
+[PASS] testNewProfitMergesOnlyUnvestedRemainderAndSlotsCanBeReused() (gas: 7176560)
+[PASS] testProfitVestsLinearlyAndCollectDoesNotUnlockIt() (gas: 3369460)
+[PASS] testReentrancyDepositWithdrawalAndCuratorPaths() (gas: 4256978)
+[PASS] testRejectsInvalidConfigurationAndShortDeposit() (gas: 9161)
+[PASS] testSettledSubUnitDustIsZeroNAVAndDoesNotBlockEntry() (gas: 3180652)
+[PASS] testTotalLossCollectRemovesHoldingWithoutEarlyBurn() (gas: 2701802)
+[PASS] testTriggerSeparatesEntryAndExitPricesAndReverses() (gas: 4259768)
+[PASS] testUnauthorizedAndNoArbitraryDestinationOrSweep() (gas: 1560404)
+[PASS] testWithdrawalsUseOnlyIdleWithoutBurningClaims() (gas: 2411990)
+Suite result: ok. 36 passed; 0 failed; 0 skipped; finished in 648.77ms (1.48s CPU time)
+
+Ran 1 test for test/AccountingInvariant.t.sol:AccountingInvariantTest
+[PASS] invariantAssetsCoverEveryLiability() (runs: 128, calls: 8192, reverts: 0)
+
+╭-------------------+--------------+-------+---------+----------╮
+| Contract          | Selector     | Calls | Reverts | Discards |
++===============================================================+
+| AccountingHandler | advance      | 741   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | checkTrigger | 714   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | close        | 704   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | donate       | 749   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | expire       | 739   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | receiveFees  | 751   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | redeem       | 740   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | release      | 766   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | settle       | 756   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | sweep        | 799   | 0       | 0        |
+|-------------------+--------------+-------+---------+----------|
+| AccountingHandler | withdraw     | 733   | 0       | 0        |
+╰-------------------+--------------+-------+---------+----------╯
+
+Suite result: ok. 1 passed; 0 failed; 0 skipped; finished in 1.18s (1.17s CPU time)
+
+Ran 10 test suites in 1.19s (4.46s CPU time): 192 tests passed, 0 failed, 0 skipped (192 total tests)

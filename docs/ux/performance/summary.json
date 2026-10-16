@@ -1,0 +1,233 @@
+[
+  {
+    "label": "before-production",
+    "state": "cold",
+    "summaryMs": 5037.4000000059605,
+    "fullSummaryMs": 5037.4000000059605,
+    "requests": {
+      "GraphQL": {
+        "count": 2,
+        "durations": [
+          984,
+          407
+        ]
+      },
+      "registry": {
+        "count": 2,
+        "durations": [
+          369,
+          387
+        ]
+      },
+      "RPC": {
+        "count": 12,
+        "durations": [
+          923,
+          173,
+          165,
+          165,
+          158,
+          179,
+          162,
+          300,
+          181,
+          166,
+          185,
+          209
+        ]
+      }
+    }
+  },
+  {
+    "label": "before-production",
+    "state": "warm",
+    "summaryMs": 2512.2999999821186,
+    "fullSummaryMs": 2512.2999999821186,
+    "requests": {
+      "GraphQL": {
+        "count": 3,
+        "durations": [
+          306,
+          744,
+          null
+        ]
+      },
+      "registry": {
+        "count": 2,
+        "durations": [
+          366,
+          453
+        ]
+      },
+      "RPC": {
+        "count": 12,
+        "durations": [
+          333,
+          172,
+          449,
+          222,
+          188,
+          211,
+          229,
+          369,
+          168,
+          161,
+          175,
+          204
+        ]
+      }
+    }
+  },
+  {
+    "label": "before-local",
+    "state": "cold",
+    "summaryMs": 4735.5999999940395,
+    "fullSummaryMs": 4735.5999999940395,
+    "serverIndexerMs": 0,
+    "serverIndexerRequests": 0,
+    "requests": {
+      "GraphQL": {
+        "count": 2,
+        "durations": [
+          1235,
+          362
+        ]
+      },
+      "registry": {
+        "count": 2,
+        "durations": [
+          869,
+          612
+        ]
+      },
+      "RPC": {
+        "count": 12,
+        "durations": [
+          826,
+          759,
+          435,
+          178,
+          176,
+          166,
+          194,
+          500,
+          1774,
+          248,
+          188,
+          153
+        ]
+      }
+    }
+  },
+  {
+    "label": "before-local",
+    "state": "warm",
+    "summaryMs": 2868.199999988079,
+    "fullSummaryMs": 2868.199999988079,
+    "serverIndexerMs": 0,
+    "serverIndexerRequests": 0,
+    "requests": {
+      "GraphQL": {
+        "count": 2,
+        "durations": [
+          319,
+          367
+        ]
+      },
+      "registry": {
+        "count": 2,
+        "durations": [
+          576,
+          580
+        ]
+      },
+      "RPC": {
+        "count": 12,
+        "durations": [
+          989,
+          350,
+          164,
+          180,
+          526,
+          170,
+          212,
+          722,
+          167,
+          181,
+          173,
+          426
+        ]
+      }
+    }
+  },
+  {
+    "label": "after",
+    "state": "cold",
+    "summaryMs": 883.2999999821186,
+    "fullSummaryMs": 3153.899999976158,
+    "serverIndexerMs": 797,
+    "serverIndexerRequests": 1,
+    "requests": {
+      "GraphQL": {
+        "count": 2,
+        "durations": [
+          2123,
+          2124
+        ]
+      },
+      "registry": {
+        "count": 1,
+        "durations": [
+          2643
+        ]
+      },
+      "RPC": {
+        "count": 7,
+        "durations": [
+          2163,
+          2129,
+          167,
+          195,
+          191,
+          196,
+          3197
+        ]
+      }
+    }
+  },
+  {
+    "label": "after",
+    "state": "warm",
+    "summaryMs": 29,
+    "fullSummaryMs": 244.69999998807907,
+    "serverIndexerMs": 1,
+    "serverIndexerRequests": 1,
+    "requests": {
+      "GraphQL": {
+        "count": 2,
+        "durations": [
+          339,
+          339
+        ]
+      },
+      "registry": {
+        "count": 1,
+        "durations": [
+          647
+        ]
+      },
+      "RPC": {
+        "count": 7,
+        "durations": [
+          166,
+          189,
+          207,
+          180,
+          160,
+          222,
+          6582
+        ]
+      }
+    }
+  }
+]

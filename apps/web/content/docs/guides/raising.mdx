@@ -1,30 +1,72 @@
 ---
 title: Issue a revenue bond
-description: Issue a bond, get listed and release capital in two stages.
+description: Set terms and performance triggers, accept reversible funding, then release capital in stages.
 ---
 
-The [console](/console) walks you through every step below and reads your progress from the chain, so you
-can leave and come back. The SDK calls at the end of this page do the same from code.
+<Callout type="warn">Monad testnet; not audited. Use the [current selected deployment](/docs/reference/deployments).
+A credit-line estimate is advisory; the factory does not enforce it as a borrowing limit.</Callout>
 
-## Before you can raise
-- **History:** at least `minHistory` since your first booked payment (10 minutes on testnet).
-- **Native:** your project is reviewer-approved and bound. **Watched:** approve a stake to the factory.
-- **Profile:** sign your profile (name, links, use of funds) and, for x402, serve your manifest. Listings
-  without a valid profile are hidden from the default market view.
+## Before raising
 
-## Choose terms
-Coverage is what investors look at first: verified daily revenue × `revenueBps` × days to maturity, divided by
-`repayCap`. Below 1.0× investors are projected to lose money; most bonds should list above 1.2×.
+`BondrailFactory.createBond` requires the caller to own the account, no attached bond, nonzero policy
+hash, valid terms and `minHistory()` since `firstRevenueAt()`. Read the factory value; the current manifest
+configures 600 seconds for demonstrations. Booked history includes self-payments.
 
-<Source file="demo/scripts/setup-demo.ts" from="function terms(" title="Demo terms (demo/scripts/setup-demo.ts)" />
+Native projects must be bound and approved, individually via `setNativeApproval` or through a still
+approved template deployed with `deployNative`. Custom contracts need individual review; reviewed
+templates need none. Watched bonds require nonzero stake and zero `minFeeBps`, with no Native source.
+Approve the stake asset to the factory before creation. See [Native](/docs/guides/native) and [x402](/docs/guides/x402).
 
-## Create, fund, activate
+The app's signed profile and manifest establish listing metadata; they are separate from contract
+issuance checks. Sign the profile in the [console](/console) to participate in its default market view.
+
+## Choose terms and performance triggers
+
+`terms()` fixes raise, repay cap, base share, stake, release schedule, milestone and optional fee floor.
+`repayCap` must be at least the raise; the base investor share is positive and at most 50%. First release
+is 25% or 50%. Effective revenue cap scales with principal actually released. Coverage and SDK `creditLine`
+estimates use revenue assumptions; they are not verified future income or financing guarantees.
+
+To disable the performance trigger, set `triggerRevenue`, `triggerWindowDays` and `stepUpBps` all to zero.
+Otherwise choose a positive asset-unit revenue floor, a 1–30 day window, and a step-up share greater than
+`revenueBps` and at most 5000 bps. `@bondrail/sdk/trigger.parseTriggerTerms` validates UI input.
+
+Anyone can call `bond.checkTrigger()` once per UTC day while Active and not defaulted. It sums complete
+UTC buckets in `account.revenueByDay`, excluding the activation day and today. The first eligible day is
+`floor(activationTime / 86400) + 1 + triggerWindowDays`. Below the floor uses `stepUpBps`; equality or above
+restores the base share. Payments use the last checked result until another check; they do not evaluate
+it automatically. The cap does not change. Self-payments count; this is not wash-adjusted revenue.
+
+## Fund, withdraw during the raise, then activate
 
 ```ts
+import { bondrailClient, Tier } from '@bondrail/sdk/client';
+const bondrail = bondrailClient({ publicClient, walletClient, factory });
 const bond = await bondrail.createBond({ account, terms, tier: Tier.Native, source: project, policyHash, name, symbol });
-// investors deposit until the raise is full
-await bondrail.activate(bond); // first release to you; credit mode starts
-await bondrail.releaseSecond(bond); // later, once the milestone is met (Onchain mode)
+// After investors fully fund the raise and the source passes the factory's health check:
+await bondrail.activate(bond);
+// Later, inside the release window and after the Onchain milestone:
+await bondrail.releaseSecond(bond);
 ```
 
-Withdraw your share of revenue at any time with `bondrail.withdraw(account, to, amount)`.
+Investors call `bond.deposit(amount)` during Funding before the deadline. They may call
+`bond.withdraw(amount, to)` before that deadline while still Funding, burning claims and taking their
+escrow back 1:1. This reopens a funding gap, even if the raise was full; activation needs full funding
+at execution. Withdrawal does not require a healthy route. After the deadline, a still-Funding bond
+can be cancelled with `account.cancelFunding(bond)` and refunded with `bond.refund(amount, to)`.
+
+`factory.activate` books uncollected pre-activation inflows for the issuer before revenue sharing starts.
+Watched activation and second release require a fresh Compliant observation; deposits only reject
+`covenant.inViolation`, so deposit eligibility is not proof of fresh compliance.
+
+## Release the rest and withdraw earned revenue
+
+`releaseSecond` uses the on-chain counter since activation plus the minimum operating period.
+`releaseSecondSigned` uses the disclosed milestone signer's EIP-712 attestation instead. Both need a
+healthy source, no default and the agreed release window. If the deadline passes, anyone can call
+`bond.expireUndrawn()` to move the remaining principal to investor recovery.
+
+`account.withdraw(to, amount)` pays the issuer's already-booked `issuerCredit`; it is distinct from an
+investor's Funding withdrawal. Revenue sharing ends when cap collection closes or
+`account.closeBondAtMaturity(bond)` closes collection at maturity. See [milestones](/docs/concepts/milestones)
+and [defaults](/docs/concepts/defaults).

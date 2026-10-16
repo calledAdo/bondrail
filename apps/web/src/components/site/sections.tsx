@@ -65,7 +65,7 @@ export function LiveStrip() {
   const items: [string, number | undefined, number, string][] = [
     ['Revenue routed', stats?.revenue, 2, '$'],
     ['Payments booked', stats?.payments, 0, ''],
-    ['Paid to investors', stats?.toInvestors, 2, '$'],
+    ['Collected for investors', stats?.toInvestors, 2, '$'],
     ['Live bonds', stats?.activeBonds, 0, ''],
   ];
   return (
@@ -85,7 +85,7 @@ export function LiveStrip() {
           ? 'Indexer not configured: numbers appear on the deployed site.'
           : error
             ? 'Indexer unreachable right now.'
-            : 'Live from Monad testnet via Envio. Demo businesses and their traffic are run by the Bondrail team.'}
+            : 'Live from Monad testnet via Envio. Dollar totals use the deployment’s USDC; counts include all indexed accounts. Collected means revenue sent to bond pools, not holder redemptions. Demo businesses and traffic are run by the Bondrail team.'}
       </p>
     </section>
   );
@@ -119,9 +119,9 @@ export function PaymentMarquee() {
 
 const STEPS = [
   ['Open an account', 'Create a revenue account in the token you earn. It is your revenue address from day one.'],
-  ['Build history', 'Every payment is booked on-chain with its payer: revenue, volume, fee rate, payers, age.'],
+  ['Build history', 'Native fees and account settlements prove a payer on-chain. Plain transfers are booked by sweep without a proven payer.'],
   ['Issue a bond', 'Set the bond terms against your revenue history. Investors fund it; 25% or 50% is released, the rest at a milestone.'],
-  ['Route revenue to repayment', 'A fixed revenue share goes toward bond repayment, up to the cap. Native payments split in the transaction; paid API receipts need collection.'],
+  ['Route revenue to repayment', 'The current revenue share goes toward repayment, up to the cap. Native fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers still need sweep.'],
 ];
 
 export function HowItWorks() {
@@ -173,7 +173,7 @@ export function Tiers() {
   );
   return (
     <section id="tiers" className="mx-auto max-w-6xl px-6 py-32">
-      <SectionHead index="02" eyebrow="Two tiers" title={<>Impossible to divert, <span className="text-foreground/40">or expensive to.</span></>} />
+      <SectionHead index="02" eyebrow="Two tiers" title={<>Routing enforced in code, <span className="text-foreground/40">or monitored.</span></>} />
       <div className="grid gap-4 md:grid-cols-2">
         <Reveal>
           {card({
@@ -181,7 +181,7 @@ export function Tiers() {
             tone: 'border-foreground/15 text-foreground/80',
             tier: 'Native',
             title: 'Built on Bondrail',
-            body: 'Your contract inherits BondrailEarner. Every fee moves through your account, which is fixed into the code. There is no other path.',
+            body: 'A reviewed template or individually reviewed project routes fees through its bound account using BondrailEarner. Review covers the disclosed code path; it does not guarantee future business revenue.',
             facts: ['collect() for money in, settleOut() for money out', 'payer proven by the transfer itself', 'optional fee floor while a bond is live'],
             href: '/docs/guides/native',
           })}
@@ -209,7 +209,11 @@ export function Audiences() {
         <Reveal className="grain overflow-hidden rounded-2xl bg-ink p-10 text-white">
           <p className="font-mono text-xs text-white/60">(03) For builders</p>
           <h3 className="mt-4 text-3xl font-semibold">Start the record today.</h3>
-          <p className="mt-3 text-white/60">Route revenue through an account in an afternoon. Raise when the history speaks for itself.</p>
+          <p className="mt-3 text-white/60">Route revenue through an account. Build history, then set terms investors can assess.</p>
+          <p className="mt-4 text-sm text-white/60">
+            Build with the npm packages <Link href="/docs/reference/sdk" className="underline underline-offset-4">@bondrail/sdk</Link> and{' '}
+            <Link href="/docs/reference/contracts" className="underline underline-offset-4">@bondrail/contracts</Link>.
+          </p>
           <div className="mt-8">
             <Link href="/docs/guides/quickstart" className="group inline-flex h-11 items-center gap-2 rounded-lg bg-white px-5 text-sm font-medium text-black">
               Quickstart <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
@@ -219,7 +223,12 @@ export function Audiences() {
         <Reveal delay={0.15} className="rounded-2xl border border-foreground/10 p-10">
           <p className="font-mono text-xs text-foreground/60">(04) For investors</p>
           <h3 className="mt-4 text-3xl font-semibold">Underwrite evidence, not promises.</h3>
-          <p className="mt-3 text-foreground/60">Attributed revenue, payer concentration and coverage for every bond. Redeem at any time or trade on Kuru.</p>
+          <p className="mt-3 text-foreground/60">Assess attributed revenue, payer concentration and coverage. Buy claims on Kuru where listed, or fund a raise. Early redemption burns claims for current backing and gives up future receipts.</p>
+          <p className="mt-4 text-sm text-foreground/60">
+            Pool capital in the <Link href="/vault" className="underline underline-offset-4">credit vault</Link>, inspect{' '}
+            <Link href="/docs/concepts/credit-profiles" className="underline underline-offset-4">credit profiles</Link>, and check{' '}
+            <Link href="/docs/concepts/bond#performance-trigger" className="underline underline-offset-4">performance triggers</Link> that can raise the investor share when revenue falls.
+          </p>
           <div className="mt-8">
             <CTA href="/markets" outline>
               Browse markets
@@ -232,11 +241,11 @@ export function Audiences() {
 }
 
 const FAQ: [string, string][] = [
-  ['Who can stop the split?', 'Nobody. It happens inside each payment. The Native reviewer can revoke approval, which blocks new deposits and releases, but not repayment of a live bond.'],
-  ['What do I rely on?', 'A disclosed Native reviewer (code approval), a milestone signer (only for bonds that choose signed milestones) and an observer whose reports arrive through Chainlink CRE. Everything else is enforced by contracts.'],
-  ['What if the business stops?', 'Revenue stops too. Investors keep the pool collected so far, any capital not yet released, and for Watched bonds the slashed stake. Coverage and the Kuru price show that risk up front.'],
-  ['Can revenue be faked?', 'Self-payments still pay investors their share once a bond is live. The indexer flags payers funded by the issuer and transfers that are not real payments; only verified revenue scores.'],
-  ['Is this live?', 'On Monad testnet, with team-run demo businesses. All demo activity is labelled.'],
+  ['Who can stop the split?', 'Native fees and x402 payments settled through BondrailAccount.settle via the Bondrail facilitator split in the same transaction. Plain transfers split when anyone calls sweep. Revoking Native project or template approval blocks new deposits and releases unless another approval still applies; repayment of a live bond continues.'],
+  ['What do I rely on?', 'A disclosed Native reviewer approves projects or templates; a milestone signer approves signed milestones where selected; observer reports arrive through Chainlink CRE. Signed credit assessments rely on the attester, and vault allocations rely on the curator within contract limits.'],
+  ['What if the business stops?', 'Revenue stops too. Holders retain the collected pool and undrawn capital when it is recovered. Watched stake goes to investors only on a recorded default. Coverage and any available Kuru price help assess risk; neither guarantees repayment.'],
+  ['Can revenue be faked?', 'Self-payments still pay the investor share while a bond collects revenue. Indexer attribution excludes detected issuer-linked payers and plain transfers, but cannot prove customer independence. Performance triggers use all booked revenue, including self-payments.'],
+  ['Is this live?', 'On Monad testnet, with team-run demo businesses and traffic. The contracts are not audited.'],
 ];
 
 export function TrustFAQ() {

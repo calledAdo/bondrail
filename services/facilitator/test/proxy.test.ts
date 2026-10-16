@@ -28,6 +28,8 @@ test('preview facade pins the persistent writer and forwards payment bytes witho
     assert.equal((await original(`${origin}/api/verify?parsed=1`, { method: 'POST' })).status, 200);
     assert.equal(seen.at(-1)?.body, '{"paymentPayload":{}}');
     assert.equal((await original(`${origin}/supported`)).status, 200);
+    assert.equal((await original(`${origin}/health`)).status, 200);
+    assert.deepEqual(seen.at(-1), { url: 'https://next-writer.example/health', body: '', method: 'GET' });
     const count = seen.length;
     assert.equal((await original(`${origin}/settle`)).status, 404);
     assert.equal((await original(`${origin}/unknown`)).status, 404);

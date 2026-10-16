@@ -6,7 +6,7 @@ import soundfile as sf
 from kokoro_onnx import Kokoro
 HERE=Path(__file__).resolve().parent
 OUT=HERE/'output'/'envio';VOICE=OUT/'voice';VOICE.mkdir(parents=True,exist_ok=True)
-engine=Kokoro('/tmp/slice-video-models/kokoro-v1.0.int8.onnx','/tmp/slice-video-models/voices-v1.0.bin')
+engine=Kokoro('/tmp/bondrail-video-models/kokoro-v1.0.int8.onnx','/tmp/bondrail-video-models/voices-v1.0.bin')
 scenes=json.loads((HERE/'envio.json').read_text());manifest=[]
 for scene in scenes:
  lines=[]

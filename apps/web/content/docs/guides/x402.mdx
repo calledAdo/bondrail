@@ -1,47 +1,95 @@
 ---
 title: Make an x402 API pay its account
-description: Paid HTTP endpoints whose revenue builds history and repays investors.
+description: Account-mediated settlement, proven payers, facilitator funding and receipt reconciliation.
 ---
 
-[x402](https://x402.org) lets any client pay per request: the server answers `402 Payment Required` with an
-offer, the client signs an EIP-3009 USDC authorization, and a facilitator settles it on-chain, straight to the
-offer's `payTo`. Point `payTo` at your BondrailAccount and every paid call becomes booked revenue.
+<Callout type="warn">Monad testnet; not audited. Use the settlement-capable account implementation in
+the current deployment. Historical immutable accounts do not gain `settle` from a source update.</Callout>
 
-## 1. Serve paid requests with `@bondrail/sdk/x402`
+## Settle through the account
 
-`handlePaidRequest` returns the 402 offer, verifies the payment, runs your work at most once per payment and
-settles to your account. This is the demo Oracle Agent's handler:
+Offer x402 v2 `exact` payment in the configured EIP-3009 token, with `payTo` equal to the registered
+BondrailAccount. The payer signs `transferWithAuthorization`; the Bondrail facilitator calls
+`BondrailAccount.settle(from, value, validAfter, validBefore, nonce, v, r, s)`.
+The account calls the token, checks the received amount, emits `Settled(payer, value, nonce)`, and books
+and splits the **whole payment** as revenue in that same transaction. No later sweep is required.
+This proves authorization by the payer; it does not prove customer independence or delivery quality.
 
-<Source file="demo/agent/src/lib/payment.ts" from="export function handlePaidRequest(" />
+A direct token transfer, including an authorization submitted straight to the token, is different:
+`account.sweep()` books the uncredited balance with no proven on-chain payer. Indexer attribution can
+recognize token authorization logs, but those do not create an account `Settled` event. Someone can
+submit a signed authorization to the token first; its nonce is then used and account settlement fails.
+The money remains at the signed recipient and needs sweeping.
 
-## 2. Publish your manifest
+## Serve offers and paid work
 
-Serve `/.well-known/bondrail.json` listing your account and every paid endpoint (each an unpaid GET returns its
-402 offer). Monitoring, guarded buyers and the marketplace's domain proof all read it.
+```ts
+import { exactUsdcRequirements, handlePaidRequest, httpFacilitator, type DurableStore } from '@bondrail/sdk/x402';
 
-<Source file="demo/agent/src/app/.well-known/bondrail.json/route.ts" from="export async function GET()" />
+const requirements = exactUsdcRequirements({ chainId: 10143, asset, amount: '10000', payTo: account });
+const facilitator = httpFacilitator(process.env.X402_FACILITATOR_URL!, 10143);
+async function paid(request: Request, store: DurableStore, work: () => Promise<unknown>) {
+  return handlePaidRequest({
+    header: request.headers.get('PAYMENT-SIGNATURE'), resource: 'https://api.example/answer',
+    description: 'Answer one question', requirements, store, facilitator, work,
+  });
+}
+```
 
-## 3. What the monitor checks
+Use the actual token domain in `requirements.extra.name` / `.version` (the helper defaults to USDC v2).
+`DurableStore` must persist `get` and atomic compare-and-swap `cas` across replicas. The handler verifies,
+claims a journal entry, runs work, saves the result, then settles. Retries reuse journaled work; a crash
+before saving a result can leave a processing entry and is not a general exactly-once execution guarantee.
+Keep facilitator credentials and durable stores on the server.
 
-On every check (every 30 minutes on testnet; each report covers one 30-second epoch) the observer and
-Chainlink CRE independently fetch the manifest and every endpoint:
+Serve `/.well-known/bondrail.json` with `bondrailManifest` / `manifestResponse`, naming the chain, account
+and every paid endpoint. See the [SDK examples](/docs/developers/sdk).
 
-- every payment option must pay your account, in the committed asset and network, at or above the price floor
-  (raising prices is fine);
-- the manifest must keep naming your account and listing every covered endpoint; endpoints you add later are
-  checked too.
+## Facilitator and gas budget
 
-A violation is re-checked straight away in the next epoch, and two adjacent violations default your bond and
-slash your stake. So a diversion is caught within one check interval plus about a minute. A day of Unknown
-reports (your offer unreachable) while the bond is active also defaults it, and an hour pauses deposits. A
-monitor outage (no reports at all) never counts against you.
+The [facilitator](https://github.com/calledAdo/bondrail/tree/main/services/facilitator) is an HTTP service,
+not a fund-custody contract. `GET /supported`, `POST /verify`, `POST /settle` and `GET /health` expose its
+capabilities, validation, settlement and operational state. It pins the factory and token, discovers the
+token domain, verifies the 65-byte EOA signature, authorization bounds, account registration/asset,
+nonce and funds, then simulates `account.settle`. Only a successful receipt proves payment.
 
-## 4. Buyers can verify you
+Its separate gas wallet pays MON. The current code estimates gas with a 15% margin, defaults to a
+500,000 gas ceiling and a 150 gwei fee ceiling, and checks affordability before signing/journaling.
+Those defaults cap one commitment at 0.075 MON; actual costs vary. The October 15 warm-call sample
+averaged 0.0284941505 MON; budget about 4 MON per 100 warm calls including reserve, then consult
+`/health`. This is a planning estimate, not a fixed price. See the
+[measured gas report](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/FACILITATOR-GAS.md).
 
-`bondrailGuard` wraps any x402 client's fetch and refuses to sign an offer whose `payTo` is not your published
-account (optionally confirmed on-chain). The manifest is your own claim, so a buyer paying a business it has
-financed also **pins** what it expects from the chain: `pinFromBond` reads the bond's account, asset and chain,
-and any offer or manifest that names another account (even another real Bondrail account), another asset or
-chain, or arrives through a redirect to another host, is refused:
+Health fields include `balanceNative`, `estimatedSettlementCostWei`, `settlementsRemaining`, `reservedWei`,
+`inFlightNonce` and `blockedReason`. A positive balance may still be insufficient. Use one writer/key/store
+namespace. Durable signed transactions support bounded rebroadcast and same-nonce fee replacement;
+near expiry the service can cancel that nonce. Cancellation is not payment. Low funds or a fee cap
+can block recovery until the operator acts. Source behavior does not attest a running server's revision;
+check its `/health` and operator configuration before traffic.
 
-<Source file="demo/scripts/traffic-agent.ts" from="const fetchers = payers.map(" />
+## Retry and reconcile
+
+An empty-hash funding/busy/fee-cap refusal produces a retryable agent **503**, `charged:false`, while
+preserving the generated result. Fix the reported condition and retry the **same signed request**.
+A **202 `settlement_pending`** means the outcome is unresolved: preserve `paymentKey`, authorization and
+known transaction hash. A timeout is not evidence of nonpayment; do not issue a new charge to retry.
+
+The demo agent's authenticated `POST /api/admin/reconcile` accepts `{paymentKey, transaction}`.
+It requires a successful receipt plus one additional block and matches the token `Transfer`,
+`AuthorizationUsed`, account `Settled` event and authorization state at the receipt block. On success it
+atomically marks the existing pending record complete; retry the original oracle request to retrieve
+its cached answer and `PAYMENT-RESPONSE`. Reconciliation sends no transaction and does not rerun work.
+It cannot repair a processing record without a saved result. Follow the
+[reconciliation runbook](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/RUNBOOK.md#recovering-settlement_pending-payments).
+
+## Monitoring and guarded buyers
+
+`bondrailGuard` in `@bondrail/sdk/x402-guard` checks offers against the manifest; `pinFromBond` supplies
+an independent account/asset/chain pin. Wrap this guarded fetch with your x402 buyer before signing.
+The guard itself does not pay, and an issuer-controlled manifest alone is not an independent pin.
+
+The observer/CRE path checks declared endpoints against the committed policy. `BondrailCovenant.onReport`
+requires the pinned forwarder and observer signature. Two qualifying violations in adjacent 30-second
+epochs can default an active bond; continuous Unknown reports with gaps no longer than one hour block
+deposits after one hour and can default after 24 hours. No reports alone never establish default.
+Report cadence is an operator setting, not a guaranteed detection time. See [defaults](/docs/concepts/defaults).

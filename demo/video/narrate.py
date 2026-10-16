@@ -10,7 +10,7 @@ HERE = Path(__file__).resolve().parent
 OUT = HERE / 'output'
 VOICE = OUT / 'voice'
 VOICE.mkdir(parents=True, exist_ok=True)
-MODELS = Path(os.environ.get('BONDRAIL_VOICE_MODELS', '/tmp/slice-video-models'))
+MODELS = Path(os.environ.get('BONDRAIL_VOICE_MODELS', '/tmp/bondrail-video-models'))
 engine = Kokoro(str(MODELS / 'kokoro-v1.0.int8.onnx'), str(MODELS / 'voices-v1.0.bin'))
 scenes = json.loads((HERE / 'scenes.json').read_text())
 manifest = []
@@ -43,4 +43,4 @@ for scene in scenes:
     manifest.append({**scene, 'audio': str(target), 'lines': lines})
     print(f"{scene['id']}: {speech:.1f}s voice / {scene['duration']}s scene", flush=True)
 (OUT / 'narration.json').write_text(json.dumps(manifest, indent=2))
-sf.write(VOICE / 'slice-narration.wav', np.concatenate([sf.read(x['audio'])[0] for x in manifest]), rate)
+sf.write(VOICE / 'bondrail-narration.wav', np.concatenate([sf.read(x['audio'])[0] for x in manifest]), rate)

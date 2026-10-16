@@ -1,0 +1,16 @@
+[Unit]
+OnFailure=bondrail-alert@%n.service
+Description=Bondrail covenant
+After=network-online.target
+Requires=bondrail-observer.service
+After=bondrail-observer.service
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/bondrail
+Environment=HOME=/root
+Environment=PATH=/root/.cre/bin:/root/.bun/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=/etc/bondrail.env
+EnvironmentFile=-/etc/bondrail-covenant.env
+ExecStart=/usr/bin/env node --import tsx scripts/report-covenant.ts --broadcast
+TimeoutStartSec=600
+MemoryMax=700M

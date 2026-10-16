@@ -6,7 +6,7 @@ Research checked October 11, 2026. User explicitly requested cloning their own v
 
 [Qwen3-TTS](https://github.com/QwenLM/Qwen3-TTS) supports cloning from reference audio and its transcript. Its Base model is the cloning model; CustomVoice is a separate preset-speaker model, and VoiceDesign creates a voice from a description. Do not promise CustomVoice's instruction-based emotion control while cloning with Base.
 
-The [1.7B Base weights](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) and [MLX 8-bit conversion](https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit) are labelled Apache-2.0. [MLX Audio](https://github.com/Blaizzy/mlx-audio) is MIT licensed and runs locally on Apple Silicon. This machine has 24 GiB RAM and Metal is available. Local tools were installed separately from the app in `/tmp/slice-clone-venv`; model cache is `/tmp/slice-voice-hf`. Model load/generation status is recorded in the session handoff, not assumed from installation.
+The [1.7B Base weights](https://huggingface.co/Qwen/Qwen3-TTS-12Hz-1.7B-Base) and [MLX 8-bit conversion](https://huggingface.co/mlx-community/Qwen3-TTS-12Hz-1.7B-Base-8bit) are labelled Apache-2.0. [MLX Audio](https://github.com/Blaizzy/mlx-audio) is MIT licensed and runs locally on Apple Silicon. This machine has 24 GiB RAM and Metal is available. Local tools were installed separately from the app in `/tmp/bondrail-clone-venv`; model cache is `/tmp/bondrail-voice-hf`. Model load/generation status is recorded in the session handoff, not assumed from installation.
 
 No paid API key, voice-service account or hosted GPU is required for this local path. Model downloads require network access. The voice recording is passed to the local model, not uploaded to a cloning service. Actual voice similarity, accent retention and delivery remain untested until the user supplies audio.
 
@@ -34,9 +34,9 @@ If the recording differs, update the transcript to the actual words. Qwen advert
 ## Local execution
 
 ```sh
-UV_CACHE_DIR=/tmp/slice-uv-cache uv venv --python 3.12 /tmp/slice-clone-venv
-UV_CACHE_DIR=/tmp/slice-uv-cache uv pip install --python /tmp/slice-clone-venv/bin/python mlx-audio==0.5.8 soundfile==0.14.0 imageio-ffmpeg==0.6.0
-HF_HOME=/tmp/slice-voice-hf /tmp/slice-clone-venv/bin/python demo/video/clone_voice.py \
+UV_CACHE_DIR=/tmp/bondrail-uv-cache uv venv --python 3.12 /tmp/bondrail-clone-venv
+UV_CACHE_DIR=/tmp/bondrail-uv-cache uv pip install --python /tmp/bondrail-clone-venv/bin/python mlx-audio==0.5.8 soundfile==0.14.0 imageio-ffmpeg==0.6.0
+HF_HOME=/tmp/bondrail-voice-hf /tmp/bondrail-clone-venv/bin/python demo/video/clone_voice.py \
   --reference /path/to/your-voice.m4a \
   --transcript-file /path/to/exact-reference-transcript.txt
 ```

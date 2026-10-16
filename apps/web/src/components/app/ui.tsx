@@ -4,11 +4,11 @@ import { Radio, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import type { BondView, Phase, Tier } from '@/lib/protocol';
 
-export function Panel({ title, aside, children, className }: { title?: ReactNode; aside?: ReactNode; children: ReactNode; className?: string }) {
+export function Panel({ title, aside, children, className, compact = false }: { compact?: boolean; title?: ReactNode; aside?: ReactNode; children: ReactNode; className?: string }) {
   return (
     <section className={cn('rounded-xl border border-foreground/10 p-6', className)}>
       {(title || aside) && (
-        <div className="mb-5 flex items-center justify-between gap-4">
+        <div className={cn("flex flex-wrap items-center justify-between gap-4", compact ? "mb-3 sm:mb-5" : "mb-5")}>
           {title && <h2 className="text-lg font-semibold">{title}</h2>}
           {aside}
         </div>
@@ -42,12 +42,12 @@ export function PhaseBadge({ phase, defaulted }: { phase: Phase; defaulted?: boo
 }
 
 /** A labelled figure: mono, bracketed for live on-chain numbers. */
-export function Figure({ label, value, hint, bracket = true }: { label: string; value: ReactNode; hint?: string; bracket?: boolean }) {
+export function Figure({ label, value, hint, bracket = true }: { label: ReactNode; value: ReactNode; hint?: string; bracket?: boolean }) {
   return (
     <div className="space-y-1">
-      <dt className="text-xs text-foreground/60">{label}</dt>
+      <dt className="text-xs text-foreground/70">{label}</dt>
       <dd className="font-mono text-lg tabular">{bracket ? <>[{value}]</> : value}</dd>
-      {hint && <p className="text-xs text-foreground/60">{hint}</p>}
+      {hint && <p className="text-xs text-foreground/70">{hint}</p>}
     </div>
   );
 }
@@ -74,7 +74,7 @@ export function Ribbon({ b, compact }: { b: BondView; compact?: boolean }) {
         ))}
       </div>
       {!compact && (
-        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground/60">
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-foreground/70">
           {parts.map((p) => (
             <span key={p.label} className="inline-flex items-center gap-1.5">
               <span className={cn('size-2 rounded-full', p.cls)} /> {p.label}
@@ -87,8 +87,8 @@ export function Ribbon({ b, compact }: { b: BondView; compact?: boolean }) {
 }
 
 /** Daily revenue, raw (outline) vs verified (filled), with a text summary for screen readers. */
-export function RevenueBars({ daily, label }: { daily: { day: number; raw: number; verified: number }[]; label: string }) {
-  if (!daily.length) return <p className="text-sm text-foreground/60">No revenue indexed yet.</p>;
+export function RevenueBars({ daily, label, compact = false }: { compact?: boolean; daily: { day: number; raw: number; verified: number }[]; label: string }) {
+  if (!daily.length) return <p className="text-sm text-foreground/70">No revenue indexed yet.</p>;
   // A fixed 30-day axis ending today, so a young account shows thin bars, not one wide block.
   const today = Math.floor(Date.now() / 86_400_000);
   const byDay = new Map(daily.map((d) => [d.day, d]));
@@ -96,7 +96,7 @@ export function RevenueBars({ daily, label }: { daily: { day: number; raw: numbe
   const peak = Math.max(1e-9, ...rows.map((d) => d.raw));
   return (
     <figure>
-      <div className="flex h-36 items-end gap-1" aria-hidden>
+      <div className={cn("flex items-end gap-1", compact ? "h-16 sm:h-28" : "h-36")} aria-hidden>
         {rows.map((d) => (
           <div key={d.day} className="relative flex-1" style={{ height: `${(d.raw / peak) * 100}%` }} title={`${new Date(d.day * 86_400_000).toISOString().slice(0, 10)}: raw ${d.raw}, verified ${d.verified}`}>
             <div className="absolute inset-0 rounded-sm border border-foreground/20" />
@@ -104,7 +104,7 @@ export function RevenueBars({ daily, label }: { daily: { day: number; raw: numbe
           </div>
         ))}
       </div>
-      <figcaption className="mt-3 flex flex-wrap gap-4 text-xs text-foreground/60">
+      <figcaption className="mt-3 flex flex-wrap gap-4 text-xs text-foreground/70">
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm bg-foreground/70" /> Attributed</span>
         <span className="inline-flex items-center gap-1.5"><span className="size-2 rounded-sm border border-foreground/30" /> Raw</span>
         <span className="sr-only">{label}</span>
@@ -117,7 +117,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
   return (
     <div className="rounded-xl border border-dashed border-foreground/15 p-10 text-center">
       <h2 className="font-semibold">{title}</h2>
-      {children && <div className="mt-2 text-sm text-foreground/60">{children}</div>}
+      {children && <div className="mt-2 text-sm text-foreground/70">{children}</div>}
     </div>
   );
 }

@@ -1,0 +1,74 @@
+
+> @bondrail/indexer@0.1.0 test /Users/adokiye/Nervos_Development/slice-next/indexer
+> node --import tsx --test test/*.test.ts
+
+TAP version 13
+# Subtest: registry events preserve history, latest signature and registry-qualified membership
+ok 1 - registry events preserve history, latest signature and registry-qualified membership
+  ---
+  duration_ms: 57.246625
+  type: 'test'
+  ...
+# Subtest: account settlement counts Transfer + Settled + collected Revenue exactly once
+ok 2 - account settlement counts Transfer + Settled + collected Revenue exactly once
+  ---
+  duration_ms: 58.874917
+  type: 'test'
+  ...
+# Subtest: batched identical payments with distinct nonces each count once
+ok 3 - batched identical payments with distinct nonces each count once
+  ---
+  duration_ms: 4.186166
+  type: 'test'
+  ...
+# Subtest: settlement marker does not swallow a subsequent Native payment in the same transaction
+ok 4 - settlement marker does not swallow a subsequent Native payment in the same transaction
+  ---
+  duration_ms: 3.408667
+  type: 'test'
+  ...
+# Subtest: direct token authorization remains counted once when later swept; later ordinary transfer stays unclassified
+ok 5 - direct token authorization remains counted once when later swept; later ordinary transfer stays unclassified
+  ---
+  duration_ms: 2.995958
+  type: 'test'
+  ...
+# Subtest: multiple accounts and indirect transaction entrypoints correlate by account and nonce
+ok 6 - multiple accounts and indirect transaction entrypoints correlate by account and nonce
+  ---
+  duration_ms: 3.577042
+  type: 'test'
+  ...
+# Subtest: unindexed account asset uses Settled as evidence and ignores unrelated USDC transfers
+ok 7 - unindexed account asset uses Settled as evidence and ignores unrelated USDC transfers
+  ---
+  duration_ms: 2.750291
+  type: 'test'
+  ...
+# Subtest: issuer-funded payer is counted once but excluded from attributed revenue
+ok 8 - issuer-funded payer is counted once but excluded from attributed revenue
+  ---
+  duration_ms: 2.761583
+  type: 'test'
+  ...
+# Subtest: bond trigger flag starts false, steps up, and clears on recovery without changing its pool
+ok 9 - bond trigger flag starts false, steps up, and clears on recovery without changing its pool
+  ---
+  duration_ms: 10.059917
+  type: 'test'
+  ...
+# Subtest: vault discovery, deposits, transferred cost basis, burn, curator events and block-pinned daily history
+ok 10 - vault discovery, deposits, transferred cost basis, burn, curator events and block-pinned daily history
+  ---
+  duration_ms: 90.936667
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1165.092042

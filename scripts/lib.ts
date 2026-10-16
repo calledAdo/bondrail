@@ -1,5 +1,5 @@
 // Shared helpers for Bondrail operational scripts: chains, keys, clients, forge artifacts, deployments.
-// Keys live outside the repo in ~/.slice (chmod 600) and are never printed.
+// Keys live outside the repo in ~/.bondrail (chmod 600) and are never printed.
 import fs from 'node:fs';
 import { deploymentName, deploymentPath, assertWritable, writeJson, roleKeyPath } from './deployment-path.mjs';
 import os from 'node:os';
@@ -18,7 +18,7 @@ import { monadTestnet, bondrailLocal, createRpcTransport, rpcUrlsFromEnv } from 
 
 export const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 export const DEPLOYMENT = deploymentName();
-export const KEY_ROOT = process.env.BONDRAIL_KEY_DIR ?? path.join(os.homedir(), '.slice');
+export const KEY_ROOT = process.env.BONDRAIL_KEY_DIR ?? path.join(os.homedir(), '.bondrail');
 const prefix = process.env.BONDRAIL_KEY_PREFIX ?? (DEPLOYMENT === 'main' ? '' : DEPLOYMENT);
 if (prefix && !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(prefix)) throw new Error('Invalid BONDRAIL_KEY_PREFIX');
 export const KEY_DIR = path.join(KEY_ROOT, prefix);
@@ -40,7 +40,7 @@ export const publicClient: PublicClient = createPublicClient({
 
 const ANVIL_KEY = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
 
-/** Load ~/.slice/<name>.key, creating it (0600) when `create` is set. Local chain uses anvil's key for the deployer. */
+/** Load ~/.bondrail/<name>.key, creating it (0600) when `create` is set. Local chain uses anvil's key for the deployer. */
 export function key(name: string, opts: { create?: boolean; fallbackFile?: string } = {}): Hex {
   if (chainId === 31337 && name === 'deployer') return ANVIL_KEY;
   if (chainId === 31337 && !process.env.BONDRAIL_KEY_DIR)
@@ -137,6 +137,8 @@ export type DeploymentFile = {
   deployer?: Address;
   creditRegistry?: Address;
   vault?: Address;
+  vaultFactory?: Address;
+  vaultFactoryStartBlock?: string;
   attester?: Address;
   curator?: Address;
   templateHash?: Hex;

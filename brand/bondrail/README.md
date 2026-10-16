@@ -14,14 +14,18 @@ Upload `social/avatar-mint-512.png` (recommended, charcoal symbol on mint) or `s
 
 Visible app and API branding, docs, metadata, passkey display names, root package name and workspace namespace now use Bondrail. Workspace imports use `@bondrail/*`; run `pnpm install --frozen-lockfile` after updating.
 
-The `next` branch now uses `Bondrail*` Solidity contracts, `bondrail*` SDK exports, `@bondrail/`
+The current source uses `Bondrail*` Solidity contracts, `bondrail*` SDK exports, `@bondrail/`
 remappings and `BONDRAIL_*` environment variables. EIP-712 domains are `BondrailFactory`,
 `BondrailCovenant`, and `Bondrail Profile` (v1); old signatures and policies require replacement.
-The judged deployment retains its historical `Slice*` names; its deployment manifest is unchanged.
-New policies use `/.well-known/bondrail.json`; `/.well-known/slice.json` serves the same document.
-Local key paths (`~/.slice`), infrastructure hostnames, historical build records and original demo
-evidence remain intact. The web URL is https://bondrail.vercel.app and GitHub is
-https://github.com/calledAdo/bondrail. The legacy web hostname remains available for existing passkeys.
+The judged deployment retains its historical `Slice*` names in the read-only
+`docs/deployments/archive/10143-slice-metropolis.json` and `metropolis-submission` tag.
+Current policies use `/.well-known/bondrail.json`; the legacy document alias was removed.
+Keys default to `~/.bondrail`; operators must preserve existing key identities during
+migration. Historical records and original demo evidence remain intact.
+The production web URL is https://bondrail.vercel.app and GitHub is
+https://github.com/calledAdo/bondrail. Retired web/agent projects no longer serve traffic;
+passkeys scoped to a retired hostname cannot authenticate on a different origin.
+See [server migration](../../docs/deployments/MIGRATION-2026-10.md).
 
 The demo presentation script and compositor are updated for Bondrail. Existing exported MP4s and raw transaction captures still show Slice and have not been mislabelled as rebranded footage. A fully rebranded video needs new read-only app captures plus an explicit treatment of historical transaction footage; never repeat successful financial operations solely for branding.
 

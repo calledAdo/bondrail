@@ -49,6 +49,10 @@ demo/video/*.mp4
 packages/sdk/dist/
 packages/sdk/*.tgz
 
+# Solidity npm payload is copied from contracts/src at prepack.
+packages/contracts/src/
+packages/contracts/*.tgz
+
 # Named local rehearsals and generated isolated configuration
 docs/deployments/31337-*.json
 docs/deployments/*.pending

@@ -12,7 +12,8 @@
     "test": "node --import tsx --test test/*.test.ts"
   },
   "dependencies": {
-    "envio": "3.14.0"
+    "envio": "3.14.0",
+    "viem": "2.54.2"
   },
   "packageManager": "pnpm@10.32.0",
   "engines": {

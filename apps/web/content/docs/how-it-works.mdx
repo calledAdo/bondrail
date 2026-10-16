@@ -3,28 +3,30 @@ title: How it works
 description: From the first payment to a repaid bond.
 ---
 
+Monad testnet; not audited. Addresses and service roles come from the [selected deployment](/docs/reference/deployments).
+
 ## 1. The account builds history
 
 A business creates its BondrailAccount in the token it charges fees in (USDC, WETH, any ERC-20). From then on
-every payment is booked on-chain: `cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `uniquePayers`,
+payments through `collect`, `settleOut` or `settle` are booked; plain transfers need `sweep`: `cumulativeRevenue`, `cumulativeVolume`, `paymentCount`, `uniquePayers`,
 `firstRevenueAt`, `revenueByDay`. With no bond, 100% of revenue is credited to the business (**passthrough**).
 
 ## 2. The business raises
 
-After `minHistory` seconds of history the issuer creates a bond: raise amount, repayment cap, revenue share,
+Through `factory.createBond`, after `minHistory` seconds of history the issuer creates a bond: raise amount, repayment cap, revenue share,
 schedule and milestone. Investors deposit and receive claims 1:1. Every deposit re-checks the source.
 
 ## 3. Capital is released in two stages
 
 At activation 25% or 50% of the raise goes to the business. The rest stays in the bond until a milestone
-proves revenue since activation. If the milestone deadline passes, it goes back to investors.
+proves revenue since activation. If the milestone deadline passes, `expireUndrawn` moves it to investor recovery.
 
 ## 4. Every payment repays
 
 While the bond is active, each payment's `revenueBps` share goes straight to the bond (**credit mode**), up to
-the cap. A rounding carry means micro-payments never round investors to zero.
+the cap. `BondrailAccount._split` carries rounding remainders into later payments; an individual tiny payment can still allocate zero.
 
-**Optional performance trigger — not yet deployed:** at issuance the business can agree to a larger
+**Optional performance trigger (`BondrailBond.checkTrigger`):** at issuance the business can agree to a larger
 investor share if booked revenue falls below a floor over 1–30 complete UTC days. Anyone can check
 once per UTC day when the full window falls strictly after the activation UTC day. The first check is
 on UTC day `activationDay + 1 + triggerWindowDays`; the entire activation day and today's partial bucket
@@ -35,11 +37,14 @@ but can avoid the trigger. See [the bond terms](/docs/concepts/bond).
 
 ## 5. The bond closes
 
-At the cap or at maturity the bond closes and the account returns to passthrough. Holders redeem their share
+At cap collection or an `account.closeBondAtMaturity` call the bond closes and the account returns to passthrough. Holders redeem their share
 of the pool. The closed bond stays on the business's profile as track record.
 
 ```
 Funding ──activate──► Active ──cap or maturity──► Closed           (Native)
    │                    │                 └────► Closing ─120 s─► Closed   (Watched: late evidence window)
-   └─deadline, unfilled─► Cancelled (refunds)     └─ two violations or 24 h dark ─► default (stake to investors)
+   └─deadline, still Funding─► Cancelled (refunds)     └─ two violations or 24 h dark ─► default (stake to investors)
 ```
+
+The [credit vault](/docs/concepts/credit-vault) can hold a portfolio of these bonds.
+The [credit registry](/docs/concepts/credit-profiles) exposes recorded outcomes and separately signed assessments.

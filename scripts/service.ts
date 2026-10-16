@@ -9,7 +9,7 @@ async function main() {
   const d = readDeployment();
   if (d.roles?.[service]?.toLowerCase() !== account(service).address.toLowerCase()) throw new Error('Service key does not match deployment role');
   const env = { ...process.env, BONDRAIL_CHAIN_ID: String(chainId), BONDRAIL_RPC_URL: rpcUrl,
-    BONDRAIL_STORE_NAMESPACE: `bondrail-${chainId}-${DEPLOYMENT}`,
+    BONDRAIL_STORE_NAMESPACE: process.env.BONDRAIL_STORE_NAMESPACE ?? `bondrail-${chainId}-${DEPLOYMENT}`,
     ...(service === 'facilitator' ? { FACILITATOR_PRIVATE_KEY: key(service), FACILITATOR_FACTORY: d.factory,
       FACILITATOR_ASSET: d.asset, FACILITATOR_RPC_URL: rpcUrl } : {}),
     ...(service === 'attester' ? { ATTESTER_PRIVATE_KEY: key(service), CHAIN_ID: String(chainId), RPC_URL: rpcUrl,
@@ -22,6 +22,6 @@ async function main() {
   const child = spawn(process.execPath, ['--import', 'tsx', `services/${service}/src/${entry}`, ...args], { cwd: ROOT, env, stdio: 'inherit' });
   for (const signal of ['SIGINT', 'SIGTERM'] as const) process.on(signal, () => child.kill(signal));
   child.on('error', () => { process.exitCode = 1; });
-  child.on('exit', code => { process.exitCode = code ?? 1; });
+  child.on('exit', (code, signal) => { process.exitCode = code ?? (signal === 'SIGTERM' || signal === 'SIGINT' ? 0 : 1); });
 }
 main().catch((error: unknown) => { console.error(error instanceof Error ? error.message : error); process.exitCode = 1; });

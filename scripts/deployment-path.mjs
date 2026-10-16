@@ -32,7 +32,7 @@ export function roleKeyPath(name, env = process.env, home = os.homedir()) {
   const deployment = deploymentName(env.BONDRAIL_DEPLOYMENT ?? 'main');
   const prefix = env.BONDRAIL_KEY_PREFIX ?? (deployment === 'main' ? '' : deployment);
   if (prefix && !/^[a-z0-9][a-z0-9_-]{0,31}$/.test(prefix)) throw new Error('Invalid BONDRAIL_KEY_PREFIX');
-  const root = env.BONDRAIL_KEY_DIR ?? path.join(home, '.slice');
+  const root = env.BONDRAIL_KEY_DIR ?? path.join(home, '.bondrail');
   return name === 'deployer' ? env.BONDRAIL_DEPLOYER_KEY_FILE ?? path.join(root, 'deployer.key')
     : path.join(root, prefix, `${name}.key`);
 }

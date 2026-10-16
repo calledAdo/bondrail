@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "chainId": 10143,
+  "network": "Monad Testnet",
+  "deployedAt": "2026-10-11T02:42:21.838Z",
+  "startBlock": "69994909",
+  "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+  "factory": "0xef7916dc8c95338cd060d498528484e97aa3c597",
+  "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
+  "forwarder": "0xB9F79d863261869B234c481D1f9A7af84AeAd192",
+  "observer": "0x0c95c87Ce958d75f6aF56E6bd921884752cbC12B",
+  "milestoneSigner": "0xafa1A1589E0E05edD67CF82C41dff802b0f8cBca",
+  "reviewer": "0x10Be6883Ebbd9B610C43a97f338512a5e66f5893",
+  "minHistory": 600,
+  "bondImplementation": "0x9e1d7292897719203f3dce5879ed9d915f246ce2",
+  "accountImplementation": "0xd5f796aec221da934879f490ad7b88eeb48c350e",
+  "issuers": {
+    "pumplab": {
+      "name": "PumpLab",
+      "tier": "native",
+      "issuer": "0x3711031Ff66392A249d6f052D5BECdacCb00324f",
+      "account": "0xd5edc79C2a8589c268d37353d77183374897799a",
+      "source": "0x72E53DD9D209512788e6F3859ce07c56f47983E9",
+      "token": "0x7eC24b914917AeEfFdfD0752B6B0FBe8da0A658f",
+      "bond": "0x80e0EB68a1731d545E80e6e9e997f66e6b38dEd0",
+      "kuruMarket": "0x6492423ca48E33C8D82D085a97B830C9f86a5720",
+      "kuruVault": "0xE714Adae8c3F7E459dEcbA4120E246C8C8223Cf5"
+    },
+    "agent": {
+      "name": "Oracle Agent",
+      "tier": "watched",
+      "issuer": "0xd1ef0BD715Ca18d1cCe7198111A0eF2BB26d56bb",
+      "account": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
+      "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
+      "endpoint": "https://slice-agent.vercel.app/api/oracle?question=health"
+    },
+    "curvelab": {
+      "name": "CurveLab",
+      "tier": "native",
+      "issuer": "0x7c6E3612cD66C66385487AB9150E72E1E7633cB7",
+      "account": "0x4295ba874FDf591AF88fD33C87A61b2e7A97b6D0",
+      "source": "0xe45b023483B9323e7a41baBeb0e5186EC1FA8afB",
+      "token": "0x0F548a4cb1EC9d6e0e8DFd668109b0f7E9597c05",
+      "bond": "0xD4E5901cce4A7173903F75e6e0327020f5C18B05"
+    }
+  },
+  "watchPolicy": {
+    "id": "slice-agent",
+    "chainId": 10143,
+    "chainSelector": "2183018362218727504",
+    "covenant": "0x96a3fe15d3f311728ae836b9b0a7ad2feb252cb3",
+    "bond": "0xd30bf6d5ecf1f55D1212F1a66F9521eEFBA50c21",
+    "manifestUrl": "https://slice-agent.vercel.app/.well-known/slice.json",
+    "endpoints": [
+      {
+        "url": "https://slice-agent.vercel.app/api/oracle?question=health",
+        "minAmount": "10000"
+      }
+    ],
+    "method": "GET",
+    "headers": {
+      "accept": "application/json"
+    },
+    "network": "eip155:10143",
+    "asset": "0x534b2f3A21130d7a60830c2Df862319e593943A3",
+    "expectedPayTo": "0x8ec5924A95828c855834d7F5F37126B833AC3fAc",
+    "maxTimeoutSeconds": 300,
+    "parserVersion": "slice-x402-v2-exact-eip3009/2",
+    "epochSeconds": 30,
+    "freshnessSeconds": 90
+  }
+}

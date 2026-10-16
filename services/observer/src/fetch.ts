@@ -2,7 +2,7 @@ import { lookup } from 'node:dns/promises';
 import { isIP } from 'node:net';
 import https from 'node:https';
 import http from 'node:http';
-import type { FetchedResponse, WatchPolicy } from './protocol.js';
+import type { FetchedResponse, WatchPolicy } from './protocol';
 
 export function publicAddress(ip: string): boolean {
   if (isIP(ip) === 4) {

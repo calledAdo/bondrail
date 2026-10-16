@@ -1,8 +1,0 @@
-[Unit]
-Description=Schedule Bondrail next attester
-[Timer]
-OnCalendar=*-*-* 00/6:15:00
-Persistent=true
-Unit=bondrail-next-attester.service
-[Install]
-WantedBy=timers.target

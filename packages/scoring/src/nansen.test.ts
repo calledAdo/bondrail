@@ -12,7 +12,8 @@ test('testnet never leaks into a mainnet provider lookup', async () => {
   const r = await client.inspect('labels', address, 10143);
   assert.equal(r.status, 'unavailable');
 });
-test('empty response is no-labels, not clean; bounded cache/request count', async () => {
+test('empty response is no-labels, not clean; bounded cache/request count', async (t) => {
+  t.mock.timers.enable({ apis: ['Date'], now: 1_800_000_000_000 });
   let calls = 0;
   const client = new NansenClient({
     apiKey: 'test',
@@ -26,7 +27,7 @@ test('empty response is no-labels, not clean; bounded cache/request count', asyn
   const r = await client.inspect('related-wallets', address, 143);
   assert.equal(r.status, 'no_labels');
   assert.equal(r.truncated, true);
-  await client.inspect('related-wallets', address, 143);
+  assert.equal(await client.inspect('related-wallets', address, 143), r);
   assert.equal(calls, 1);
   assert.equal((await client.inspect('labels', address, 143)).status, 'unavailable');
 });

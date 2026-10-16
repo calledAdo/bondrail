@@ -1,7 +1,14 @@
 import { createTransport, http, HttpRequestError, type EIP1193RequestFn, type HttpTransportConfig, type Transport } from 'viem';
 
+export interface RpcScheduler {
+  /** Monotonic time in milliseconds. */
+  now(): number;
+  /** Schedule a callback and return a function that cancels it. */
+  schedule(callback: () => void, delayMs: number): () => void;
+}
+
 export interface RpcTransportOptions {
-  /** All transports in this process share a bucket; the lowest configured limits win. */
+  /** By default all transports in this process share a bucket; the lowest configured limits win. */
   rps?: number;
   concurrency?: number;
   /** Retries per URL, after the initial attempt. */
@@ -9,6 +16,10 @@ export interface RpcTransportOptions {
   retryDelay?: number;
   timeout?: number;
   fetchFn?: HttpTransportConfig['fetchFn'];
+  /** Defaults to real time. Transports using the same scheduler share a pacing bucket. */
+  scheduler?: RpcScheduler;
+  /** Jitter source in [0, 1); defaults to Math.random. */
+  random?: () => number;
 }
 
 /** The plural setting takes precedence; legacy service settings can be supplied as fallback. */
@@ -29,11 +40,15 @@ class RpcBucket {
   rps = Infinity;
   concurrency = Infinity;
   private tokens = 1;
-  private updatedAt = performance.now();
+  private updatedAt: number;
   private active = 0;
   private blockedUntil = 0;
   private queue: Array<() => void> = [];
-  private timer?: ReturnType<typeof setTimeout>;
+  private cancelTimer?: () => void;
+
+  constructor(private scheduler: RpcScheduler) {
+    this.updatedAt = scheduler.now();
+  }
 
   configure(rps: number, concurrency: number) {
     this.rps = Math.min(this.rps, rps);
@@ -41,7 +56,7 @@ class RpcBucket {
   }
 
   coolDown(ms: number) {
-    this.blockedUntil = Math.max(this.blockedUntil, performance.now() + ms);
+    this.blockedUntil = Math.max(this.blockedUntil, this.scheduler.now() + ms);
   }
 
   async run<T>(request: () => Promise<T>): Promise<T> {
@@ -51,15 +66,15 @@ class RpcBucket {
   }
 
   private drain() {
-    if (this.timer) clearTimeout(this.timer);
-    this.timer = undefined;
+    this.cancelTimer?.();
+    this.cancelTimer = undefined;
     if (!this.queue.length || this.active >= this.concurrency) return;
-    const now = performance.now();
+    const now = this.scheduler.now();
     this.tokens = Math.min(1, this.tokens + (now - this.updatedAt) * this.rps / 1000);
     this.updatedAt = now;
     const wait = Math.max(this.blockedUntil - now, (1 - this.tokens) * 1000 / this.rps);
     if (wait > 0) {
-      this.timer = setTimeout(() => this.drain(), Math.ceil(wait));
+      this.cancelTimer = this.scheduler.schedule(() => this.drain(), Math.ceil(wait));
       return;
     }
     this.tokens--;
@@ -68,7 +83,15 @@ class RpcBucket {
     this.drain();
   }
 }
-const bucket = new RpcBucket();
+const realScheduler: RpcScheduler = {
+  now: () => performance.now(),
+  schedule: (callback, delayMs) => {
+    const timer = setTimeout(callback, delayMs);
+    return () => clearTimeout(timer);
+  },
+};
+// The default bucket remains process-wide. A custom scheduler also isolates its time domain.
+const buckets = new WeakMap<RpcScheduler, RpcBucket>([[realScheduler, new RpcBucket(realScheduler)]]);
 // Remember restrictions across public/wallet clients, not only one transport instance.
 const restrictedMethods = new Map<string, Map<string, unknown>>();
 
@@ -107,7 +130,14 @@ export function createRpcTransport(urls: readonly string[], opts: RpcTransportOp
   const timeout = positive(opts.timeout ?? 10_000, 'timeout');
   if (!Number.isSafeInteger(concurrency) || !Number.isSafeInteger(retryCount) || retryCount < 0)
     throw new Error('Invalid RPC concurrency or retry count');
+  const scheduler = opts.scheduler ?? realScheduler;
+  let bucket = buckets.get(scheduler);
+  if (!bucket) {
+    bucket = new RpcBucket(scheduler);
+    buckets.set(scheduler, bucket);
+  }
   bucket.configure(rps, concurrency);
+  const random = opts.random ?? Math.random;
 
   return parameters => {
     const transports = ordered.map(url => http(url, {
@@ -146,7 +176,7 @@ export function createRpcTransport(urls: readonly string[], opts: RpcTransportOp
                   } else if (isTransientRpcError(error)) {
                     // Set cooldown BEFORE releasing the slot, so queued callers cannot jump it.
                     // Equal jitter: [base/2, base), exponential with a five-second cap.
-                    const backoff = Math.min(5000, retryDelay * 2 ** attempt) * (0.5 + Math.random() * 0.5);
+                    const backoff = Math.min(5000, retryDelay * 2 ** attempt) * (0.5 + random() * 0.5);
                     bucket.coolDown(backoff);
                   }
                   throw error;

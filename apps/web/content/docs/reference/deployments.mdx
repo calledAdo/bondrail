@@ -1,9 +1,37 @@
 ---
 title: Deployments
-description: Addresses from the deployment selected for this build.
+description: Current Bondrail contracts and service roles from the selected deployment manifest.
 ---
 
-<Callout type="warn">These addresses come from the deployment manifest selected for this build.
-The next deployment is independent of the original judged deployment.</Callout>
+<Callout type="warn">Monad testnet; not audited. The current Bondrail deployment includes the
+vault and credit registry. Historical immutable contracts do not gain features from source updates.</Callout>
+
+Production is [bondrail.vercel.app](https://bondrail.vercel.app), serving `main`.
+`BONDRAIL_DEPLOYMENT` defaults to `main` and loads `docs/deployments/10143.json` for
+Monad testnet. `NEXT_PUBLIC_CHAIN_ID` selects the chain; a named selection such as
+`BONDRAIL_DEPLOYMENT=staging` loads `<chainId>-staging.json`. Rebuild after changing
+selection, and point the wallet configuration and indexer at the same deployment.
+All addresses below are read at build time through `deploymentPath`; no address is copied into MDX.
+
+The table includes `BondrailVault`, `BondrailCreditRegistry`, curator/attester and the
+facilitator gas wallet when present. An absent row means the manifest provides no address.
+The facilitator relays `account.settle`; its wallet does not hold payer funds. The manifest
+records identities, not live health or proof that every later code revision has been rolled out.
 
 <Deployments />
+
+| Service | Production endpoint |
+| --- | --- |
+| Paid agent | https://bondrail-next-agent.vercel.app |
+| Facilitator | https://bondrail-next.64-227-40-35.sslip.io |
+| Envio GraphQL | https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql |
+
+The retained hostnames are intentional. Envio project **bondrail-next** continues to use
+release branch **envio-next**. The old Envio project is retained for historical data.
+See the [production runbook](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/RUNBOOK.md)
+and [server migration](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/MIGRATION-2026-10.md).
+
+The Metropolis submission is preserved at tag
+[`metropolis-submission`](https://github.com/calledAdo/bondrail/tree/metropolis-submission), with its
+[read-only archived manifest](https://github.com/calledAdo/bondrail/blob/main/docs/deployments/archive/10143-slice-metropolis.json).
+It is not selected by the current loader and requires its historical ABIs and signed domains.

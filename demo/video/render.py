@@ -34,7 +34,7 @@ def base(scene, preview=False):
     elif scene['id'] in ('05-kuru', '06-deposit'):
         text = 'AUTOMATED DEMO WALLET / MONAD TESTNET'
     draw.text((1856, 26), text, anchor='ra', font=font(15), fill='#a8b2b0')
-    label = 'slice-flame.vercel.app'
+    label = 'bondrail.vercel.app'
     if scene['id'] == '07-cre': label = 'CRE simulation + real testnet report / 30-minute schedule'
     draw.text((1856, 54), label, anchor='ra', font=font(16), fill='#d0d7d5')
     draw.rounded_rectangle((94, 111, 1826, 979), radius=5, outline='#2f3835', width=2)
@@ -138,7 +138,7 @@ if __name__=='__main__':
     args=parser.parse_args()
     if args.preview:
         target=render_scene(SCENES[0],preview=args.preview)
-        (OUT/'slice-style-preview.mp4').write_bytes(target.read_bytes())
+        (OUT/'bondrail-style-preview.mp4').write_bytes(target.read_bytes())
     else:
         shots=json.loads((OUT/'capture.json').read_text())
         missing=[s['id'] for s in SCENES if s['id'] not in shots or (shots[s['id']].get('failed') and s['id'] not in EDITS)]
@@ -147,12 +147,12 @@ if __name__=='__main__':
             rendered=list(executor.map(lambda s:render_scene(s,shots),SCENES))
         listing=MEDIA/'concat.txt'
         listing.write_text(''.join(f"file '{p}'\n" for p in rendered))
-        subprocess.run([FFMPEG,'-hide_banner','-loglevel','error','-y','-f','concat','-safe','0','-i',str(listing),'-c','copy','-movflags','+faststart',str(OUT/'slice-metropolis-demo.mp4')],check=True)
+        subprocess.run([FFMPEG,'-hide_banner','-loglevel','error','-y','-f','concat','-safe','0','-i',str(listing),'-c','copy','-movflags','+faststart',str(OUT/'bondrail-metropolis-demo.mp4')],check=True)
         cursor=0;lines=[];i=0
         for scene in SCENES:
             for line in scene['lines']:
                 i+=1
                 lines.append(f"{i}\n{srt_time(cursor+line['start'])} --> {srt_time(cursor+line['end'])}\n{line['text']}\n")
             cursor+=scene['duration']
-        (OUT/'slice-metropolis-demo.srt').write_text('\n'.join(lines))
-        print('Final:',OUT/'slice-metropolis-demo.mp4','duration',cursor,'seconds')
+        (OUT/'bondrail-metropolis-demo.srt').write_text('\n'.join(lines))
+        print('Final:',OUT/'bondrail-metropolis-demo.mp4','duration',cursor,'seconds')

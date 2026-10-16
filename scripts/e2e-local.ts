@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import net from 'node:net';
+import { createServer } from 'node:http';
 import { spawn, type ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { randomBytes, createHash } from 'node:crypto';
@@ -14,14 +15,17 @@ import { classify, encodeObservationReport, observationDomain, observationTypes,
   type WatchPolicy, type Observation } from '../services/observer/src/protocol.ts';
 import { chromium } from '@playwright/test';
 import { webEnvironment } from './web-env.ts';
+import { verifyVaultBrowser } from './vault-browser.ts';
 
 const root = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..');
 const logs = path.join(root, '.data/e2e-local');
 const keys = fs.mkdtempSync(path.join(os.tmpdir(), 'bondrail-e2e-'));
 const children: ChildProcess[] = [];
 const checks: { check: string; result: string }[] = [];
-const protectedFile = path.join(root, 'docs/deployments/10143.json');
-const protectedBytes = fs.readFileSync(protectedFile);
+const protectedFiles = ['10143.json', 'archive/10143-slice-metropolis.json'].map(file => {
+  const absolute = path.join(root, 'docs/deployments', file);
+  return { file: absolute, bytes: fs.readFileSync(absolute) };
+});
 const generatedFiles = ['apps/web/next-env.d.ts', 'apps/web/tsconfig.json'].map(p => ({ file: path.join(root, p), bytes: fs.readFileSync(path.join(root, p)) }));
 fs.mkdirSync(logs, { recursive: true });
 const pass = (check: string) => { checks.push({ check, result: 'PASS' }); console.log(`PASS ${check}`); };
@@ -70,8 +74,10 @@ async function main() {
   const indexer = `http://127.0.0.1:${indexerPort}`;
   // Override caller values; temporary role keys can never resolve to the operator's key stores.
   Object.assign(process.env, {
-    BONDRAIL_CHAIN_ID: '31337', BONDRAIL_DEPLOYMENT: 'next', BONDRAIL_RPC_URL: rpc,
-    BONDRAIL_KEY_DIR: keys, BONDRAIL_KEY_PREFIX: 'next', BONDRAIL_DEPLOYER_KEY_FILE: path.join(keys, 'unused.key'),
+    BONDRAIL_CHAIN_ID: '31337', BONDRAIL_DEPLOYMENT: 'e2e', BONDRAIL_RPC_URL: rpc, BONDRAIL_RPC_URLS: rpc,
+    // The local adapter scans chain state per query; it does not share a public-provider IP budget.
+    BONDRAIL_RPC_RPS: '100', BONDRAIL_RPC_CONCURRENCY: '2',
+    BONDRAIL_KEY_DIR: keys, BONDRAIL_KEY_PREFIX: 'e2e', BONDRAIL_DEPLOYER_KEY_FILE: path.join(keys, 'unused.key'),
     BONDRAIL_MIN_HISTORY: '60', BONDRAIL_ENV: 'local', BONDRAIL_STORE: 'local',
     RAISE_USDC: '2', CAP_USDC: '2.4', STAKE_USDC: '0.5', FUNDING_DAYS: '4', MATURITY_DAYS: '9',
     TRIGGER_BOND: 'pumplab', TRIGGER_REVENUE_USDC: '0.01', TRIGGER_DAYS: '1', STEP_UP_BPS: '4000',
@@ -85,7 +91,7 @@ async function main() {
     NEXT_TELEMETRY_DISABLED: '1', BONDRAIL_WEB_DIST_DIR: '.next-e2e',
   });
   // Rehearsal owns this ignored local manifest; never delete or replace a public-chain manifest.
-  for (const suffix of ['', '.pending']) fs.rmSync(path.join(root, `docs/deployments/31337-next.json${suffix}`), { force: true });
+  for (const suffix of ['', '.pending']) fs.rmSync(path.join(root, `docs/deployments/31337-e2e.json${suffix}`), { force: true });
   await run('forge-build', path.join(os.homedir(), '.foundry/bin/forge'), ['build', '--root', 'contracts']);
   const { child: anvil } = start('anvil', path.join(os.homedir(), '.foundry/bin/anvil'),
     ['--host', '127.0.0.1', '--port', String(rpcPort), '--chain-id', '31337', '--silent']);
@@ -111,6 +117,70 @@ async function main() {
   await script('deploy-resume', 'scripts/deploy.ts', ['--force']);
   assert.equal(readDeployment().factory, d.factory);
   pass('Overwrite refused; --force resumes identical contracts');
+  await script('vault-factory-plan', 'scripts/deploy-vault-factory.ts', ['--register-existing']);
+  assert.equal(readDeployment().vaultFactory, undefined);
+  await script('vault-factory-deploy', 'scripts/deploy-vault-factory.ts', ['--execute', '--force']);
+  d = readDeployment();
+  assert(d.vault && d.vaultFactory && d.vaultFactoryStartBlock);
+  // Enforce the preflight's eth_call-only contract at the transport boundary.
+  const preflightMethods: string[] = [];
+  const preflightProxy = createServer(async (req, res) => {
+    try {
+      let body = ''; for await (const chunk of req) body += chunk;
+      const request = JSON.parse(body);
+      preflightMethods.push(request.method);
+      assert.equal(request.method, 'eth_call');
+      const response = await fetch(rpc, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+      res.setHeader('content-type', 'application/json'); res.end(await response.text());
+    } catch { res.writeHead(400); res.end('Only eth_call is permitted'); }
+  });
+  await new Promise<void>(resolve => preflightProxy.listen(0, '127.0.0.1', resolve));
+  const preflightRpc = `http://127.0.0.1:${(preflightProxy.address() as net.AddressInfo).port}`;
+  const preflightArgs = ['--rpc', preflightRpc, '--manifest', lib.deploymentFile];
+  try {
+    const match = JSON.parse(await script('vault-registration-match', 'scripts/check-vault-registration.ts', preflightArgs));
+    assert.equal(match.code, 'MATCH'); assert.equal(match.simulation, 'PASS'); assert.equal(match.ready, true);
+    assert.equal(match.candidateCodeHash, match.referenceCodeHash);
+    const originalCode = (await client.getCode({ address: d.vault }))!;
+    // Change only the trailing metadata byte; getters still work but exact verification must fail.
+    const differentMetadata = `${originalCode.slice(0, -2)}${originalCode.endsWith('00') ? '01' : '00'}` as Hex;
+    let mismatch;
+    try {
+      await client.request({ method: 'anvil_setCode' as never, params: [d.vault, differentMetadata] as never });
+      mismatch = JSON.parse(await script('vault-registration-mismatch', 'scripts/check-vault-registration.ts', preflightArgs, {}, 1));
+      assert.equal(mismatch.code, 'MISMATCH'); assert.equal(mismatch.simulation, 'InvalidVault');
+      assert.equal(mismatch.ready, false); assert.notEqual(mismatch.candidateCodeHash, mismatch.referenceCodeHash);
+    } finally { await client.request({ method: 'anvil_setCode' as never, params: [d.vault, originalCode] as never }); }
+    assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'vaultCount'), 0n);
+    assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'existingRegistered'), false);
+    fs.mkdirSync(path.join(root, 'docs/ux/phase-c'), { recursive: true });
+    fs.writeFileSync(path.join(root, 'docs/ux/phase-c/registration-preflight.json'), JSON.stringify({ match, mismatch, methods: [...new Set(preflightMethods)], registryUnchanged: true }, null, 2) + '\n');
+  } finally { await new Promise<void>((resolve, reject) => preflightProxy.close(error => error ? reject(error) : resolve())); }
+  pass('Registration preflight uses only eth_call: matching runtime passes, metadata mismatch fails with both hashes, registry unchanged');
+  await script('vault-factory-resume', 'scripts/deploy-vault-factory.ts', ['--execute', '--force', '--register-existing']);
+  const registered = JSON.parse(await script('vault-registration-already', 'scripts/check-vault-registration.ts', ['--rpc', rpc, '--manifest', lib.deploymentFile], {}, 1));
+  assert.equal(registered.code, 'MATCH'); assert.equal(registered.simulation, 'AlreadyRegistered'); assert.equal(registered.ready, false);
+  assert.equal(readDeployment().vaultFactory, d.vaultFactory);
+  const factoryReceipt = await write(account('deployer'), d.vaultFactory, artifact('BondrailVaultFactory').abi, 'createVault', [
+    d.asset, 'Patient revenue', 'brPATIENT', account('curator').address, account('deployer').address,
+    { description: 'Patient capital for new revenue raises', metadataHash: keccak256(stringToHex('patient-capital')) },
+  ]);
+  const created = factoryReceipt.logs.flatMap(log => {
+    try { const e = decodeEventLog({ abi: artifact('BondrailVaultFactory').abi, data: log.data, topics: log.topics });
+      return e.eventName === 'VaultCreated' ? [(e.args as unknown as { vault: Address }).vault] : []; } catch { return []; }
+  });
+  assert.equal(created.length, 1);
+  const secondVault = created[0];
+  assert.equal(await read(d.vaultFactory, 'BondrailVaultFactory', 'vaultCount'), 2n);
+  const firstStrategy = await read(d.vaultFactory, 'BondrailVaultFactory', 'strategy', [d.vault]);
+  const secondStrategy = await read(d.vaultFactory, 'BondrailVaultFactory', 'strategy', [secondVault]);
+  assert.notEqual(firstStrategy.description, secondStrategy.description);
+  await write(account('deployer'), d.asset, artifact('MockERC3009').abi, 'approve', [secondVault, 2_000_000n]);
+  await write(account('deployer'), secondVault, artifact('BondrailVault').abi, 'deposit', [2_000_000n, account('deployer').address]);
+  await write(account('deployer'), secondVault, artifact('BondrailVault').abi, 'withdraw', [100_000n, account('deployer').address, account('deployer').address]);
+  assert.equal(await read(secondVault, 'BondrailVault', 'totalAssets'), 1_900_000n);
+  pass('Vault factory plan/deploy/resume, exact legacy registration, two strategies, deposit and withdraw');
+
   await script('accounts', 'demo/scripts/setup-demo.ts', ['--force']);
   d = readDeployment();
   assert.equal(Object.keys(d.issuers).length, 3);
@@ -166,6 +236,12 @@ async function main() {
   assert.equal(await read(d.vault!, 'BondrailVault', 'totalAssets'), 2_000_000n);
   assert.equal(await read(d.vault!, 'BondrailVault', 'entryAssets'), 2_000_000n);
   pass('History warp, three recorded bonds, CurveLab open raise; vault allocates in Funding and NAV = 2 USDC');
+  await write(account('curator'), secondVault, artifact('BondrailVault').abi, 'allocate', [curve.bond, 400_000n]);
+  assert.equal(await read(secondVault, 'BondrailVault', 'costBasis', [curve.bond]), 400_000n);
+  await write(account('curator'), secondVault, artifact('BondrailVault').abi, 'withdrawFromRaise', [curve.bond, 100_000n]);
+  assert.equal(await read(secondVault, 'BondrailVault', 'costBasis', [curve.bond]), 300_000n);
+  pass('Second vault allocates to eligible Funding bond and withdraws from raise within hard limits');
+
   // Local-only report from the configured observer over actual HTTP manifest + offer.
   const policy = d.watchPolicy as WatchPolicy;
   const manifest = await fetch(policy.manifestUrl);
@@ -213,7 +289,7 @@ async function main() {
   assert.deepEqual(readDeployment().issuers, d.issuers);
   pass('Demo and full deploy reruns retain accounts/bonds/allocation');
   const { child: idx } = start('indexer', process.execPath, ['--import', 'tsx', 'scripts/dev-indexer.ts']);
-  await ready('indexer', indexer, idx);
+  await ready('indexer', `${indexer}/health`, idx);
   const snapshot = await (await fetch(indexer)).json() as { data: { Bond: unknown[]; Payment: { source: string }[] } };
   assert.equal(snapshot.data.Bond.length, 3);
   assert(snapshot.data.Payment.some(p => p.source === 'x402'));
@@ -225,6 +301,13 @@ async function main() {
   assert.equal(keccak256(stringToHex(evidence)), attested[0].evidenceHash);
   assert((await read(d.creditRegistry!, 'BondrailCreditRegistry', 'onchainProfile', [pump.account])).complete);
   pass('Local indexer serves all bonds and x402; real attester relays valid, complete profile with matching evidence');
+  // Browser wallet sends from explicitly impersonated local roles only.
+  const vaultInvestor = account('vault-depositor').address;
+  await write(account('deployer'), d.asset, artifact('MockERC3009').abi, 'mint', [vaultInvestor, 1_000_000n]);
+  for (const role of [vaultInvestor, account('curator').address]) {
+    await client.request({ method: 'anvil_impersonateAccount' as never, params: [role] as never });
+    await client.request({ method: 'anvil_setBalance' as never, params: [role, '0xde0b6b3a7640000'] as never });
+  }
   const webEnv = webEnvironment(d, rpc, indexer);
   fs.writeFileSync(path.join(logs, 'web.env'), Object.entries(webEnv).map(([k, v]) => `${k}=${v}`).join('\n') + '\n');
   const require = createRequire(import.meta.url);
@@ -258,21 +341,23 @@ async function main() {
     assert.match(await page.locator('body').innerText(), /1 of 1/);
     assert.deepEqual(errors, []);
     await page.screenshot({ path: path.join(logs, 'credit.png'), fullPage: true });
+    await verifyVaultBrowser({ browser, origin: `http://127.0.0.1:${webPort}`, rpc, deployment: d, investor: vaultInvestor, curator: account('curator').address, output: path.join(root, 'docs/ux/phase-c') });
   } catch (error) {
     fs.writeFileSync(path.join(logs, 'browser-failure.txt'), await page.locator('body').innerText());
     await page.screenshot({ path: path.join(logs, 'browser-failure.png'), fullPage: true });
     throw error;
   } finally { await browser.close(); }
-  pass('Web production build from 31337-next; browser reads all bonds, vault NAV and attestation without page errors');
-  assert.deepEqual(fs.readFileSync(protectedFile), protectedBytes);
-  pass('Judged deployment manifest unchanged; only isolated anvil used');
+  pass('Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots');
+  for (const { file, bytes } of protectedFiles) assert.deepEqual(fs.readFileSync(file), bytes);
+  pass('Current and judged deployment manifests unchanged; only isolated anvil used');
   const addresses = Object.entries({ USDC: d.asset, factory: d.factory, covenant: d.covenant, registry: d.creditRegistry, vault: d.vault,
     PumpLab: pump.source, 'PumpLab account': pump.account, 'PumpLab bond': pump.bond, 'Agent account': agent.account, 'Agent bond': agent.bond,
     'CurveLab account': curve.account, 'CurveLab bond': curve.bond });
   console.table(addresses.map(([contract, address]) => ({ contract, address })));
   console.table(checks);
-  const result = { deployment: 'docs/deployments/31337-next.json', addresses: Object.fromEntries(addresses), checks,
-    protectedSha256: createHash('sha256').update(protectedBytes).digest('hex'), completedAt: new Date().toISOString() };
+  const result = { deployment: 'docs/deployments/31337-e2e.json', addresses: Object.fromEntries(addresses), checks,
+    protectedSha256: Object.fromEntries(protectedFiles.map(({ file, bytes }) =>
+      [path.relative(root, file), createHash('sha256').update(bytes).digest('hex')])), completedAt: new Date().toISOString() };
   fs.writeFileSync(path.join(logs, 'result.json'), JSON.stringify(result, null, 2) + '\n');
   console.log(`E2E LOCAL PASS (${checks.length} checks). Logs: ${logs}. Services stop automatically.`);
 }
@@ -285,7 +370,8 @@ async function cleanup() {
   }
   fs.rmSync(keys, { recursive: true, force: true });
   for (const { file, bytes } of generatedFiles) if (!fs.readFileSync(file).equals(bytes)) fs.writeFileSync(file, bytes);
-  assert.deepEqual(fs.readFileSync(protectedFile), protectedBytes, 'Judged manifest must remain untouched');
+  for (const { file, bytes } of protectedFiles)
+    assert.deepEqual(fs.readFileSync(file), bytes, `Public manifest must remain untouched: ${file}`);
 }
 for (const signal of ['SIGINT', 'SIGTERM'] as const) process.once(signal, () => { void cleanup().finally(() => process.exit(1)); });
 main().catch((error: unknown) => { console.error(error instanceof Error ? error.stack : error); process.exitCode = 1; }).finally(cleanup);

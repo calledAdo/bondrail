@@ -17,7 +17,7 @@ def main():
     parser.add_argument('--transcript-file', type=Path, required=True,
                         help='Exact words spoken in the reference recording.')
     parser.add_argument('--text', default='Your business is earning. Your next move needs capital. Meet Bondrail. Issue revenue bonds, raise capital, and repay investors from revenue.')
-    parser.add_argument('--output', type=Path, default=OUT / 'slice-voice-test.wav')
+    parser.add_argument('--output', type=Path, default=OUT / 'bondrail-voice-test.wav')
     parser.add_argument('--seed', type=int, default=7)
     args = parser.parse_args()
     if not args.reference.is_file():
@@ -29,7 +29,7 @@ def main():
         parser.error('Reference transcript and target text must not be empty.')
 
     # Voice material stays local. Only public model weights are downloaded.
-    os.environ.setdefault('HF_HOME', '/tmp/slice-voice-hf')
+    os.environ.setdefault('HF_HOME', '/tmp/bondrail-voice-hf')
     import imageio_ffmpeg
     import mlx.core as mx
     import numpy as np

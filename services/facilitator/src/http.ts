@@ -12,6 +12,11 @@ export function facilitatorServer(facilitator: Awaited<ReturnType<typeof createF
       reply(200, facilitator.supported());
       return;
     }
+    if (req.method === 'GET' && req.url === '/health') {
+      try { reply(200, await facilitator.health()); }
+      catch { reply(503, { error: 'gas_health_unavailable' }); }
+      return;
+    }
     if (req.method !== 'POST' || !['/verify', '/settle'].includes(req.url ?? '')) {
       reply(404, { error: 'not_found' });
       return;

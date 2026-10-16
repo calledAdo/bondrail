@@ -117,7 +117,7 @@ withdraw paths could still divert fees, and making it safe needed Native-level r
     A higher price is fine. Several options are fine if all pay the account.
   - **Unknown:** no readable offer or manifest (outage, error, malformed).
   - **Compliant:** everything checks out.
-- **Buyers can verify too.** `@bondrail/sdk/x402-guard` (`sliceGuard`) wraps the x402 client's fetch and
+- **Buyers can verify too.** `@bondrail/sdk/x402-guard` (`bondrailGuard`) wraps the x402 client's fetch and
   refuses to sign an offer whose `payTo` is not the manifest's account (optionally confirmed on-chain via
   `factory.isAccount`). This defeats showing the monitor one `payTo` and customers another.
 - **Unguarded buyers** can still be shown another `payTo` (no code can make a buyer verify). The bond page

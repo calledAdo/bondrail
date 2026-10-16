@@ -1,7 +1,7 @@
 # @bondrail/sdk
 
 Typed clients, contract ABIs, x402 payments and revenue analytics for Bondrail.
-**Testnet; not audited.** Version 0.1.0 is prepared for release and has not been published.
+**Testnet; not audited.** Version 0.1.1 is prepared for release. This repository task does not publish it.
 
 ## Install
 
@@ -15,7 +15,7 @@ Before release, build a tarball from this repository and install it locally:
 
 ```sh
 npx -y pnpm@10.32.0 sdk:pack
-npm install /absolute/path/to/packages/sdk/bondrail-sdk-0.1.0.tgz viem
+npm install /absolute/path/to/packages/sdk/bondrail-sdk-0.1.1.tgz viem
 ```
 
 Requires Node.js 20+ and viem ^2.54.2. ESM only; TypeScript declarations are included.
@@ -234,16 +234,44 @@ dedicated subpaths.
 ## Building and packing
 
 `tsup` emits ESM plus bundled declarations into `dist/`; it embeds private observer/scoring helpers.
-viem and the public x402 packages remain external. Workspace exports resolve `src/` directly.
-`pnpm pack` applies `publishConfig.exports` so the tarball resolves only `dist/`, and converts workspace
-dev dependency ranges to ordinary versions. Consumers have no private runtime dependency.
+viem and the public x402 packages remain external. All package exports, `main` and `types` point at
+`dist/` directly, so both npm and pnpm produce a usable manifest. Consumers have no private runtime
+dependency. Version 0.1.0 has broken exports; use 0.1.1 or later.
 
-Use the root `sdk:pack` script (pnpm 10.32.0); `prepack` rebuilds the distribution. Do not use bare
-`npm pack` on the source directory: npm does not apply pnpm's `publishConfig.exports` override.
-To inspect the resulting release archive without publishing:
+Workspace development needs no SDK build: `tsconfig.base.json` and the web app's `paths` map SDK
+imports to sources. `tsc`, `tsx` and both Next.js bundlers read these mappings; the Next apps also
+list the SDK in `transpilePackages`. The root `tsconfig.json` extends the scripts config so root
+`tsx` / `node --import tsx` commands and their child processes use the same mappings. No custom
+Node export conditions or published source paths are needed.
+
+Use the root `sdk:pack` script (pnpm 10.32.0) or `npm pack` in this directory; `prepack` rebuilds
+the distribution. To verify the actual npm tarball without publishing:
 
 ```sh
-npm pack --dry-run /absolute/path/to/packages/sdk/bondrail-sdk-0.1.0.tgz
+pnpm sdk:verify
 ```
 
+This builds, runs `npm pack --ignore-scripts` (the build already ran), checks every manifest target,
+then installs the tarball and viem in a fresh temporary project outside the workspace and imports
+all ten entry points with plain Node. Temporary files are removed afterward. Registry access is
+required for the isolated install. `prepublishOnly` runs this same check for npm and pnpm;
+publishing with `--ignore-scripts` bypasses lifecycle safeguards.
+
 MIT licensed. No release or deployment is performed by the build or pack scripts.
+
+### Vaults (0.2.0)
+
+```ts
+import { listVaults, getVault, previewDeposit, previewWithdraw, previewRedeem } from '@bondrail/sdk/vault';
+const page = await listVaults(publicClient, vaultFactory, { offset: 0n, limit: 25 });
+const vault = await getVault(publicClient, page[0], { registry: vaultFactory });
+const shares = await previewDeposit(publicClient, page[0], assets);
+const burn = await previewWithdraw(publicClient, page[0], assets);
+const proceeds = await previewRedeem(publicClient, page[0], shares);
+```
+
+Registry pages contain at most 100 vaults. Continue by offset until `vaultCount()` is reached.
+`getVault` pins all reads to one block; share prices are asset base units per whole vault share.
+Vault shares have six more decimals than their asset. Previews use contract rounding: deposits
+use entry NAV, withdrawals use exit NAV. A preview does not reserve liquidity; read `maxWithdraw`
+or `maxRedeem` for the holder and simulate before sending. The current fixed mandate cannot be loosened.

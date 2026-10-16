@@ -13,9 +13,9 @@ Captions follow the speech with obvious recognition errors corrected and some ve
 Production:
 
 ```sh
-/tmp/slice-video-venv/bin/python demo/video/prepare_founder_pitch.py
+/tmp/bondrail-video-venv/bin/python demo/video/prepare_founder_pitch.py
 MPLCONFIGDIR=/tmp/bondrail-mpl /tmp/bondrail-matting-venv/bin/python demo/video/render_founder_pitch.py
-/tmp/slice-video-venv/bin/python demo/video/verify_founder_pitch.py
+/tmp/bondrail-video-venv/bin/python demo/video/verify_founder_pitch.py
 ```
 
 Background processing uses the MediaPipe selfie-segmentation model at `/tmp/bondrail-selfie-segmenter.tflite`; model source https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite . All face/video processing is local. No source recording was uploaded to a service.

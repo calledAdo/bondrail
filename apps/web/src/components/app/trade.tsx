@@ -8,6 +8,7 @@ import { erc20Abi, formatUnits, parseUnits, type Address, type Hash } from 'viem
 import { ExternalLink } from 'lucide-react';
 import { chain, safeNetwork } from '@/lib/wallet';
 import type { BondView } from '@/lib/protocol';
+import { Term, TermsText } from './term';
 import { cn } from '@/lib/cn';
 import { confirmedIn, receiptTimed } from '@/lib/tx';
 import { useKuruPrice } from '@/lib/kuru';
@@ -52,13 +53,13 @@ const ZERO = '0x0000000000000000000000000000000000000000' as Address;
 
 type Quote = { side: 'buy' | 'sell'; amount: string; out: bigint; at: number };
 
-export function Trade({ b }: { b: BondView }) {
+export function Trade({ b, initialSide = 'buy' }: { b: BondView; initialSide?: 'buy' | 'sell' }) {
   const market = b.kuru!.market as Address;
   const prices = useKuruPrice(market);
   const { address, chainId } = useAccount();
   const client = usePublicClient();
   const { data: wallet } = useWalletClient();
-  const [side, setSide] = useState<'buy' | 'sell'>('buy');
+  const [side, setSide] = useState<'buy' | 'sell'>(initialSide);
   const [amount, setAmount] = useState('');
   const [quote, setQuote] = useState<Quote>();
   const [busy, setBusy] = useState(false);
@@ -195,20 +196,20 @@ export function Trade({ b }: { b: BondView }) {
     <div className="space-y-5">
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
-          <dt className="text-xs text-foreground/60">Best bid</dt>
+          <dt className="text-xs text-foreground/70">Best bid</dt>
           <dd className="font-mono tabular">{bid ? bid.toFixed(4) : '–'}</dd>
         </div>
         <div>
-          <dt className="text-xs text-foreground/60">Best ask</dt>
+          <dt className="text-xs text-foreground/70">Best ask</dt>
           <dd className="font-mono tabular">{ask ? ask.toFixed(4) : '–'}</dd>
         </div>
         <div>
-          <dt className="text-xs text-foreground/60">Cash backing</dt>
+          <dt className="text-xs text-foreground/70"><TermsText>Cash backing</TermsText></dt>
           <dd className="font-mono tabular">{b.backingPerToken.toFixed(4)}</dd>
         </div>
       </dl>
-      <p className="text-xs text-foreground/60">
-        Prices in {b.asset.symbol} per claim. The market prices the remaining revenue rights; cash backing is only what a claim redeems for today.
+      <p className="text-xs text-foreground/70">
+        <TermsText>{`Prices in ${b.asset.symbol} per claim. The market prices the remaining revenue rights; cash backing is only what a claim redeems for today.`}</TermsText>
       </p>
 
       <div className="grid grid-cols-2 gap-1 rounded-lg border border-foreground/15 p-1 text-sm">
@@ -225,7 +226,7 @@ export function Trade({ b }: { b: BondView }) {
       </div>
 
       <label className="block space-y-1.5">
-        <span className="flex justify-between text-xs text-foreground/60">
+        <span className="flex justify-between text-xs text-foreground/70">
           <span>{buy ? `Spend (${b.asset.symbol})` : 'Sell (claims)'}</span>
           {address && <span>Balance {n(balance)}</span>}
         </span>
@@ -234,7 +235,7 @@ export function Trade({ b }: { b: BondView }) {
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           placeholder="0.00"
-          className="h-10 w-full rounded-lg border border-foreground/15 bg-transparent px-3 font-mono text-sm outline-none focus:border-foreground/40"
+          className="h-10 w-full rounded-lg border border-foreground/15 bg-transparent px-3 font-mono text-sm focus-visible:outline-2 focus-visible:outline-foreground"
         />
       </label>
 
@@ -250,17 +251,17 @@ export function Trade({ b }: { b: BondView }) {
             ] as const
           ).map(([k, v]) => (
             <div key={k} className="flex justify-between gap-4">
-              <dt className="text-foreground/60">{k}</dt>
-              <dd className={cn('font-mono tabular', k === 'Price impact' && impact > 0.05 && 'text-orange-500')}>{v}</dd>
+              <dt className="text-foreground/70"><TermsText>{k}</TermsText></dt>
+              <dd className={cn('font-mono tabular', k === 'Price impact' && impact > 0.05 && 'text-foreground/80')}>{v}</dd>
             </div>
           ))}
         </dl>
       )}
 
       {!address ? (
-        <p className="text-sm text-foreground/60">Connect a wallet to trade.</p>
+        <p className="text-sm text-foreground/70">Connect a wallet to trade.</p>
       ) : valid && (balance ?? 0n) < spend ? (
-        <p className="text-sm text-orange-500">Not enough {buy ? b.asset.symbol : 'claims'}.</p>
+        <p className="text-sm text-foreground/80">Not enough {buy ? b.asset.symbol : 'claims'}.</p>
       ) : (allowance ?? 0n) < spend ? (
         <Action disabled={!ready || !valid} onClick={approve}>
           Approve {buy ? b.asset.symbol : 'claims'}
@@ -272,7 +273,7 @@ export function Trade({ b }: { b: BondView }) {
       )}
 
       {status && (
-        <p role={status.error ? 'alert' : 'status'} className={cn('text-sm', status.error ? 'text-red-500' : 'text-foreground/70')}>
+        <p role={status.error ? 'alert' : 'status'} className={cn('text-sm', status.error ? 'text-foreground' : 'text-foreground/70')}>
           {status.text}{' '}
           {status.hash && chain.blockExplorers && (
             <a href={`${chain.blockExplorers.default.url}/tx/${status.hash}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline-offset-4 hover:underline">
@@ -281,7 +282,7 @@ export function Trade({ b }: { b: BondView }) {
           )}
         </p>
       )}
-      <p className="text-xs text-foreground/50">
+      <p className="text-xs text-foreground/70">
         Kuru market <span className="font-mono">{market.slice(0, 6)}…{market.slice(-4)}</span>. Testnet; small markets move a lot per trade.
       </p>
     </div>

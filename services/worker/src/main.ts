@@ -42,7 +42,7 @@ const accountABI = parseAbi([
 ]);
 const tokenABI = parseAbi(['function balanceOf(address account) view returns (uint256)']);
 // Contract maintenance only (sweeps, expiries, closes, settlement). Covenant reports for Watched bonds are
-// sent by the CRE reporter (ops/covenant-server), so each job has exactly one writer.
+// sent by the CRE reporter (ops/bondrail-covenant.service), so each job has exactly one writer.
 interface Target {
   bond: Address;
   account: Address;

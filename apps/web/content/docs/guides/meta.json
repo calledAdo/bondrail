@@ -1,1 +1,10 @@
-{ "title": "Integrate", "pages": ["quickstart", "native", "x402", "raising", "investing"] }
+{
+  "title": "Guides",
+  "pages": [
+    "quickstart",
+    "native",
+    "x402",
+    "raising",
+    "investing"
+  ]
+}

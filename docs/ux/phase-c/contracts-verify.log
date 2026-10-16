@@ -1,0 +1,1343 @@
+> bondrail@0.1.0 contracts:verify /Users/adokiye/Nervos_Development/slice-next
+> node packages/contracts/scripts/verify-pack.mjs
+
+[contracts:verify] Compile canonical contracts and compare interface ABIs
+No files changed, compilation skipped
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/BondrailCovenant.sol:70:32
+   │
+70 │     function initializeFactory(address factory_) external {
+   │                                ━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/BondrailFactory.sol:72:9
+   │
+72 │         address bondImplementation_,
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/BondrailFactory.sol:70:9
+   │
+70 │         address covenant_,
+   │         ━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+   ╭▸ src/BondrailFactory.sol:73:9
+   │
+73 │         address accountImplementation_,
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+   ╭▸ src/BondrailFactory.sol:99:9
+   │
+99 │         BondrailAccount(account).initialize(asset_, msg.sender);
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailFactory.sol:100:9
+    │
+100 │         emit AccountCreated(msg.sender, account, asset_);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unused-return]: return value of an external call is not used
+   ╭▸ src/BondrailFactory.sol:96:9
+   │
+96 │         IERC20Metadata(asset_).decimals(); // claims mint 1:1 and share its decimals
+   │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/unused-return
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:112:63
+    │
+112 │                 || o.epoch != o.observedAt / EPOCH_SECONDS || o.observedAt > block.timestamp + MAX_CLOCK_SKEW
+    │                                                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:113:20
+    │
+113 │                 || block.timestamp > uint256(o.observedAt) + MAX_AGE || o.expiresAt < block.timestamp
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:113:73
+    │
+113 │                 || block.timestamp > uint256(o.observedAt) + MAX_AGE || o.expiresAt < block.timestamp
+    │                                                                         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:123:21
+    │
+123 │                 && (block.timestamp >= b.settleAfter() || o.observedAt >= b.collectionClosedAt())
+    │                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailCovenant.sol:138:9
+    │
+138 │         emit ObservationAccepted(o.bond, o.epoch, o.result, o.observedAt, o.evidenceHash, digest);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailCovenant.sol:183:9
+    │
+183 │         emit DarkDefault(bond, since, last, evidence);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailCovenant.sol:164:9
+    │
+164 │         emit CovenantDefault(bond, first, second, evidence);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailCovenant.sol:126:43
+    │
+126 │         Slot storage slot = slots[o.bond][uint8(o.epoch % 8)];
+    │                                           ━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailCovenant.sol:154:38
+    │
+154 │         Slot storage a = slots[bond][uint8(first % 8)];
+    │                                      ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailCovenant.sol:155:38
+    │
+155 │         Slot storage c = slots[bond][uint8(second % 8)];
+    │                                      ━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:190:27
+    │
+190 │         if (since == 0 || block.timestamp > uint256(last) + DARK_MAX_GAP) return 0;
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:197:33
+    │
+197 │         return s.result == 1 && s.expiresAt >= block.timestamp && uint256(s.observedAt) + MAX_AGE >= block.timestamp
+    │                                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:197:67
+    │
+197 │         return s.result == 1 && s.expiresAt >= block.timestamp && uint256(s.observedAt) + MAX_AGE >= block.timestamp
+    │                                                                   ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCovenant.sol:198:16
+    │
+198 │             && s.observedAt <= block.timestamp + MAX_CLOCK_SKEW && IBondrailBond(bond).defaultedAt() == 0;
+    │                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailCovenant.sol:196:38
+    │
+196 │         Slot storage s = slots[bond][uint8(latestEpoch[bond] % 8)];
+    │                                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailCovenant.sol:206:52
+    │
+206 │         return hasObservation[bond] && slots[bond][uint8(latestEpoch[bond] % 8)].result == 2;
+    │                                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailCovenant.sol:210:25
+    │
+210 │         s = slots[bond][uint8(epoch % 8)];
+    │                         ━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint8' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailVaultFactory.sol:156:9
+    │
+156 │         emit VaultCreated(vault, asset_, curator_, owner_, name_, symbol_, strategy_);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[missing-zero-check]: address parameter is used in a state write or value transfer without a zero-address check
+    ╭▸ src/BondrailBond.sol:112:9
+    │
+112 │         address covenant_,
+    │         ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-zero-check
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ src/BondrailBond.sol:166:13
+    │
+166 │             windowRevenue += IBondrailAccount(account).revenueByDay(day);
+    │             ━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:162:13
+    │
+162 │         if (today < uint256(activationTime) / 1 days + 1 + window) revert TooEarly();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:163:13
+    │
+163 │         if (lastTriggerCheckDay == today) revert AlreadyCheckedToday();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:165:44
+    │
+165 │         for (uint256 day = today - window; day < today; ++day) {
+    │                                            ━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailBond.sol:166:30
+    │
+166 │             windowRevenue += IBondrailAccount(account).revenueByDay(day);
+    │                              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailBond.sol:169:31
+    │
+169 │         lastTriggerCheckDay = uint64(today);
+    │                               ━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:137:9
+    │
+137 │         BondrailAccount(account).bindProjectFromFactory(project); // also checks it points at the account
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailFactory.sol:138:9
+    │
+138 │         emit NativeDeployed(account, project, codeHash);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:198:53
+    │
+198 │         if (phase != BondrailTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
+    │                                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[missing-events-access-control]: `cumulativeVolume` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:188:9
+    │
+188 │         cumulativeVolume += gross;
+    │         ━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `cumulativeRevenue` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:202:9
+    │
+202 │         cumulativeRevenue += amount;
+    │         ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `isPayer` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:207:17
+    │
+207 │                 isPayer[payer] = true;
+    │                 ━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `revenueByDay` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:211:9
+    │
+211 │         revenueByDay[block.timestamp / 1 days] += amount;
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `issuerCredit` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:218:13
+    │
+218 │             issuerCredit += amount;
+    │             ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `splitRemainder` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:233:9
+    │
+233 │         splitRemainder = carry % 10_000;
+    │         ━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[missing-events-access-control]: `activeBond` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:297:9
+    │
+297 │         activeBond = address(0);
+    │         ━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:170:9
+    │
+170 │ ┏         BondrailBond(bond)
+171 │ ┃             .initialize(address(asset), msg.sender, account, covenant, msg.sender, terms_, config, name_, symbol_);
+    │ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:177:9
+    │
+177 │         BondrailAccount(account).attach(bond);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:179:13
+    │
+179 │             IBondrailCovenant(covenant).registerBond(bond, config.policyHash);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[incorrect-strict-equality]: dangerous strict equality check on an externally-influenced value
+    ╭▸ src/BondrailBond.sol:203:13
+    │
+203 │         if (asset.balanceOf(address(this)) - beforeBalance != amount) revert InvalidAmount();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/incorrect-strict-equality
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailFactory.sol:152:47
+    │
+152 │         if (minHistory != 0 && (first == 0 || block.timestamp < first + minHistory)) revert InsufficientHistory();
+    │                                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailFactory.sol:182:9
+    │
+182 │         emit BondCreated(msg.sender, account, bond, config.adapter, config.policyHash, keccak256(abi.encode(terms_)));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:212:53
+    │
+212 │         if (phase != BondrailTypes.Phase.Funding || block.timestamp >= _terms.fundingDeadline) revert InvalidState();
+    │                                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[missing-events-access-control]: `activeBond` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:252:9
+    │
+252 │         activeBond = bond;
+    │         ━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[incorrect-strict-equality]: dangerous strict equality check on an externally-influenced value
+    ╭▸ src/BondrailFactory.sol:175:17
+    │
+175 │             if (asset.balanceOf(bond) - beforeBalance != terms_.stake) revert InvalidTerms();
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/incorrect-strict-equality
+
+warning[missing-events-access-control]: `issuerCredit` is changed without an event but is used for access control
+    ╭▸ src/BondrailAccount.sol:313:9
+    │
+313 │         issuerCredit -= amount;
+    │         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/missing-events-access-control
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:190:9
+    │
+190 │         account.settleBeforeActivation(bond);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:191:9
+    │
+191 │         b.activateFactoryOnly(account.cumulativeRevenue());
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailFactory.sol:204:9
+    │
+204 │         b.releaseSecondFactoryOnly(keccak256(abi.encode("onchain", earned)));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailFactory.sol:200:38
+    │
+200 │         if (earned < t.minRevenue || block.timestamp < uint256(b.activationTime()) + t.minOperatingPeriod) {
+    │                                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailFactory.sol:205:9
+    │
+205 │         emit SecondReleaseApproved(bond, BondrailTypes.MilestoneMode.Onchain, earned);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailFactory.sol:236:20
+    │
+236 │                 || m.periodEnd > block.timestamp || m.periodEnd < m.periodStart
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailFactory.sol:238:20
+    │
+238 │                 || m.expiresAt < block.timestamp || uint256(m.expiresAt) > uint256(m.periodEnd) + 300
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailFactory.sol:243:9
+    │
+243 │         emit SecondReleaseApproved(bond, BondrailTypes.MilestoneMode.Signed, m.eligibleRevenue);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailFactory.sol:292:20
+    │
+292 │                 || t.fundingDeadline <= block.timestamp || t.fundingDeadline >= t.maturity
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-no-eth]: external call can be reentered before `activeBond` is updated
+    ╭▸ src/BondrailAccount.sol:240:13
+    │
+240 │             b.onRepayment(toBond);
+    │             ━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `activeBond` is updated
+    ╭▸ src/BondrailAccount.sol:291:9
+    │
+291 │         IBondrailBond(bond).finalizeCollection(reason);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailAccount.sol:167:9
+    │
+167 │         emit Collected(payer, gross, fee, false);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailAccount.sol:219:13
+    │
+219 │             emit Revenue(bond, payer, amount, 0, amount, collected);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailAccount.sol:224:9
+    │
+224 │         emit Revenue(bond, payer, amount, toBond, amount - toBond, collected);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailAccount.sol:299:9
+    │
+299 │         emit Detached(bond);
+    │         ━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_status` is updated
+    ╭▸ src/BondrailAccount.sol:148:9
+    │
+148 │ ┏         IERC3009(address(asset))
+149 │ ┃             .transferWithAuthorization(from, address(this), value, validAfter, validBefore, nonce, v, r, s);
+    │ ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailAccount.sol:152:9
+    │
+152 │         emit Settled(from, value, nonce);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[incorrect-strict-equality]: dangerous strict equality check on an externally-influenced value
+    ╭▸ src/BondrailAccount.sol:150:13
+    │
+150 │         if (asset.balanceOf(address(this)) - beforeBalance != value) revert InvalidAmount();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/incorrect-strict-equality
+
+warning[reentrancy-no-eth]: external call can be reentered before `issuerCredit` is updated
+    ╭▸ src/BondrailAccount.sol:240:13
+    │
+240 │             b.onRepayment(toBond);
+    │             ━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[arbitrary-send-erc20]: `transferFrom` uses an arbitrary `from`; require it to equal `msg.sender` or `address(this)`
+    ╭▸ src/BondrailAccount.sol:183:9
+    │
+183 │         asset.safeTransferFrom(from, address(this), amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/arbitrary-send-erc20
+
+warning[incorrect-strict-equality]: dangerous strict equality check on an externally-influenced value
+    ╭▸ src/BondrailAccount.sol:184:13
+    │
+184 │         if (asset.balanceOf(address(this)) - beforeBalance != amount) revert InvalidAmount();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/incorrect-strict-equality
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailAccount.sol:212:51
+    │
+212 │         if (firstRevenueAt == 0) firstRevenueAt = uint64(block.timestamp);
+    │                                                   ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailAccount.sol:213:25
+    │
+213 │         lastRevenueAt = uint64(block.timestamp);
+    │                         ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[incorrect-strict-equality]: dangerous strict equality check on an externally-influenced value
+    ╭▸ src/BondrailAccount.sol:239:17
+    │
+239 │             if (asset.balanceOf(address(b)) - beforeBalance != toBond) revert InvalidAmount();
+    │                 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/incorrect-strict-equality
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailAccount.sol:254:9
+    │
+254 │         emit Attached(bond);
+    │         ━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailBond.sol:223:91
+    │
+223 │     function activateFactoryOnly(uint256 accountRevenueAtActivation) external onlyFactory nonReentrant {
+    │                                                                                           ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:226:20
+    │
+226 │                 || block.timestamp >= _terms.fundingDeadline
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:237:9
+    │
+237 │         emit Activated(issuer, first, undrawnPrincipal, effectiveRevenueCap());
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailBond.sol:232:26
+    │
+232 │         activationTime = uint64(block.timestamp);
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[reentrancy-no-eth]: external call can be reentered before `existingRegistered` is updated
+    ╭▸ src/BondrailVaultFactory.sol:106:21
+    │
+106 │                 || !_verifier.matches(v, IERC20(asset_), BondrailFactory(factory), v.owner(), v.curator())
+    │                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailAccount.sol:272:48
+    │
+272 │         if (p != BondrailTypes.Phase.Active || block.timestamp < IBondrailBond(expectedBond).maturity()) {
+    │                                                ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-no-eth]: external call can be reentered before `activeBond` is updated
+    ╭▸ src/BondrailAccount.sol:286:9
+    │
+286 │         IBondrailBond(expectedBond).cancelFundingFromAccount();
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailBond.sol:240:82
+    │
+240 │     function releaseSecondFactoryOnly(bytes32 evidenceHash) external onlyFactory nonReentrant {
+    │                                                                                  ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:243:20
+    │
+243 │                 || block.timestamp < _terms.secondReleaseNotBefore || block.timestamp >= _terms.secondReleaseDeadline
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:243:71
+    │
+243 │                 || block.timestamp < _terms.secondReleaseNotBefore || block.timestamp >= _terms.secondReleaseDeadline
+    │                                                                       ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:250:9
+    │
+250 │         emit PrincipalReleased(amount, releasedPrincipal, effectiveRevenueCap(), evidenceHash);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:254:52
+    │
+254 │         if (phase != BondrailTypes.Phase.Active || block.timestamp < _terms.secondReleaseDeadline) revert TooEarly();
+    │                                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailBond.sol:267:62
+    │
+267 │     function cancelFundingFromAccount() external onlyAccount nonReentrant {
+    │                                                              ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:268:53
+    │
+268 │         if (phase != BondrailTypes.Phase.Funding || block.timestamp < _terms.fundingDeadline) revert InvalidState();
+    │                                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCreditRegistry.sol:151:13
+    │
+151 │         if (block.timestamp < attesterChangeAfter) revert TooEarly();
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:196:25
+    │
+196 │             r.adapter = b.adapter();
+    │                         ━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:197:23
+    │
+197 │             r.phase = b.phase();
+    │                       ━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:198:29
+    │
+198 │             r.closeReason = b.closeReason();
+    │                             ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:199:29
+    │
+199 │             r.defaultedAt = b.defaultedAt();
+    │                             ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:200:24
+    │
+200 │             r.raised = b.activationTime() == 0 ? 0 : b.terms().raiseAmount;
+    │                        ━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:200:54
+    │
+200 │             r.raised = b.activationTime() == 0 ? 0 : b.terms().raiseAmount;
+    │                                                      ━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:201:27
+    │
+201 │             r.collected = b.totalRevenueCollected();
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:202:30
+    │
+202 │             r.effectiveCap = b.effectiveRevenueCap();
+    │                              ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailCreditRegistry.sol:204:35
+    │
+204 │             r.repaidToInvestors = b.totalRedeemed();
+    │                                   ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCreditRegistry.sol:228:20
+    │
+228 │                 || a.issuedAt > block.timestamp || a.expiresAt <= block.timestamp || a.evidenceHash == bytes32(0)
+    │                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCreditRegistry.sol:228:52
+    │
+228 │                 || a.issuedAt > block.timestamp || a.expiresAt <= block.timestamp || a.evidenceHash == bytes32(0)
+    │                                                    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailCreditRegistry.sol:239:9
+    │
+239 │ ┏         emit Attested(
+240 │ ┃             a.account,
+241 │ ┃             signer,
+242 │ ┃             a.chainId,
+    ‡ ┃
+253 │ ┃             a.nonce
+254 │ ┃         );
+    │ ┗━━━━━━━━━━┛
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailCreditRegistry.sol:266:63
+    │
+266 │         valid = signer != address(0) && signer == attester && block.timestamp < attestation.expiresAt;
+    │                                                               ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailBond.sol:284:63
+    │
+284 │     function onRepayment(uint256 amount) external onlyAccount nonReentrant {
+    │                                                               ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:290:9
+    │
+290 │         emit RevenueReceived(amount, totalRevenueCollected, pool);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailBond.sol:293:88
+    │
+293 │     function finalizeCollection(BondrailTypes.CloseReason reason) external onlyAccount nonReentrant {
+    │                                                                                        ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:296:61
+    │
+296 │         if (reason == BondrailTypes.CloseReason.Maturity && block.timestamp < _terms.maturity) revert TooEarly();
+    │                                                             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:264:9
+    │
+264 │         emit UndrawnRecovered(amount, principalRecovery);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:336:9
+    │
+336 │         emit SettlementFinalized(pool, totalSupply(), stakeReturnCredit);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:307:9
+    │
+307 │         emit CollectionClosed(reason, collectionClosedAt, settleAfter, pool);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailBond.sol:299:30
+    │
+299 │         collectionClosedAt = uint64(block.timestamp);
+    │                              ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailBond.sol:303:27
+    │
+303 │             settleAfter = uint64(block.timestamp) + REPORT_GRACE;
+    │                           ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+   ╭▸ src/BondrailVault.sol:93:13
+   │
+93 │         if (block.timestamp < curatorChangeAfter) revert TooEarly();
+   │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   │
+   ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailVault.sol:162:13
+    │
+162 │         if (block.timestamp >= maturity && (start == 0 || maturity < start)) start = maturity;
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:113:26
+    │
+113 │         uint256 claims = b.balanceOf(address(this));
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:115:33
+    │
+115 │         BondrailTypes.Phase p = b.phase();
+    │                                 ━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:117:36
+    │
+117 │         return Math.mulDiv(claims, b.pool(), b.totalSupply());
+    │                                    ━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:117:46
+    │
+117 │         return Math.mulDiv(claims, b.pool(), b.totalSupply());
+    │                                              ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:146:13
+    │
+146 │         if (b.phase() != BondrailTypes.Phase.Active) return (realized, realized);
+    │             ━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:147:26
+    │
+147 │         uint256 claims = b.balanceOf(address(this));
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:136:26
+    │
+136 │         uint256 claims = b.balanceOf(address(this));
+    │                          ━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:139:33
+    │
+139 │             Math.mulDiv(claims, b.totalRevenueCollected() + b.principalRecovery() + b.stakeRecovery(), b.totalSupply());
+    │                                 ━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:139:61
+    │
+139 │             Math.mulDiv(claims, b.totalRevenueCollected() + b.principalRecovery() + b.stakeRecovery(), b.totalSupply());
+    │                                                             ━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:139:85
+    │
+139 │             Math.mulDiv(claims, b.totalRevenueCollected() + b.principalRecovery() + b.stakeRecovery(), b.totalSupply());
+    │                                                                                     ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:139:104
+    │
+139 │             Math.mulDiv(claims, b.totalRevenueCollected() + b.principalRecovery() + b.stakeRecovery(), b.totalSupply());
+    │                                                                                                        ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:154:13
+    │
+154 │             b.effectiveRevenueCap() + b.undrawnPrincipal() + b.principalRecovery() + b.stakeRecovery()
+    │             ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:154:39
+    │
+154 │             b.effectiveRevenueCap() + b.undrawnPrincipal() + b.principalRecovery() + b.stakeRecovery()
+    │                                       ━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:154:62
+    │
+154 │             b.effectiveRevenueCap() + b.undrawnPrincipal() + b.principalRecovery() + b.stakeRecovery()
+    │                                                              ━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:154:86
+    │
+154 │             b.effectiveRevenueCap() + b.undrawnPrincipal() + b.principalRecovery() + b.stakeRecovery()
+    │                                                                                      ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:155:19
+    │
+155 │                 - b.totalRedeemed(),
+    │                   ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:156:13
+    │
+156 │             b.totalSupply()
+    │             ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:159:25
+    │
+159 │         uint256 start = b.defaultedAt();
+    │                         ━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:160:28
+    │
+160 │         uint256 maturity = b.maturity();
+    │                            ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[calls-loop]: external call inside a loop
+    ╭▸ src/BondrailVault.sol:166:20
+    │
+166 │         } else if (b.triggered()) {
+    │                    ━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/calls-loop
+
+warning[uninitialized-local]: local variable is read before being initialized
+    ╭▸ src/BondrailVault.sol:230:13
+    │
+230 │             income += added;
+    │             ━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/uninitialized-local
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailVault.sol:235:9
+    │
+235 │         emit IncomeCheckpointed(income, lockedIncome);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:313:94
+    │
+313 │         if (phase != BondrailTypes.Phase.Active && !(phase == BondrailTypes.Phase.Closing && block.timestamp < settleAfter)) {
+    │                                                                                              ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[unsafe-typecast]: typecast can truncate values
+    ╭▸ src/BondrailBond.sol:316:23
+    │
+316 │         defaultedAt = uint64(block.timestamp);
+    │                       ━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ├ note: consider disabling this lint if you're certain the cast is safe
+    │
+    │       // casting to 'uint64' is safe because [explain why]
+    │       // forge-lint: disable-next-line(unsafe-typecast)
+    │
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/unsafe-typecast
+
+warning[block-timestamp]: usage of `block.timestamp` in a comparison may be manipulated by validators
+    ╭▸ src/BondrailBond.sol:328:53
+    │
+328 │         if (phase != BondrailTypes.Phase.Closing || block.timestamp < settleAfter) revert TooEarly();
+    │                                                     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/block-timestamp
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailBond.sol:357:9
+    │
+357 │         emit Redeemed(msg.sender, to, tokens, amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `costBasis` is updated
+    ╭▸ src/BondrailVault.sol:271:9
+    │
+271 │         b.deposit(amount);
+    │         ━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailVault.sol:249:74
+    │
+249 │     function allocate(address bond, uint256 amount) external onlyCurator nonReentrant {
+    │                                                                          ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailVault.sol:274:9
+    │
+274 │         emit Allocated(bond, amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[reentrancy-no-eth]: external call can be reentered before `_holdings` is updated
+    ╭▸ src/BondrailVault.sol:283:9
+    │
+283 │         b.withdraw(amount, address(this));
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailVault.sol:277:83
+    │
+277 │     function withdrawFromRaise(address bond, uint256 amount) external onlyCurator nonReentrant {
+    │                                                                                   ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailVault.sol:285:9
+    │
+285 │         emit RaiseWithdrawn(bond, amount);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+warning[incorrect-strict-equality]: dangerous strict equality check on an externally-influenced value
+    ╭▸ src/BondrailVault.sol:284:13
+    │
+284 │         if (b.balanceOf(address(this)) == 0) _remove(bond);
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/incorrect-strict-equality
+
+warning[reentrancy-no-eth]: external call can be reentered before `_holdings` is updated
+    ╭▸ src/BondrailVault.sol:297:13
+    │
+297 │             b.refund(claims, address(this));
+    │             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[reentrancy-no-eth]: external call can be reentered before `_holdings` is updated
+    ╭▸ src/BondrailVault.sol:299:22
+    │
+299 │             assets = b.redeem(claims, address(this));
+    │                      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-no-eth
+
+warning[non-reentrant-not-first]: `nonReentrant` is not the first modifier
+    ╭▸ src/BondrailVault.sol:289:57
+    │
+289 │     function collect(address bond) external onlyCurator nonReentrant returns (uint256 assets) {
+    │                                                         ━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/non-reentrant-not-first
+
+warning[reentrancy-events]: event emitted after an external call; reentrancy can reorder or fabricate logs that off-chain consumers rely on
+    ╭▸ src/BondrailVault.sol:304:9
+    │
+304 │         emit Collected(bond, claims, assets);
+    │         ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    │
+    ╰ help: https://getfoundry.sh/forge/linting/reentrancy-events
+
+[contracts:verify] IBondrailVault: 53 selectors, mutability and return layouts match
+[contracts:verify] IBondrailCreditRegistry: 18 selectors, mutability and return layouts match
+[contracts:verify] IBondrailVaultFactory: 11 selectors, mutability and return layouts match
+[contracts:verify] npm pack (runs prepack from canonical sources)
+
+> @bondrail/contracts@0.1.0 prepack
+> npm run build
+
+
+> @bondrail/contracts@0.1.0 build
+> node scripts/prepare.mjs
+
+[contracts:prepare] 12 Solidity sources byte-identical to contracts/src
+
+added 2 packages in 2s
+[contracts:verify] Installed tarball: 12 sources byte-identical
+Compiling 40 files with Solc 0.8.28
+Solc 0.8.28 finished in 5.75s
+Compiler run successful!
+No files changed, compilation skipped
+
+Ran 2 tests for test/NativeProject.t.sol:NativeProjectTest
+[PASS] testCollectBeforeAndDuringReviewedRaise() (gas: 4408922)
+[PASS] testVaultInterfaceDepositAndExit() (gas: 3295480)
+Suite result: ok. 2 passed; 0 failed; 0 skipped; finished in 1.42ms (810.79µs CPU time)
+
+Ran 1 test suite in 4.07ms (1.42ms CPU time): 2 tests passed, 0 failed, 0 skipped (2 total tests)
+[contracts:verify] PASS: external npm consumer builds and routes fees through real local contracts
