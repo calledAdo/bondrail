@@ -349,12 +349,13 @@ function EarlyRedemptionConfirmation({ burned, cash, estimate, b, disabled, busy
       <dl className="my-5 space-y-3 rounded-lg border border-foreground/15 p-4 text-sm">
         {[
           ['Claims burned', burned], ['Cash received now', cash],
-          ['Estimated additional revenue by maturity', estimate ? fmt(estimate.additional, b.asset, 6) : 'Unavailable — missing revenue history'],
-          ['Estimated total if held', estimate ? fmt(estimate.total, b.asset, 6) : 'Unavailable'],
+          ...(estimate ? [['Estimated additional revenue by maturity', fmt(estimate.additional, b.asset, 6)],
+          ['Estimated total if held', fmt(estimate.total, b.asset, 6)]] : []),
         ].map(([label, value]) => <div key={label} className="space-y-1">
           <dt className="text-xs text-foreground/70"><TermsText>{label}</TermsText></dt><dd className="break-words font-mono tabular">{value}</dd>
         </div>)}
       </dl>
+      {!estimate && <p className="mb-3 text-sm">Revenue history or projection inputs could not be read, so future receipts cannot be estimated.</p>}
       <p className="text-xs text-foreground/70">
         {b.phase === 'Closing' ? 'Revenue collection has ended, so no additional revenue is projected. Settlement may still recover stake.'
           : 'Estimate uses the trailing attributed daily revenue and current investor share, capped at the remaining revenue cap through maturity. It assumes the claim supply and terms stay unchanged and excludes future capital or stake recovery. It is not a guarantee.'}

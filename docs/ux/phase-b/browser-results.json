@@ -1,23 +1,157 @@
 {
-  "capturedAt": "2026-10-15T23:36:49.097Z",
+  "capturedAt": "2026-10-16T00:01:11.693Z",
   "base": "http://localhost:3212",
   "registryUrl": "https://bondrail.vercel.app/api/registry?accounts=0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5,0x9decB240F7e063fcC090AF740341b956B7A3B079,0x067861e4bf4803a66DB97cF74E252B6F4927FA54&bonds=0xb6f44e47C7468c42A32d9679170cC3C4B145099B,0x16813A1Ba366Ea5d1375F5B64B0BC8348642a735,0x66A9aAfad577A6319645F4E2E2daAad42a987343",
+  "registrySource": "Saved public registry snapshot",
   "liveData": "Public RPC/indexer reads; signed profiles saved in registry-snapshot.json",
   "fixtures": "Synthetic model and mocked read-only RPC; never transactions",
   "errors": [],
   "unexpected": [],
+  "measurements": {
+    "live-pumplab-375": {
+      "width": 375,
+      "height": 3495
+    },
+    "live-curvelab-375": {
+      "width": 375,
+      "height": 3563
+    },
+    "live-agent-375": {
+      "width": 375,
+      "height": 3792
+    },
+    "fixture-funding-375": {
+      "width": 375,
+      "height": 3761
+    },
+    "fixture-funding-light-375": {
+      "width": 375,
+      "height": 3761
+    },
+    "fixture-funding-paused-375": {
+      "width": 375,
+      "height": 3781
+    },
+    "fixture-active-375": {
+      "width": 375,
+      "height": 3642
+    },
+    "fixture-active-holder-375": {
+      "width": 375,
+      "height": 3835
+    },
+    "fixture-active-triggered-375": {
+      "width": 375,
+      "height": 3670
+    },
+    "fixture-active-defaulted-375": {
+      "width": 375,
+      "height": 3984
+    },
+    "fixture-closing-375": {
+      "width": 375,
+      "height": 3731
+    },
+    "fixture-closed-375": {
+      "width": 375,
+      "height": 3352
+    },
+    "fixture-cancelled-375": {
+      "width": 375,
+      "height": 3292
+    },
+    "fixture-active-market-375": {
+      "width": 375,
+      "height": 3783
+    },
+    "live-pumplab-1280": {
+      "width": 1280,
+      "height": 3137
+    },
+    "live-curvelab-1280": {
+      "width": 1280,
+      "height": 3180
+    },
+    "live-agent-1280": {
+      "width": 1280,
+      "height": 3333
+    },
+    "fixture-funding-1280": {
+      "width": 1280,
+      "height": 3282
+    },
+    "fixture-funding-light-1280": {
+      "width": 1280,
+      "height": 3282
+    },
+    "fixture-funding-paused-1280": {
+      "width": 1280,
+      "height": 3234
+    },
+    "fixture-active-1280": {
+      "width": 1280,
+      "height": 3229
+    },
+    "fixture-active-holder-1280": {
+      "width": 1280,
+      "height": 3342
+    },
+    "fixture-active-triggered-1280": {
+      "width": 1280,
+      "height": 3229
+    },
+    "fixture-active-defaulted-1280": {
+      "width": 1280,
+      "height": 3381
+    },
+    "fixture-closing-1280": {
+      "width": 1280,
+      "height": 3243
+    },
+    "fixture-closed-1280": {
+      "width": 1280,
+      "height": 3108
+    },
+    "fixture-cancelled-1280": {
+      "width": 1280,
+      "height": 2984
+    },
+    "fixture-active-market-1280": {
+      "width": 1280,
+      "height": 3317
+    },
+    "empty-market-credit-error-375": {
+      "width": 375,
+      "height": 3457
+    },
+    "fixture-missing-data-375": {
+      "width": 375,
+      "height": 5578
+    },
+    "loading-sections-375": {
+      "width": 375,
+      "height": 3149
+    },
+    "indexer-error-sections-375": {
+      "width": 375,
+      "height": 3141
+    }
+  },
   "results": [
     {
       "check": "Live PumpLab 375: section order, disclosure, primary above fold, no overflow",
-      "cls": 0
+      "cls": 0,
+      "height": 3495
     },
     {
       "check": "Live CurveLab 375: section order, disclosure, primary above fold, no overflow",
-      "cls": 0
+      "cls": 0,
+      "height": 3563
     },
     {
       "check": "Live Oracle Agent 375: section order, disclosure, primary above fold, no overflow",
-      "cls": 0
+      "cls": 0,
+      "height": 3792
     },
     {
       "check": "375: actual text contrast passes in both themes",
@@ -59,15 +193,18 @@
     },
     {
       "check": "Live PumpLab 1280: section order, disclosure, primary above fold, no overflow",
-      "cls": 0
+      "cls": 0,
+      "height": 3137
     },
     {
       "check": "Live CurveLab 1280: section order, disclosure, primary above fold, no overflow",
-      "cls": 0
+      "cls": 0,
+      "height": 3180
     },
     {
       "check": "Live Oracle Agent 1280: section order, disclosure, primary above fold, no overflow",
-      "cls": 0
+      "cls": 0,
+      "height": 3333
     },
     {
       "check": "1280: actual text contrast passes in both themes",
@@ -109,6 +246,9 @@
     },
     {
       "check": "Empty ask and failed credit registry stay local to their sections; risks remain readable"
+    },
+    {
+      "check": "Missing revenue and optional terms omit figures, retain known claim values and explain gaps, including the redemption confirmation"
     },
     {
       "check": "Six reserved section skeletons transition to independent error/retry cards on indexer failure"

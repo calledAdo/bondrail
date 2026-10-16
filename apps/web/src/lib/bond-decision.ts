@@ -2,8 +2,8 @@ import { impliedYield } from '@bondrail/sdk/yield';
 import { fmt } from './format';
 import type { AccountView, BondView } from './protocol';
 
-export const bondDate = (time?: number) => time ? new Date(time * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : 'Date unavailable';
-export const shortBondDate = (time?: number) => time ? new Date(time * 1000).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'Date unavailable';
+export const bondDate = (time?: number) => time ? new Date(time * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC' : 'This event date is not exposed by the bond.';
+export const shortBondDate = (time?: number) => time ? new Date(time * 1000).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }) : 'an unreported date';
 const number = (n: number) => n.toLocaleString('en-US', { maximumFractionDigits: 2 });
 
 export function bondSummary(b: BondView) {
@@ -36,7 +36,7 @@ export function bondAction(b: BondView, now: number) {
     return { primary: reason ? null : 'Deposit', message: reason ? `Deposits paused: ${reason}.` : null };
   }
   if (b.phase === 'Active') return { primary: b.kuru ? 'Buy claims' : null, message: b.kuru ? null : 'Hold to earn; redeem after settlement' };
-  if (b.phase === 'Closing') return { primary: null, message: `Settling — redemption opens ${b.settleAfter ? bondDate(b.settleAfter) : 'after settlement (time unavailable)'}` };
+  if (b.phase === 'Closing') return { primary: null, message: `Settling — redemption opens ${b.settleAfter ? bondDate(b.settleAfter) : 'after settlement; its opening time could not be read'}` };
   return { primary: b.phase === 'Closed' ? 'Redeem' : 'Refund', message: null };
 }
 
@@ -45,7 +45,7 @@ export function bondTimeline(b: BondView, now: number): LifecycleStep[] {
   const funding = b.phase === 'Funding';
   const cancelled = b.phase === 'Cancelled';
   const raising: LifecycleStep = { title: 'Raising', date: bondDate(b.createdAt), text: `Deposits are held in the bond. You can withdraw until ${bondDate(b.fundingDeadline)}.`, state: funding ? 'current' : 'complete' };
-  if (cancelled) return [raising, { title: 'Raise cancelled', date: 'Cancellation date unavailable', text: "This raise didn't complete. Every deposit can be refunded in full.", state: 'current' }];
+  if (cancelled) return [raising, { title: 'Raise cancelled', date: 'The bond does not expose the cancellation date.', text: "This raise didn't complete. Every deposit can be refunded in full.", state: 'current' }];
   const released: LifecycleStep = { title: 'Released', date: funding ? 'At activation' : bondDate(b.activationTime), text: funding ? `${b.firstReleasePct}% goes to the business at activation; the rest waits for the milestone.` : `${b.firstReleasePct}% went to the business at activation; the rest waits for the milestone.`, state: funding ? 'pending' : 'complete' };
   if (b.defaulted) return [raising, released, { title: 'Default recovery', date: bondDate(b.defaultedAt), text: 'Undrawn capital and held stake move to claim holders. Released capital cannot be recovered by the contracts. Collection can continue until the cap or maturity.', state: 'current' }];
   const ended = b.phase === 'Closing' || b.phase === 'Closed';
@@ -56,28 +56,49 @@ export function bondTimeline(b: BondView, now: number): LifecycleStep[] {
     state: secondReleased ? 'complete' : ended || (!funding && now >= b.secondReleaseDeadline) ? 'skipped' : 'pending',
   };
   return [raising, released, milestone,
-    { title: 'Repaying', date: funding ? 'From activation' : bondDate(b.activationTime), text: `${number(b.revenueShare)}% of every payment goes to the bond in the same transaction. Plain transfers are split when swept; repayment starts before the milestone.`, state: funding ? 'pending' : ended ? 'complete' : 'current' },
+    { title: 'Repaying', date: funding ? 'From activation' : bondDate(b.activationTime), text: `${number(b.revenueShare)}% of each payment goes to claims immediately. Plain transfers split when swept; repayment starts before the milestone.`, state: funding ? 'pending' : ended ? 'complete' : 'current' },
     { title: 'Maturity', date: bondDate(b.maturity), text: `${bondDate(b.maturity)}: collection stops.${ended ? ` Collection ended ${bondDate(b.collectionClosedAt)}${b.collectionClosedAt && b.collectionClosedAt < b.maturity ? ' after reaching the cap early' : ''}.` : ' It can stop earlier if the cap is reached.'}`, state: ended ? b.collectionClosedAt && b.collectionClosedAt < b.maturity ? 'skipped' : 'complete' : 'pending' },
-    { title: 'Settled', date: b.phase === 'Closed' ? 'Finalized · date unavailable' : b.settleAfter ? `Opens ${bondDate(b.settleAfter)}` : 'After collection ends', text: 'Claims redeem for their share of everything collected.', state: ended ? 'current' : 'pending' },
+    { title: 'Settled', date: b.phase === 'Closed' ? 'Finalized; the bond does not expose the exact date.' : b.settleAfter ? `Opens ${bondDate(b.settleAfter)}` : 'After collection ends', text: 'Claims redeem for their share of everything collected.', state: ended ? 'current' : 'pending' },
   ];
 }
 
 export function bondRisks(b: BondView, now: number): string[] {
   const risks = [b.phase === 'Cancelled' ? 'The raise did not activate. Deposits are refundable in full, but refunds still depend on the contracts working.'
     : b.phase === 'Closing' || b.phase === 'Closed' ? 'Revenue collection has stopped. Your share of the money collected may be less than you originally put in.'
-      : 'The business can stop earning. Repayment depends on revenue; you may receive less than you put in.'];
+      : 'If the business stops earning, you may receive less than you put in.'];
   risks.push(b.phase === 'Funding' ? `${b.firstReleasePct}% of principal will go to the business at activation. Once released, the contracts cannot take it back.`
     : b.phase === 'Cancelled' ? 'The raise was cancelled before capital was released. Refunds require a transaction.'
-      : `${b.firstReleasePct}% of principal went to the business at activation${b.released > b.raise * b.firstReleasePct / 100 ? `; ${number(b.raise > 0 ? b.released / b.raise * 100 : 0)}% has now been released in total` : ''}. The contracts cannot take it back.`);
+      : `${b.firstReleasePct}% of principal went to the business at activation${b.released > b.raise * b.firstReleasePct / 100 ? `; ${number(b.raise > 0 ? b.released / b.raise * 100 : 0)}% has now been released in total` : ''}; the contracts cannot recover it.`);
   if (b.tier === 'Watched') risks.push(`The API can divert payTo (the payment recipient) between checks. Detection is expected within about 30 minutes while monitoring works, but is not guaranteed. Its ${fmt(b.stake, b.asset)} stake covers only part of possible losses.`);
-  if (b.triggerWindowDays && (b.phase === 'Funding' || b.phase === 'Active')) risks.push(`Revenue below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC day${b.triggerWindowDays === 1 ? '' : 's'} can raise the share to ${b.stepUpShare}%. A trigger check must be run; self-payments count. ${b.triggered ? 'The higher share is currently in effect.' : 'A step-up cannot make a business earn more.'}`);
+  if (b.triggerWindowDays && (b.phase === 'Funding' || b.phase === 'Active')) risks.push(`Revenue below ${fmt(b.triggerRevenue, b.asset)} over ${b.triggerWindowDays} complete UTC day${b.triggerWindowDays === 1 ? '' : 's'} can raise the share to ${b.stepUpShare}% after a trigger check. Self-payments count; ${b.triggered ? 'the higher share is now in effect.' : 'a step-up creates no revenue.'}`);
   if (b.defaulted) risks.push(`Default recorded ${bondDate(b.defaultedAt)}. Recovered capital and stake may not cover your loss.`);
   else if (b.tier === 'Watched' && b.phase !== 'Closed' && b.phase !== 'Cancelled') risks.push('Two qualifying routing violations in adjacent report epochs, or 24 hours of qualifying unreachable reports while active, can cause default. An outage of the monitor alone does not.');
-  if (b.undrawn > 0 && now < b.secondReleaseDeadline) risks.push('The milestone may still release the remaining capital. The “revenue stops” estimate assumes that capital instead returns to holders.');
+  if (b.undrawn > 0 && now < b.secondReleaseDeadline) risks.push('The milestone can still release remaining capital; “revenue stops” assumes it returns to holders instead.');
   if (b.phase === 'Funding') risks.push('Claims cannot be sold during raising. If no liquid market opens after activation, they may be hard to sell.');
-  else if (b.phase === 'Active') risks.push(b.kuru ? 'Claims may be hard to sell. The market may have too few buyers, and a large trade can move the price.' : 'There is no market. You cannot sell claims here; early redemption gives up future receipts.');
+  else if (b.phase === 'Active') risks.push(b.kuru ? 'Claims may be hard to sell. The market may have too few buyers, and a large trade can move the price.' : 'No market: you cannot sell here. Early redemption gives up future receipts.');
   risks.push('Monad testnet. These contracts are unaudited; bugs can cause losses.');
   return risks;
+}
+
+/** Value of one claim, independent of a market or the holder's purchase price. */
+export function claimEstimate(b: BondView, account: Pick<AccountView, 'verifiedDaily'> | undefined, now: number) {
+  const funding = b.phase === 'Funding';
+  const supply = funding ? b.raise : b.supply;
+  if (!Number.isFinite(supply) || supply <= 0) return null;
+  // Cancelled claims refund one asset unit each, including after other holders refund.
+  if (b.phase === 'Cancelled') return { backing: 1, stopped: 1, expected: 1, best: 1 };
+  const pool = funding ? 0 : b.pool;
+  const undrawn = funding ? b.raise * (1 - b.firstReleasePct / 100) : b.undrawn;
+  const cap = funding ? b.cap * b.firstReleasePct / 100 : b.effectiveCap;
+  const collected = funding ? 0 : b.collected;
+  if (![pool, undrawn, cap, collected].every(n => Number.isFinite(n) && n >= 0)) return null;
+  const stopped = (pool + undrawn) / supply;
+  const ended = ['Closing', 'Closed', 'Cancelled'].includes(b.phase) || now >= b.maturity;
+  const y = impliedYield({ supply, pool, effectiveCap: cap, collected, verifiedDaily: account?.verifiedDaily,
+    revenueShare: b.revenueShare / 100, maturity: b.maturity, now: funding ? Math.max(now, b.fundingDeadline) : now });
+  const mayRelease = undrawn > 0 && now < b.secondReleaseDeadline && !b.defaulted;
+  const bestPool = ended ? pool + undrawn : Math.max(pool + Math.max(0, cap - collected) + undrawn, mayRelease ? pool + Math.max(0, b.cap - collected) : 0);
+  return { backing: pool / supply, stopped, expected: ended ? stopped : y.expectedValue === null ? null : y.expectedValue + undrawn / supply, best: bestPool / supply };
 }
 
 /** Purchase scenarios. Return undrawn capital only once, separately from capped revenue. */
@@ -87,22 +108,19 @@ export function purchaseEstimate(b: BondView, account: Pick<AccountView, 'verifi
   const price = /USD/i.test(b.asset.symbol) && purchasable ? funding ? 1 : b.kuru ? ask : null : null;
   if (!Number.isFinite(amount) || amount <= 0 || price === null || !Number.isFinite(price) || price <= 0) return null;
   const supply = funding ? b.raise : b.supply;
-  if (!(supply > 0)) return null;
+  const value = claimEstimate(b, account, now);
+  if (!value) return null;
   const claims = amount / price;
   const pool = funding ? 0 : b.pool;
-  const undrawn = funding ? b.raise * (1 - b.firstReleasePct / 100) : b.undrawn;
   const cap = funding ? b.cap * b.firstReleasePct / 100 : b.effectiveCap;
   const collected = funding ? 0 : b.collected;
   const start = funding ? Math.max(now, b.fundingDeadline) : now;
   const y = impliedYield({ supply, pool, effectiveCap: cap, collected, verifiedDaily: account?.verifiedDaily,
     revenueShare: b.revenueShare / 100, maturity: b.maturity, now: start, price });
-  const stopped = (pool + undrawn) * claims / supply;
-  const expected = y.expectedValue === null ? null : (y.expectedValue + undrawn / supply) * claims;
-  // Best case permits a second release only while the window is open and no default is recorded.
-  const mayRelease = undrawn > 0 && now < b.secondReleaseDeadline && now < b.maturity && !b.defaulted;
-  const bestPool = now >= b.maturity ? pool + undrawn : Math.max(pool + Math.max(0, cap - collected) + undrawn, mayRelease ? pool + Math.max(0, b.cap - collected) : 0);
+  const stopped = value.stopped * claims;
+  const expected = value.expected === null ? null : value.expected * claims;
   const gain = expected === null ? null : expected / amount - 1;
-  return { price, claims, expected, stopped, best: bestPool * claims / supply, gain,
+  return { price, claims, expected, stopped, best: value.best * claims, gain,
     apr: gain === null || y.daysLeft === null ? null : gain * 365 / Math.max(1, (b.maturity - now) / 86400),
     // Principal returns at maturity, so it cannot make revenue payback happen earlier.
     paybackDays: y.paybackDays !== null ? y.paybackDays + (start - now) / 86400 : expected !== null && expected >= amount ? Math.max(0, (b.maturity - now) / 86400) : null,

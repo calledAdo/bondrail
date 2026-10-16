@@ -48,15 +48,17 @@ export function RegistryCreditProfile({ account, compact = false, estimate }: { 
   const configuredInvalid = !!process.env.NEXT_PUBLIC_CREDIT_REGISTRY_ADDRESS && !registry;
   if (compact) {
     const calculated = estimate ? creditLine({ revenuePerDay: estimate.verifiedDaily, ageDays: estimate.ageDays, uniquePayers: estimate.uniquePayers, topPayerShare: estimate.topPayerShare }) : null;
-    return <Panel title="Credit profile" className="min-h-60">
-      <dl className="grid gap-4 sm:grid-cols-3">
-        <div><dt className="text-xs text-foreground/70">Credit line {present ? '(signed assessment)' : '(unsigned estimate)'}</dt><dd className="font-mono text-lg tabular">{present ? amount(a?.creditLine) : calculated && estimate ? fmt(calculated.maxRaise, estimate.asset) : 'Unavailable'}</dd></div>
+    return <Panel compact title="Credit profile" className="p-4 sm:p-6">
+      <dl className="grid gap-3 sm:grid-cols-3 [&>div]:grid [&>div]:grid-cols-2 [&>div]:gap-x-3 sm:[&>div]:block [&_p]:col-start-2">
+        {(present || calculated) && <div><dt className="text-xs text-foreground/70">Credit line {present ? '(signed assessment)' : '(unsigned estimate)'}</dt><dd className="font-mono text-lg tabular">{present ? amount(a?.creditLine) : calculated && estimate ? fmt(calculated.maxRaise, estimate.asset) : ''}</dd></div>}
         <div><dt className="text-xs text-foreground/70"><Term term="attestation">Attestation</Term> validity</dt><dd className="text-sm">{registry && query.isPending ? 'Reading registry…' : attestationLabel}</dd>{present && a && <p className="text-xs text-foreground/70">Expires {date(a.expiresAt)}</p>}</div>
-        <div><dt className="text-xs text-foreground/70">On-chain record completeness</dt><dd className="text-sm">{p ? `Covers ${p.repayment.bondsIssued} of ${p.bondsCreated} bonds` : registry && query.isPending ? 'Reading registry…' : 'Unavailable'}</dd>{p && !p.complete && <p className="mt-1 text-xs">Incomplete: missing bonds may include defaults.</p>}</div>
+        {p && <div><dt className="text-xs text-foreground/70">On-chain record completeness</dt><dd className="text-sm">{`Covers ${p.repayment.bondsIssued} of ${p.bondsCreated} bonds`}</dd>{p && !p.complete && <p className="mt-1 text-xs">Incomplete: missing bonds may include defaults.</p>}</div>}
       </dl>
+      {!present && !calculated && <p className="mt-3 text-sm">No signed assessment or revenue history was read, so the credit line is omitted.</p>}
+      {!p && !query.isPending && <p className="mt-3 text-sm">The registry record could not be read, so bond coverage cannot be checked.</p>}
       {query.isError && <p role="alert" className="mt-3 text-sm">{data ? 'Registry refresh failed; showing the last snapshot.' : 'Credit registry could not be read.'} <button type="button" onClick={() => void query.refetch()} className="min-h-11 underline">Retry credit profile</button></p>}
       {!registry && <p className="mt-3 text-sm">No credit registry is configured; signed assessments cannot be checked.</p>}
-      <p className="mt-3 text-xs text-foreground/70"><TermsText>{present ? 'A signed credit line is an assessment, not available cash or a repayment guarantee. Check its validity before using it.' : 'The unsigned credit line estimates what this revenue history can support; it is not a loan offer.'}</TermsText></p>
+      <p className="mt-3 text-xs text-foreground/70"><TermsText>{present ? 'A signed assessment, not available cash or guaranteed repayment. Check validity.' : 'The unsigned credit line estimates what this revenue history can support; it is not a loan offer.'}</TermsText></p>
       <Link href={`/accounts/${account}`} className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4">Read the full credit profile →</Link>
     </Panel>;
   }

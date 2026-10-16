@@ -28,7 +28,9 @@ try {
   results.push('Expanded technical details retain terms, metrics, policy, explorer links and checks without 375px overflow');
   await page.addStyleTag({content:'html { font-size: 200%; }'});
   expect(await page.evaluate(()=>document.querySelector('[data-testid="bond-page"]').scrollWidth<=innerWidth)).toBe(true);
-  results.push('Bond sections support 200% text without horizontal overflow');
+  const headlines = await page.locator('[data-testid="bond-page"] > section').first().locator('dd').evaluateAll(nodes => nodes.map(n => ({width:n.clientWidth,scroll:n.scrollWidth})));
+  for (const figure of headlines) expect(figure.scroll).toBeLessThanOrEqual(figure.width);
+  results.push('Bond sections support 200% text without horizontal overflow or overlapping headline figures');
   await page.close();
   const landscape=await browser.newPage({viewport:{width:844,height:375},reducedMotion:'reduce'});
   await landscape.goto(`${base}/review-phase-b/Active`);

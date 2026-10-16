@@ -7,17 +7,17 @@ import { decodeFunctionData, encodeFunctionResult, erc20Abi, multicall3Abi, pars
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const abis = require('../../../packages/sdk/src/abis.ts');
-const { bondFixtures, fixtureAccount, marketFixture, FIXTURE_NOW } = require('../../../apps/web/src/lib/bond-fixtures.ts');
+const { bondFixtures, fixtureAccount, marketFixture, missingDataFixture, FIXTURE_NOW } = require('../../../apps/web/src/lib/bond-fixtures.ts');
 const { bondSummary } = require('../../../apps/web/src/lib/bond-decision.ts');
 const out = fileURLToPath(new URL('.', import.meta.url));
 const deployment = JSON.parse(await readFile(new URL('../../deployments/10143.json', import.meta.url), 'utf8'));
 const base = process.env.PHASE_B_BASE_URL || 'http://localhost:3212';
 if (!['localhost', '127.0.0.1'].includes(new URL(base).hostname)) throw new Error('Use a local preview');
 const registryUrl = `https://bondrail.vercel.app/api/registry?accounts=${Object.values(deployment.issuers).map(x => x.account).join(',')}&bonds=${Object.values(deployment.issuers).map(x => x.bond).join(',')}`;
-const registry = await fetch(registryUrl).then(r => { if (!r.ok) throw new Error(`Registry ${r.status}`); return r.json(); });
+const registry = process.env.PHASE_B_SAVED_REGISTRY ? JSON.parse(await readFile(`${out}registry-snapshot.json`, 'utf8')) : await fetch(registryUrl).then(r => { if (!r.ok) throw new Error(`Registry ${r.status}`); return r.json(); });
 await writeFile(`${out}registry-snapshot.json`, JSON.stringify(registry, null, 2) + '\n');
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
-const results = [], errors = [], unexpected = [];
+const results = [], errors = [], unexpected = [], measurements = {};
 const priceAbi = parseAbi(['function bestBidAsk() view returns (uint256,uint256)', 'function getMarketParams() view returns (uint32,uint96,address,uint256,address,uint256,uint32,uint96,uint96,uint256,uint256)']);
 const allAbi = [...Object.values(abis).flat(), ...erc20Abi, ...multicall3Abi, ...priceAbi];
 const zero = param => param.type.endsWith('[]') ? [] : param.type === 'tuple' ? Object.fromEntries(param.components.map(c => [c.name, zero(c)])) : param.type === 'address' ? zeroAddress : param.type === 'bool' ? false : param.type === 'string' ? '' : param.type.startsWith('bytes') ? `0x${'00'.repeat(Number(param.type.slice(5)) || 0)}` : 0n;
@@ -67,7 +67,7 @@ async function open(viewport, phase, options = {}) {
     const requests = Array.isArray(body) ? body : [body];
     if (requests.some(r => !['eth_call','eth_blockNumber','eth_getBalance','eth_chainId'].includes(r.method))) throw new Error('Non-read RPC blocked');
     if (!phase) return route.continue();
-    const b = phase === 'Active-market' ? marketFixture : bondFixtures[phase];
+    const b = phase === 'Active-missing-data' ? missingDataFixture : phase === 'Active-market' ? marketFixture : bondFixtures[phase];
     const reply = requests.map(r => {
       try { return { jsonrpc:'2.0',id:r.id,result:r.method === 'eth_call' ? callResult(r.params[0].data,b,options) : r.method === 'eth_chainId' ? '0x279f' : '0x10000000' }; }
       catch (e) { return { jsonrpc:'2.0',id:r.id,error:{code:-32000,message:e.message} }; }
@@ -78,11 +78,13 @@ async function open(viewport, phase, options = {}) {
 }
 async function assertLayout(page) {
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  expect(await page.locator('[data-testid="bond-page"] h2:visible').allTextContents()).toEqual(['How this bond works', 'What you get', 'Evidence', 'Revenue history', 'Payers', 'Source', 'Credit profile', 'How you could lose money', 'What you can do now']);
+  expect(await page.locator('[data-testid="bond-page"] h2:visible').allTextContents()).toEqual(['How this bond works', await page.getByRole('heading', {name:'What one claim is worth', exact:true}).count() ? 'What one claim is worth' : 'What you get', 'Evidence', 'Revenue history', 'Payers', 'Source', 'Credit profile', 'How you could lose money', 'What you can do now']);
   for (const name of ['Maintenance (anyone can run)','Full terms & technical details']) await expect(page.locator('details').filter({ has: page.locator('summary').filter({hasText:name}) }).first()).not.toHaveAttribute('open','');
-  const primary = page.locator('[data-testid="bond-page"] > section').first().locator('button.bg-primary');
+  const primary = page.locator('[data-testid="bond-page"] > section').first().locator('button.bg-primary, a.bg-primary');
   expect(await primary.count()).toBeLessThanOrEqual(1);
   if (await primary.count()) { const box = await primary.boundingBox(); expect(box.y + box.height).toBeLessThan(page.viewportSize().height); }
+  expect(await page.locator('[data-testid="bond-page"]').innerText()).not.toMatch(/Unavailable/);
+  await expect(page.getByRole('button',{name:'Redeem early',exact:true})).toHaveCount(await page.getByRole('button',{name:'Redeem early',exact:true}).count() ? 1 : 0);
   expect(await page.evaluate(() => window.__writes)).toBe(0);
 }
 async function connect(page) {
@@ -114,6 +116,7 @@ async function contrast(page) {
 async function screenshot(page, name) {
   await page.addStyleTag({ content: 'nextjs-portal { display: none !important; }' });
   await page.mouse.move(0,0); await page.evaluate(() => { document.activeElement?.blur(); scrollTo(0,0); });
+  measurements[name] = await page.evaluate(() => ({width:innerWidth,height:document.documentElement.scrollHeight}));
   await page.screenshot({path:`${out}${name}.png`,fullPage:true});
 }
 try {
@@ -124,8 +127,13 @@ try {
       await expect(page.getByRole('heading',{name:issuer.name,exact:true})).toBeVisible({timeout:90000});
       await expect(page.getByText('Reading registry…',{exact:true})).toHaveCount(0,{timeout:60000});
       await assertLayout(page);
+      const summary = page.locator('[data-testid="bond-page"] > section').first();
+      const headlines = summary.locator('dd');
+      await expect(headlines).toHaveCount(3);
+      for (const figure of await headlines.all()) { const box = await figure.boundingBox(); expect(box.y + box.height).toBeLessThan(viewport.height); }
       await screenshot(page,`live-${key}-${size}`);
-      results.push({check:`Live ${issuer.name} ${size}: section order, disclosure, primary above fold, no overflow`,cls:await page.evaluate(()=>window.__cls)});
+      if (key === 'pumplab' && size === '375') expect(measurements[`live-${key}-${size}`].height).toBeLessThanOrEqual(3500);
+      results.push({check:`Live ${issuer.name} ${size}: section order, disclosure, primary above fold, no overflow`,cls:await page.evaluate(()=>window.__cls),height:measurements[`live-${key}-${size}`].height});
       console.log(results.at(-1)?.check);
       await context.close();
     }
@@ -134,17 +142,17 @@ try {
       await page.goto(`${base}/review-phase-b/${phase}`);
       await expect(page.getByRole('heading',{name:'Fixture Studio',exact:true})).toBeVisible();
       await expect(page.getByText('Covers 2 of 3 bonds',{exact:true})).toBeVisible();
-      const b = phase === 'Active-market' ? marketFixture : bondFixtures[phase];
+      const b = phase === 'Active-missing-data' ? missingDataFixture : phase === 'Active-market' ? marketFixture : bondFixtures[phase];
       await expect(page.getByTestId('bond-sentence')).toHaveText(bondSummary(b), { useInnerText: true });
       await expect(page.locator('[aria-current="step"]')).toHaveCount(1);
       await assertLayout(page);
       await screenshot(page,`fixture-${phase.toLowerCase()}-${size}`);
       if (phase === 'Funding') {
         const payers = page.locator('section').filter({has:page.getByRole('heading',{name:'Payers',exact:true})}).last();
-        await expect(payers.locator('tbody tr')).toHaveCount(5);
+        await expect(payers.locator('tbody tr')).toHaveCount(3);
         await page.getByRole('button',{name:'Show all 8 payers'}).click();
         await expect(payers.locator('tbody tr')).toHaveCount(8);
-        await page.getByRole('button',{name:'Show top 5'}).click();
+        await page.getByRole('button',{name:'Show top 3'}).click();
         const term = page.getByRole('button',{name:'claim',exact:true}).first();
         await term.focus(); await expect(page.getByRole('dialog',{name:'claims definition'})).toBeVisible();
         await expect(term).toHaveAttribute('aria-describedby',/.+/);
@@ -165,7 +173,23 @@ try {
         await expect(page.getByText('Enter a positive amount, such as 10.')).toBeVisible();
       }
       if (phase === 'Active') {
+        await expect(page.getByLabel('Amount in USD')).toHaveCount(0);
+        const worth = page.locator('section').filter({has:page.getByRole('heading',{name:'What one claim is worth',exact:true})}).last();
+        expect(await worth.locator('dd').allTextContents()).toEqual(['$0.20','$1.25','$0.70','$1.50']);
+        if (size === '375') {
+          await expect(page.getByRole('button',{name:'Collapse Repaying',exact:true})).toHaveAttribute('aria-expanded','true');
+          await page.getByRole('button',{name:'Show all 6 steps',exact:true}).click();
+          const raising = page.getByRole('button',{name:'Expand Raising',exact:true});
+          await raising.focus(); await page.keyboard.press('Enter');
+          await expect(page.getByRole('button',{name:'Collapse Raising',exact:true})).toHaveAttribute('aria-expanded','true');
+          await page.keyboard.press('Enter');
+          await expect(raising).toHaveAttribute('aria-expanded','false');
+          await page.getByRole('button',{name:'Show current step',exact:true}).click();
+        }
         await connect(page);
+        await expect(page.getByTestId('holder-value')).toBeVisible();
+        expect(await page.getByTestId('holder-value').locator('dd').allTextContents()).toEqual(['$200.00','$1,250.00','$700.00','$1,500.00']);
+        await screenshot(page,`fixture-active-holder-${size}`);
         await page.getByRole('button',{name:'Redeem early',exact:true}).first().click();
         await page.getByLabel('Amount (claims)',{exact:true}).fill('1');
         const redeem = page.locator('#bond-actions').getByRole('button',{name:'Redeem early',exact:true}).last();
@@ -205,6 +229,27 @@ try {
   results.push({check:'Empty ask and failed credit registry stay local to their sections; risks remain readable'});
   console.log(results.at(-1)?.check);
       await context.close();
+  const missing = await open({width:375,height:844},'Active-missing-data');
+  await missing.page.goto(`${base}/review-phase-b/Active-missing-data`);
+  await expect(missing.page.getByRole('heading',{name:'Fixture Studio',exact:true})).toBeVisible();
+  await expect(missing.page.getByText('Covers 2 of 3 bonds',{exact:true})).toBeVisible();
+  const worth = missing.page.locator('section').filter({has:missing.page.getByRole('heading',{name:'What one claim is worth',exact:true})}).last();
+  expect(await worth.locator('dd').allTextContents()).toEqual(['$0.20','$0.70','$1.50']);
+  await expect(worth).toContainText('current-rate estimate is omitted');
+  await missing.page.getByText('Full terms & technical details',{exact:true}).click();
+  expect(await missing.page.getByTestId('bond-page').innerText()).not.toMatch(/Unavailable/);
+  await expect(missing.page.getByText('The minimum operating period could not be read from the bond.')).toBeVisible();
+  await screenshot(missing.page,'fixture-missing-data-375');
+  await connect(missing.page);
+  await missing.page.getByRole('button',{name:'Redeem early',exact:true}).click();
+  await missing.page.getByLabel('Amount (claims)',{exact:true}).fill('1');
+  await missing.page.locator('#bond-actions').getByRole('button',{name:'Redeem early',exact:true}).last().click();
+  const gapDialog=missing.page.getByRole('dialog',{name:'Confirm early redemption'});
+  await expect(gapDialog).toBeVisible();
+  expect(await gapDialog.locator('dd').count()).toBe(2);
+  await expect(gapDialog).toContainText('future receipts cannot be estimated');
+  results.push({check:'Missing revenue and optional terms omit figures, retain known claim values and explain gaps, including the redemption confirmation'});
+  await missing.context.close();
   const loading = await open({width:375,height:844});
   let pending, fail = false;
   await loading.page.route('**/v1/graphql', route => { if (fail) return route.fulfill({json:{errors:[{message:'Fixture indexer unavailable'}]}}); pending = route; });
@@ -217,6 +262,6 @@ try {
   results.push({check:'Six reserved section skeletons transition to independent error/retry cards on indexer failure'});
   await loading.context.close();
   expect(errors).toEqual([]); expect(unexpected).toEqual([]);
-  await writeFile(`${out}browser-results.json`,JSON.stringify({capturedAt:new Date().toISOString(),base,registryUrl,liveData:'Public RPC/indexer reads; signed profiles saved in registry-snapshot.json',fixtures:'Synthetic model and mocked read-only RPC; never transactions',errors,unexpected,results},null,2)+'\n');
+  await writeFile(`${out}browser-results.json`,JSON.stringify({capturedAt:new Date().toISOString(),base,registryUrl,registrySource:process.env.PHASE_B_SAVED_REGISTRY ? 'Saved public registry snapshot' : 'Fresh public registry snapshot',liveData:'Public RPC/indexer reads; signed profiles saved in registry-snapshot.json',fixtures:'Synthetic model and mocked read-only RPC; never transactions',errors,unexpected,measurements,results},null,2)+'\n');
   console.log(`PASS: ${results.length} browser groups`);
 } finally { await browser.close(); }

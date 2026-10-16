@@ -1,12 +1,12 @@
 {
-  "checkedAt": "2026-10-15T23:39:29.362150+00:00",
+  "checkedAt": "2026-10-16T00:02:10.211776+00:00",
   "command": "pnpm check:all",
   "exitCode": 0,
   "sourceCopy": "/private/tmp/bondrail-task22-check",
-  "identicalWebSourceFiles": 68,
+  "identicalWebSourceFiles": 71,
   "solidityTests": 149,
-  "workspaceTests": 201,
-  "webTests": 23,
+  "workspaceTests": 204,
+  "webTests": 26,
   "scriptsTests": 17,
   "indexerTests": 9,
   "contractConsumerTests": 2,
@@ -15,9 +15,12 @@
     "apps/web",
     "demo/agent"
   ],
-  "browserGroups": 28,
+  "browserGroups": 29,
   "supplementalChecks": 4,
-  "screenshots": 32,
-  "productionFixtureStatus": 404,
-  "remoteWrites": false
+  "screenshots": 35,
+  "remoteWrites": false,
+  "productionFixtureStatus": {
+    "Active": 404,
+    "Active-missing-data": 404
+  }
 }

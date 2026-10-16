@@ -35,3 +35,5 @@ export const bondFixtures = {
 } satisfies Record<string, BondView>;
 export type FixturePhase = keyof typeof bondFixtures;
 export const marketFixture: BondView = { ...base, kuru: { bond: base.address, market: '0x6666666666666666666666666666666666666666', vault: '0x7777777777777777777777777777777777777777', tx: `0x${'b'.repeat(64)}` } };
+
+export const missingDataFixture: BondView = { ...base, minOperatingPeriod: undefined, policyHash: undefined, source: undefined, coverage: null };

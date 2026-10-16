@@ -30,7 +30,7 @@ const REASONS: Record<string, string> = {
 };
 type NansenResult = { address: string; labels: { label: string }[] | null; error?: string };
 
-function Payers({ a }: { a: AccountView }) {
+function Payers({ a, compact = false }: { a: AccountView; compact?: boolean }) {
   const [nansen, setNansen] = useState<Record<string, NansenResult>>({});
   const [note, setNote] = useState('');
   const [showAll, setShowAll] = useState(false);
@@ -54,13 +54,16 @@ function Payers({ a }: { a: AccountView }) {
   }
   const excluded = a.payers.filter((p) => p.related).length;
   return (
-    <Panel title="Payers" aside={<Badge>{excluded} of {a.payers.length} excluded</Badge>}>
-      <div className="mb-4 flex flex-wrap items-center gap-3">
+    <Panel compact={compact} title="Payers" className={compact ? "p-4 sm:p-6" : undefined} aside={<Badge>{excluded} of {a.payers.length} excluded</Badge>}>
+      <details open={!compact} className="mb-3">
+        <summary className={compact ? "min-h-11 cursor-pointer py-2 text-sm" : "hidden"}>Check payer labels with Nansen</summary>
+        <div className="flex flex-wrap items-center gap-3">
         <button type="button" onClick={screen} disabled={!a.payers.length || screening} className="min-h-11 rounded-lg border border-foreground/15 px-3 text-sm hover:bg-foreground/5 disabled:opacity-40">
           Screen top payers with Nansen
         </button>
-        <span className="text-xs text-foreground/70">{note || 'Labels from Monad mainnet (Nansen does not cover testnet).'}</span>
-      </div>
+        <span className="text-xs text-foreground/70">{note || 'Mainnet labels only; Nansen does not cover testnet.'}</span>
+        </div>
+      </details>
       {a.payers.length === 0 ? (
         <p className="text-sm text-foreground/70">No payments indexed yet. Payers appear here when customers pay the business.</p>
       ) : (
@@ -69,25 +72,26 @@ function Payers({ a }: { a: AccountView }) {
             <thead className="text-left text-xs text-foreground/70">
               <tr className="border-b border-foreground/10">
                 <th className="py-2 font-normal">Payer</th>
-                <th className="py-2 font-normal">How</th>
-                <th className="py-2 text-right font-normal">Payments</th>
+                <th className={compact ? "hidden py-2 font-normal sm:table-cell" : "py-2 font-normal"}>How</th>
+                <th className={compact ? "hidden py-2 text-right font-normal sm:table-cell" : "py-2 text-right font-normal"}>Payments</th>
                 <th className="py-2 text-right font-normal">Paid</th>
-                <th className="py-2 pl-4 font-normal">Counted</th>
+                <th className={compact ? "hidden py-2 pl-4 font-normal sm:table-cell" : "py-2 pl-4 font-normal"}>Counted</th>
                 {Object.keys(nansen).length > 0 && <th className="py-2 font-normal">Nansen</th>}
               </tr>
             </thead>
             <tbody className="divide-y divide-foreground/5">
-              {a.payers.slice(0, showAll ? a.payers.length : 5).map((p) => (
+              {a.payers.slice(0, showAll ? a.payers.length : compact ? 3 : 5).map((p) => (
                 <tr key={p.payer}>
                   <td className="py-2 font-mono text-xs">
                     <a href={explorer('address', p.payer)} target="_blank" rel="noreferrer" className="hover:underline">
                       {short(p.payer)}
                     </a>
+                    {compact && <p className="mt-1 font-sans text-xs text-foreground/70 sm:hidden">{p.source === 'native' ? 'Pulled fee' : p.source === 'x402' ? 'x402 (signed)' : 'Plain transfer'} · {p.related ? p.reasons.map(r => REASONS[r] ?? r).join(', ') || 'Excluded' : 'No link found'}</p>}
                   </td>
-                  <td className="py-2 text-foreground/70">{p.source === 'x402' ? <><Term term="x402">x402</Term> (signed)</> : p.source === 'native' ? 'Pulled fee' : 'Plain transfer'}</td>
-                  <td className="py-2 text-right font-mono tabular">{p.payments}</td>
-                  <td className="py-2 text-right font-mono tabular">{fmt(p.amount, a.asset)}</td>
-                  <td className="py-2 pl-4">
+                  <td className={compact ? "hidden py-2 text-foreground/70 sm:table-cell" : "py-2 text-foreground/70"}>{p.source === 'x402' ? <><Term term="x402">x402</Term> (signed)</> : p.source === 'native' ? 'Pulled fee' : 'Plain transfer'}</td>
+                  <td className={compact ? "hidden py-2 text-right font-mono tabular sm:table-cell" : "py-2 text-right font-mono tabular"}>{p.payments}</td>
+                  <td className="py-2 text-right font-mono tabular">{fmt(p.amount, a.asset)}{compact && <p className="mt-1 font-sans text-xs text-foreground/70 sm:hidden">{p.payments} payments</p>}</td>
+                  <td className={compact ? "hidden py-2 pl-4 sm:table-cell" : "py-2 pl-4"}>
                     {p.related ? <Badge tone="warn" className="text-foreground">{p.reasons.map((r) => REASONS[r] ?? r).join(', ') || 'Excluded'}</Badge> : <span className="text-foreground/70">No link found</span>}
                   </td>
                   {Object.keys(nansen).length > 0 && (
@@ -99,23 +103,23 @@ function Payers({ a }: { a: AccountView }) {
           </table>
         </div>
       )}
-      {a.payers.length > 5 && <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll} className="mt-3 min-h-11 text-sm underline underline-offset-4">{showAll ? 'Show top 5' : `Show all ${a.payers.length} payers`}</button>}
+      {a.payers.length > (compact ? 3 : 5) && <button type="button" onClick={() => setShowAll(!showAll)} aria-expanded={showAll} className="mt-3 min-h-11 text-sm underline underline-offset-4">{showAll ? `Show top ${compact ? 3 : 5}` : `Show all ${a.payers.length} payers`}</button>}
     </Panel>
   );
 }
 
-function History({ a }: { a: AccountView }) {
+function History({ a, compact = false }: { a: AccountView; compact?: boolean }) {
   const feeRate = a.volume ? (a.revenue / a.volume) * 100 : null;
   return (
-    <Panel title="Revenue history" aside={<span className="font-mono text-xs text-foreground/70">since {a.firstRevenueAt ? date(a.firstRevenueAt).slice(0, 10) : '–'}</span>}>
-      <dl className="mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4">
+    <Panel compact={compact} title="Revenue history" className={compact ? "p-4 sm:p-6" : undefined} aside={<span className="font-mono text-xs text-foreground/70">since {a.firstRevenueAt ? date(a.firstRevenueAt).slice(0, 10) : '–'}</span>}>
+      <dl className={compact ? "mb-3 grid grid-cols-2 gap-3 sm:grid-cols-4" : "mb-6 grid grid-cols-2 gap-5 sm:grid-cols-4"}>
         <Figure label={<TermsText>Attributed revenue</TermsText>} value={fmt(a.verified, a.asset)} hint={`raw ${fmt(a.revenue, a.asset)}`} />
         <Figure label={<TermsText>Attributed per day</TermsText>} value={fmt(a.verifiedDaily, a.asset)} hint="trailing 7 days" />
         <Figure label={<TermsText>Attributed payers</TermsText>} value={a.uniquePayers} hint={a.topPayerShare ? `top payer ${(a.topPayerShare * 100).toFixed(0)}%` : undefined} />
         <Figure label={feeRate !== null ? 'Fee rate' : 'History'} value={feeRate !== null ? `${feeRate.toFixed(2)}%` : days(a.ageDays)} hint={feeRate !== null ? `on ${fmt(a.volume!, a.asset)} volume` : 'account age'} />
       </dl>
-      <p className="mb-4 text-sm text-foreground/70"><Term term="attributed">Attributed revenue</Term> excludes detected related payers and unclassified transfers; raw revenue includes them. No detected link does not prove that a payer is independent.</p>
-      <RevenueBars daily={a.daily} label={`Daily revenue for the last ${a.daily.length} days`} />
+      <p className="mb-4 text-sm text-foreground/70"><Term term="attributed">Attributed revenue</Term> excludes detected related payers and unclassified transfers. Raw includes both. No detected link does not prove independence.</p>
+      <RevenueBars compact={compact} daily={a.daily} label={`Daily revenue for the last ${a.daily.length} days`} />
     </Panel>
   );
 }
@@ -133,10 +137,10 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
     chainId: chain.id,
     query: { enabled: !!covenant.data, refetchInterval: 15_000 },
   });
-  if (b.tier === 'Native') return <Panel title="Source">
+  if (b.tier === 'Native') return <Panel compact className="p-4 sm:p-6" title="Source">
     <p className="text-sm leading-relaxed text-foreground/80"><TermsText>{a?.nativeReview === 'template'
-      ? 'Native · reviewed template: the factory deployed approved creation code, with no separate individual review. Review covers the fee-routing code path through this account; it does not guarantee future revenue.'
-      : a?.nativeReview === 'individual' ? 'Native · reviewed contract: the disclosed reviewer approved this project individually. Review covers the fee-routing code path through this account; it does not guarantee future revenue.'
+      ? 'Native · reviewed template: the factory deployed approved fee-routing code through this account. No individual project review; future revenue is not guaranteed.'
+      : a?.nativeReview === 'individual' ? 'Native · reviewed contract: this project’s fee routing through the account was approved individually. Future revenue is not guaranteed.'
       : 'Native approval could not be verified as current. New deposits and releases require approval; existing repayment continues.'}</TermsText></p>
   </Panel>;
   const last = b.checks[0];
@@ -160,7 +164,7 @@ function Health({ b, a }: { b: BondView; a?: AccountView }) {
               : { dot: 'bg-orange-500', text: `Unknown at the last check (${ago(age)} ago): the offer was unreachable or unreadable` };
   const dropped = !!drop && last?.result === 1 && !stale && drop.last24h < drop.dailyAverage / 4;
   return (
-    <Panel title="Source" aside={<Badge><Term term="watched">Paid API · watched by Chainlink</Term></Badge>}>
+    <Panel compact className="p-4 sm:p-6" title="Source" aside={<Badge><Term term="watched">Paid API · watched by Chainlink</Term></Badge>}>
       <p className="text-sm leading-relaxed text-foreground/80"><TermsText>Chainlink CRE checks the published manifest (the API’s account and endpoint list) and payment offers against the committed policy about every 30 minutes. Checks can miss diverted payments between observations and do not guarantee future revenue.</TermsText></p>
       <p className="mt-3 text-sm text-foreground/70">Last observation: {last ? `${bondDate(last.at)} · ${last.result === 1 ? 'compliant' : last.result === 2 ? 'violation' : 'unknown'}` : 'none yet — payment routing has not been observed.'}</p>
       <div className="mt-4 flex items-start gap-2 text-sm">
@@ -200,7 +204,7 @@ function Terms({ b }: { b: BondView }) {
     ['Maturity', date(b.maturity)],
     ['Issuer stake', b.stake ? fmt(b.stake, b.asset) : 'None'],
     ['Current revenue share', `${b.revenueShare}%`],
-    ['Minimum operating period', b.minOperatingPeriod === undefined ? 'Unavailable' : `${b.minOperatingPeriod / 86400} days`],
+    ...(b.minOperatingPeriod === undefined ? [] : [['Minimum operating period', `${b.minOperatingPeriod / 86400} days`]] satisfies [string, string][]),
     ['Fee floor', `${(b.minFeeBps / 100).toFixed(2)}% of each payment while active`],
   ];
   return (
@@ -213,6 +217,7 @@ function Terms({ b }: { b: BondView }) {
           </div>
         ))}
       </dl>
+      {b.minOperatingPeriod === undefined && <p className="mt-3 text-sm">The minimum operating period could not be read from the bond.</p>}
       {b.triggerWindowDays > 0 && <p className="mt-4 text-xs text-foreground/70"><TermsText>{`Trigger checks start after ${b.triggerWindowDays} complete UTC days following activation. The activation day and current day are excluded; issuer self-payments count. Payments use the last checked share until another check.`}</TermsText></p>}
     </Panel>
   );
@@ -243,21 +248,21 @@ export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = f
     setIntent(value);
     requestAnimationFrame(() => document.getElementById('bond-actions')?.scrollIntoView({ block: 'start' }));
   }
-  return <div className="space-y-6" data-testid="bond-page">
+  return <div className="-mx-2 -mt-4 -mb-4 space-y-3 sm:mt-0 sm:mb-0 sm:mx-0 sm:space-y-6" data-testid="bond-page">
     <Back />
     {refreshError && <p role="alert" className="text-sm">Refresh failed. Showing the last successful bond snapshot; reload before making a decision.</p>}
     <BondSection title="Bond summary"><BondSummary b={b} account={a} now={now} actions={<DecisionLinks b={b} now={now} onSelect={select} />} /></BondSection>
     <BondSection title="How this bond works"><BondTimeline b={b} now={now} /></BondSection>
     <BondSection title="What you get"><WhatYouGet b={b} account={a} now={now} /></BondSection>
-    <section aria-labelledby="bond-evidence" className="space-y-4">
+    <section aria-labelledby="bond-evidence" className="space-y-3 sm:space-y-4">
       <h2 id="bond-evidence" className="text-xl font-semibold">Evidence</h2>
-      <BondSection title="Revenue history">{a ? <History a={a} /> : <Panel title="Revenue history" className="min-h-80"><p>Revenue history is unavailable. It shows how much the business has earned from counted payers.</p></Panel>}</BondSection>
-      <BondSection title="Payers">{a ? <Payers a={a} /> : <Panel title="Payers"><p>Payer data is unavailable. This table helps you see whether revenue comes from a few addresses.</p></Panel>}</BondSection>
+      <BondSection title="Revenue history">{a ? <History a={a} compact /> : <Panel title="Revenue history" className="p-4 sm:p-6"><p>Revenue history is unavailable. It shows how much the business has earned from counted payers.</p></Panel>}</BondSection>
+      <BondSection title="Payers">{a ? <Payers a={a} compact /> : <Panel title="Payers"><p>Payer data is unavailable. This table helps you see whether revenue comes from a few addresses.</p></Panel>}</BondSection>
       <BondSection title="Source"><Health b={b} a={a} /></BondSection>
       <BondSection title="Credit profile"><RegistryCreditProfile account={b.account} compact estimate={a} /></BondSection>
     </section>
-    <BondSection title="How you could lose money"><Panel title="How you could lose money" className="min-h-[22rem]">
-      <ul className="list-disc space-y-3 pl-5 text-sm leading-relaxed">{bondRisks(b, now).map(risk => <li key={risk}><TermsText>{risk}</TermsText></li>)}</ul>
+    <BondSection title="How you could lose money"><Panel compact title="How you could lose money" className="p-4 sm:p-6">
+      <ul className="list-disc space-y-2 pl-5 text-sm leading-[1.5] sm:space-y-3 sm:leading-relaxed">{bondRisks(b, now).map(risk => <li key={risk}><TermsText>{risk}</TermsText></li>)}</ul>
     </Panel></BondSection>
     <BondSection title="What you can do now"><DecisionPanel b={b} account={a} now={now} intent={intent} onSelect={select} /></BondSection>
     <BondSection title="Maintenance"><BondActions b={b} account={a} mode="maintenance" onDone={() => undefined} /></BondSection>
@@ -267,10 +272,11 @@ export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = f
         <Terms b={b} />
         <Panel title="Investor metrics">
           <dl className="grid gap-5 sm:grid-cols-3">
-            <Figure label={<Term term="coverage">Coverage</Term>} value={b.coverage === null ? 'Unavailable' : `${b.coverage.toFixed(2)}×`} hint="projected repayment ÷ remaining cap" />
+            {b.coverage !== null && <Figure label={<Term term="coverage">Coverage</Term>} value={`${b.coverage.toFixed(2)}×`} hint="projected repayment ÷ remaining cap" />}
             <Figure label="Principal at risk" value={`${b.atRiskPct.toFixed(0)}%`} hint={b.phase === 'Funding' ? 'initial release if activated' : 'released to the business'} />
             <Figure label={<Term term="backing">Backing per claim</Term>} value={fmt(b.backingPerToken, b.asset, 4)} hint="current repayment pool ÷ supply" />
           </dl>
+          {b.coverage === null && <p className="mt-3 text-sm">Coverage cannot be calculated without a revenue projection and a remaining repayment cap.</p>}
           <div className="mt-5"><Ribbon b={b} /></div>
           {b.flags.length > 0 && <p className="mt-4 text-sm"><TermsText>{b.flags.join(' · ')}</TermsText></p>}
         </Panel>
@@ -279,9 +285,14 @@ export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = f
           <dl className="space-y-3 text-sm">{[
             ['Bond / claim', b.address], ['Business account', b.account], ['Issuer', a?.issuer], ['Asset', b.asset.address],
             ['Project', a?.project], ['Source', b.source], ['Kuru market', b.kuru?.market], ['Kuru vault', b.kuru?.vault],
-          ].map(([label, address]) => <div key={label}><dt className="text-foreground/70"><TermsText>{label!}</TermsText></dt><dd className="break-all font-mono text-xs">{address ? <a href={explorer('address', address)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-4">{address}</a> : 'Unavailable / not configured'}</dd></div>)}
-            <div><dt className="text-foreground/70">Policy hash</dt><dd className="break-all font-mono text-xs">{b.policyHash ?? 'Unavailable'}</dd></div>
+          ].filter(([, address]) => !!address).map(([label, address]) => <div key={label}><dt className="text-foreground/70"><TermsText>{label!}</TermsText></dt><dd className="break-all font-mono text-xs"><a href={explorer('address', address!)} target="_blank" rel="noreferrer" className="inline-flex min-h-11 items-center underline underline-offset-4">{address}</a></dd></div>)}
+            {b.policyHash && <div><dt className="text-foreground/70">Policy hash</dt><dd className="break-all font-mono text-xs">{b.policyHash}</dd></div>}
           </dl>
+          {!a && <p className="mt-3 text-sm">The business account could not be read, so issuer and project addresses are omitted.</p>}
+          {a && !a.project && <p className="mt-3 text-sm">This account has no project address configured.</p>}
+          {!b.kuru && <p className="mt-3 text-sm">No Kuru market or Kuru vault is configured for this bond.</p>}
+          {!b.source && <p className="mt-3 text-sm">The bond's source address could not be read.</p>}
+          {!b.policyHash && <p className="mt-3 text-sm">The bond's policy hash could not be read.</p>}
         </Panel>
         <Panel title={<><Term term="covenant">Covenant</Term> checks</>}>
           {b.tier === 'Watched' && <p className="mb-4 text-sm text-foreground/70"><TermsText>Two qualifying violations in adjacent 30-second report epochs can record default. Qualifying Unknown reports pause deposits after one hour and can default an active bond after 24 hours; a monitor outage alone does not. Closing allows 120 seconds for late evidence, then anyone must finalize settlement.</TermsText></p>}

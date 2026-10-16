@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, purchaseEstimate } from './bond-decision';
+import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, claimEstimate, purchaseEstimate } from './bond-decision';
 import { bondFixtures, fixtureAccount, FIXTURE_NOW, marketFixture } from './bond-fixtures';
 
 const activeSentence = 'Fixture Studio raised $1,000.00 of $1,000.00. Claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until $1,500.00 has been repaid or Jan 14, 2027. $200.00 repaid so far.';
@@ -78,4 +78,35 @@ test('settlement does not imply a future maturity date has occurred; terminal ri
   assert.ok(!bondRisks(bondFixtures.Closed, FIXTURE_NOW).some(s => s.includes('early redemption')));
   const matured = purchaseEstimate(marketFixture, fixtureAccount, 10, 1, marketFixture.maturity)!;
   assert.equal(matured.best, matured.stopped);
+});
+
+
+test('claim worth needs no market, quote or USD conversion; holder totals scale per claim', () => {
+  const b = { ...bondFixtures.Active, asset: { ...bondFixtures.Active.asset, symbol: 'MON' } };
+  const value = claimEstimate(b, fixtureAccount, FIXTURE_NOW)!;
+  assert.deepEqual(value, { backing: 0.2, stopped: 0.7, expected: 1.25, best: 1.5 });
+  assert.equal(value.expected! * 20, 25);
+  assert.equal(claimEstimate(b, undefined, FIXTURE_NOW)!.expected, null);
+  assert.equal(claimEstimate(b, undefined, FIXTURE_NOW)!.stopped, 0.7);
+  assert.equal(claimEstimate({ ...b, supply: 0 }, fixtureAccount, FIXTURE_NOW), null);
+  assert.equal(claimEstimate({ ...b, supply: NaN }, fixtureAccount, FIXTURE_NOW), null);
+  assert.equal(claimEstimate({ ...b, pool: NaN }, fixtureAccount, FIXTURE_NOW), null);
+});
+
+test('claim value respects recovery, release windows and stopped collection', () => {
+  const b = bondFixtures.Active;
+  assert.equal(claimEstimate(b, { verifiedDaily: 0 }, FIXTURE_NOW)!.expected, 0.7);
+  assert.equal(claimEstimate({ ...b, secondReleaseDeadline: FIXTURE_NOW }, fixtureAccount, FIXTURE_NOW)!.best, 1.25);
+  const recovered = claimEstimate({ ...b, pool: 800, undrawn: 0, defaulted: true }, fixtureAccount, FIXTURE_NOW)!;
+  assert.equal(recovered.stopped, 0.8);
+  assert.equal(recovered.best, 1.35);
+  for (const phase of ['Closing', 'Closed', 'Cancelled'] as const) {
+    const value = claimEstimate({ ...b, phase }, undefined, FIXTURE_NOW)!;
+    assert.equal(value.expected, value.stopped);
+    assert.equal(value.best, value.stopped);
+  }
+});
+
+test('cancelled claims refund at par even after some holders burn their claims', () => {
+  assert.deepEqual(claimEstimate({ ...bondFixtures.Cancelled, supply: 100 }, undefined, FIXTURE_NOW), { backing: 1, stopped: 1, expected: 1, best: 1 });
 });
