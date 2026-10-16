@@ -10,7 +10,7 @@ The deleted Slice web/agent and server services must not be restored.
 
 Keep the existing agent and facilitator hostnames, contract addresses, signer keys,
 agent Redis data, Envio project **bondrail-next**, release branch **envio-next** and
-GraphQL endpoint `https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql` unchanged.
+GraphQL endpoint `https://indexer.dev.hyperindex.xyz/89b08bb/v1/graphql` unchanged.
 The old Envio Slice project is retained. This procedure needs no Vercel, Envio,
 npm, DNS or chain deployment action.
 

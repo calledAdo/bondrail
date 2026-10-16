@@ -25,7 +25,7 @@ source of contract identities; current service health and later code rollouts ar
 | App and docs | https://bondrail.vercel.app |
 | Paid Oracle Agent | https://bondrail-next-agent.vercel.app |
 | x402 facilitator | https://bondrail-next.64-227-40-35.sslip.io |
-| Envio GraphQL | https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql |
+| Envio GraphQL | https://indexer.dev.hyperindex.xyz/89b08bb/v1/graphql |
 
 The retained agent/facilitator hostnames are intentional. The production Envio project is
 **bondrail-next**, released from **envio-next**; that release branch remains unchanged.

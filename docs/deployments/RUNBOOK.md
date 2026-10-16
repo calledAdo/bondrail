@@ -5,7 +5,7 @@ using `10143.json`. The contracts are on **Monad testnet, chain 10143**.
 The live agent is https://bondrail-next-agent.vercel.app and facilitator is
 https://bondrail-next.64-227-40-35.sslip.io. These retained hostnames are intentional.
 The production Envio project is **bondrail-next**, release branch **envio-next**,
-endpoint https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql. Keep that branch
+endpoint https://indexer.dev.hyperindex.xyz/89b08bb/v1/graphql. Keep that branch
 and cloud resource as-is; generating config on a development checkout does not deploy it.
 The old Envio Slice project is retained for history and is not the app's data source.
 
