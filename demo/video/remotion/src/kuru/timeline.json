@@ -1,0 +1,15 @@
+{
+  "fps": 30,
+  "seconds": 42,
+  "transitionFrames": 18,
+  "beats": [
+    {"id":"hook","start":0,"end":5,"label":"The next chapter","lines":["Funded a bond.","Need your money back","before maturity?"],"accent":"before","dark":true},
+    {"id":"claims","start":5,"end":11,"label":"Every claim","lines":["Every bond","pays out in claims."],"accent":"claims","dark":false},
+    {"id":"market","start":11,"end":18,"label":"Kuru","lines":["Claims","trade on Kuru."],"accent":"trade on Kuru","dark":false},
+    {"id":"exit","start":18,"end":25,"label":"A second investor","lines":["Exit early.","Sell to another investor."],"accent":"Sell","dark":false},
+    {"id":"price","start":25,"end":33,"label":"Expected repayment","lines":["The price tracks","what the business is","expected to repay."],"accent":"expected to repay","dark":false},
+    {"id":"honest","start":33,"end":37,"label":"A note","lines":["Trading depends on buyers.","Prices can move."],"accent":"Prices can move","dark":true},
+    {"id":"close","start":37,"end":42,"label":"","lines":["Revenue bonds, tradeable on Kuru.","Built on Monad","bondrail.vercel.app · @useBondrail","Live on Monad testnet"],"accent":"","dark":true}
+  ],
+  "reviewSeconds": [1.8,6.8,9.5,13.5,16.5,20,23,27,30.5,34.5,39.5,41]
+}

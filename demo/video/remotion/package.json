@@ -13,7 +13,10 @@
     "evidence": "node scripts/export-evidence.mjs",
     "concepts:stills": "node scripts/concepts-render.mjs --stills",
     "concepts:render": "node scripts/concepts-render.mjs",
-    "concepts:verify": "node scripts/concepts-verify.mjs"
+    "concepts:verify": "node scripts/concepts-verify.mjs",
+    "kuru:stills": "node scripts/kuru-render.mjs --stills",
+    "kuru:render": "node scripts/kuru-render.mjs",
+    "kuru:verify": "node scripts/kuru-verify.mjs"
   },
   "dependencies": {
     "@bondrail/sdk": "0.2.0",
