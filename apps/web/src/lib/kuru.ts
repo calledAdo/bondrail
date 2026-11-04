@@ -1,5 +1,6 @@
 'use client';
 import { useReadContract } from 'wagmi';
+export const shouldQuoteOrder = (ready: boolean, valid: boolean) => ready && valid;
 import { maxUint256, type Address } from 'viem';
 import { chain } from './wallet';
 

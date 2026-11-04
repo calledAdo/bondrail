@@ -11,7 +11,7 @@ import type { BondView } from '@/lib/protocol';
 import { Term, TermsText } from './term';
 import { cn } from '@/lib/cn';
 import { confirmedIn, receiptTimed } from '@/lib/tx';
-import { useKuruPrice } from '@/lib/kuru';
+import { useKuruPrice, shouldQuoteOrder } from '@/lib/kuru';
 
 const orderbookAbi = [
   {
@@ -147,7 +147,7 @@ export function Trade({ b, initialSide = 'buy', onDone = () => undefined }: { b:
   useEffect(() => {
     setQuote(undefined);
     if (!valid) return; // keeps the last receipt visible after a trade clears the amount
-    if (ready && valid && (allowance ?? 0n) >= spend && (balance ?? 0n) >= spend) void getQuote();
+    if (shouldQuoteOrder(ready, valid)) void getQuote();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [side, amount, allowance, balance, ready]);
 
