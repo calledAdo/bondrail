@@ -40,9 +40,9 @@ export const walletConfig = createConfig({
       : []),
     injected(),
   ],
-  // Concurrent reads are coalesced: multicall for contract reads, JSON-RPC batching for the rest.
+  // Contract reads coalesce through Multicall3; the public RPC rejects JSON-RPC batch bodies.
   batch: { multicall: { wait: 32 } },
-  transports: { [chain.id]: http(undefined, { batch: { wait: 32 } }) } as Record<
+  transports: { [chain.id]: http(undefined) } as Record<
     (typeof chain)['id'],
     ReturnType<typeof http>
   >,

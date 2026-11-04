@@ -4,7 +4,7 @@ import { WagmiProvider } from 'wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { walletConfig } from '@/lib/wallet';
 export function Providers({ children }: { children: ReactNode }) {
-  const [client] = useState(() => new QueryClient());
+  const [client] = useState(() => new QueryClient({ defaultOptions: { queries: { staleTime: 5_000 } } }));
   return (
     <WagmiProvider config={walletConfig}>
       <QueryClientProvider client={client}>{children}</QueryClientProvider>
