@@ -4,6 +4,10 @@ import type { AccountView, BondView } from './protocol';
 type YieldBond = Pick<BondView, 'phase' | 'kuru' | 'supply' | 'pool' | 'effectiveCap' | 'collected' | 'revenueShare' | 'maturity'
   | 'raise' | 'cap' | 'firstReleasePct' | 'fundingDeadline'>;
 
+export function hasEnoughRevenueHistory(phase: BondView['phase'], activationTime: number | undefined, payments: number, now: number) {
+  return phase !== 'Active' || (!!activationTime && now - activationTime >= 86_400 && payments >= 3);
+}
+
 /** Map the app's percentage share and phase/price policy to the SDK's plain numeric inputs. */
 export function bondImpliedYield(b: YieldBond, account: Pick<AccountView, 'verifiedDaily'> | undefined, midPrice: number | null, now: number) {
   const eligible = b.phase === 'Active' || b.phase === 'Funding';

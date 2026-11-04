@@ -3,7 +3,8 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { AlertTriangle, ArrowUpRight, Search } from 'lucide-react';
 import { cn } from '@/lib/cn';
-import { days, fmt, indexedPhase, unit, listed, marketTab, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
+import { days, fmt, indexedPhase, unit, listed, marketTab, awaitingActivation, short, useProtocol, type AccountView, type BondView } from '@/lib/protocol';
+import { hasEnoughRevenueHistory } from '@/lib/bond-yield';
 import { Badge, Empty, PhaseBadge, Ribbon, TierBadge } from './ui';
 import { bondImpliedYield, yieldPercent } from '@/lib/bond-yield';
 import { useKuruPrice } from '@/lib/kuru';
@@ -17,6 +18,7 @@ const TABS = [
 function TradingYield({ b, account }: { b: BondView; account?: AccountView }) {
   const { mid } = useKuruPrice(b.kuru?.market);
   const y = bondImpliedYield(b, account, mid, Date.now() / 1000);
+  if (tooEarly(b, account)) return <p className="text-sm text-foreground/70">Too early to estimate</p>;
   if (mid === null) return null;
   return (
     <p className="text-sm">
@@ -38,6 +40,7 @@ function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
         <div>
           <h3 className="font-semibold">{b.name}</h3>
           <p className="font-mono text-xs text-foreground/60">{b.symbol}</p>
+          {!account?.profile && <p className="mt-1 text-xs text-orange-500">Unverified profile</p>}
         </div>
         <div className="flex flex-wrap justify-end gap-1.5">
           <TierBadge tier={b.tier} />
@@ -54,6 +57,7 @@ function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
         </div>
         <Ribbon b={b} compact />
       </div>
+      {awaitingActivation(b.phase, b.raised, b.raise) && <p className="text-sm font-medium">Fully funded — awaiting activation</p>}
       <dl className="grid grid-cols-3 gap-3 text-sm">
         <div>
           <dt className="text-xs text-foreground/60">Multiple</dt>
@@ -62,7 +66,7 @@ function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
         <div>
           <dt className="text-xs text-foreground/60">Coverage</dt>
           <dd className={cn('font-mono tabular', b.coverage !== null && b.coverage < 1.2 && 'text-orange-500')}>
-            {b.coverage === null ? '–' : `${b.coverage.toFixed(1)}×`}
+            {tooEarly(b, account) ? 'Too early to estimate' : b.coverage === null ? '–' : `${b.coverage.toFixed(1)}×`}
           </dd>
         </div>
         <div>
@@ -88,6 +92,10 @@ function BondCard({ b, account }: { b: BondView; account?: AccountView }) {
       )}
     </Link>
   );
+}
+
+function tooEarly(b: BondView, account?: AccountView) {
+  return !hasEnoughRevenueHistory(b.phase, b.activationTime, account?.payments ?? 0, Date.now() / 1000);
 }
 
 function AccountRow({ a }: { a: AccountView }) {

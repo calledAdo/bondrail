@@ -202,8 +202,9 @@ export function marketTab(b: Pick<BondView, 'phase'>): 'raising' | 'trading' | '
   if (b.phase === 'Active' || b.phase === 'Closing') return 'trading';
   return 'record';
 }
+export const awaitingActivation = (phase: BondView['phase'], raised: number, raise: number) => phase === 'Funding' && raised >= raise;
 export const HIDING_FLAGS = ['No signed profile', 'Source unhealthy', 'Unrecognised asset', 'Fewer than two attributed payers'];
-export const listed = (b: BondView) => !b.flags.some((f) => HIDING_FLAGS.includes(f));
+export const listed = (b: BondView) => !b.flags.some((f) => HIDING_FLAGS.includes(f) && f !== 'No signed profile');
 export { fmt } from './format';
 export const short = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 export const days = (d: number) => (d >= 1 ? `${Math.round(d)}d` : `${Math.max(1, Math.round(d * 24))}h`);

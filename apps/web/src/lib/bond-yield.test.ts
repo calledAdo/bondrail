@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { bondImpliedYield, earlyRedemptionEstimate } from './bond-yield';
+import { bondImpliedYield, earlyRedemptionEstimate, hasEnoughRevenueHistory } from './bond-yield';
 
 const now = 1_800_000_000;
 const account = { verifiedDaily: 8 };
@@ -11,6 +11,13 @@ const bond: Parameters<typeof bondImpliedYield>[0] = {
 };
 const address = '0x1111111111111111111111111111111111111111';
 const kuru = { bond: address, market: address, vault: address, tx: '0x01' } as const;
+
+test('early estimates need 24 hours since activation and three attributed payments', () => {
+  assert.equal(hasEnoughRevenueHistory('Active', 100, 3, 100 + 86_399), false);
+  assert.equal(hasEnoughRevenueHistory('Active', 100, 2, 100 + 86_400), false);
+  assert.equal(hasEnoughRevenueHistory('Active', 100, 3, 100 + 86_400), true);
+  assert.equal(hasEnoughRevenueHistory('Funding', undefined, 0, 100), true);
+});
 
 test('Kuru midpoint and percentage share map to per-claim yield', () => {
   const y = bondImpliedYield({ ...bond, kuru }, account, 1, now);
