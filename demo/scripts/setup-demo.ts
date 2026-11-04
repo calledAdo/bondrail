@@ -58,6 +58,8 @@ const triggerTerms = parseTriggerTerms({
 const HOUR = 3600n;
 const ZERO: Address = '0x0000000000000000000000000000000000000000';
 const skipPreflight = process.argv.includes('--skip-preflight');
+const relaunch = process.env.RELAUNCH === '1';
+const open = process.env.OPEN === '1';
 assertPreflightMode(skipPreflight, chainId, process.env.BONDRAIL_ENV);
 
 const erc20 = parseAbi([
@@ -95,8 +97,8 @@ async function fund(to: Address, mon: string, usdcAmount: bigint, asset: Address
 function terms(id: string, now: bigint, milestoneMode: 0 | 1, minFeeBps: number) {
   // Funding FUNDING_DAYS (default 1); second release opens 1 h after funding closes and ends 2 days
   // before maturity; matures after MATURITY_DAYS (default 7; use 30+ to stay live through judging).
-  const fundingDays = BigInt(process.env.FUNDING_DAYS ?? '1');
-  const days = BigInt(process.env.MATURITY_DAYS ?? '7');
+  const fundingDays = BigInt(process.env.FUNDING_DAYS ?? (relaunch ? '3' : '1'));
+  const days = BigInt(process.env.MATURITY_DAYS ?? (relaunch ? '90' : '7'));
   if (days < fundingDays + 3n) throw new Error('MATURITY_DAYS must be at least FUNDING_DAYS + 3');
   return {
     raiseAmount: RAISE,
@@ -154,10 +156,15 @@ async function fundAndActivate(id: string) {
     abi: bondAbi,
     functionName: 'fundingEscrow',
   })) as bigint;
-  if (raised < RAISE) {
-    await fund(investor.address, '0.5', RAISE - raised, d.asset);
-    await write(investor, d.asset, erc20, 'approve', [rec.bond!, RAISE - raised]);
-    await write(investor, rec.bond!, bondAbi, 'deposit', [RAISE - raised]);
+  const target = open && process.env.ACTIVATE !== '1' ? (RAISE > usdc('1') ? RAISE - usdc('1') : 0n) : RAISE;
+  if (raised < target) {
+    await fund(investor.address, '0.5', target - raised, d.asset);
+    await write(investor, d.asset, erc20, 'approve', [rec.bond!, target - raised]);
+    await write(investor, rec.bond!, bondAbi, 'deposit', [target - raised]);
+  }
+  if (raised < RAISE && target < RAISE) {
+    console.log(`  ${rec.name}: open raise has ${RAISE - target} atomic USDC remaining for a human investor`);
+    return;
   }
   if (rec.tier === 'watched') {
     console.log(`  ${rec.name}: funded; activate after a compliant CRE report (scripts/activate-watched.ts)`);
@@ -203,7 +210,36 @@ async function createBond(
 ) {
   const d = readDeployment();
   const rec = d.issuers[id]!;
-  if (rec.bond) { await recordBond(rec.bond); return true; }
+  if (rec.bond) {
+    if (!relaunch) { await recordBond(rec.bond); return true; }
+    const phase = await publicClient.readContract({ address: rec.bond, abi: bondAbi, functionName: 'phase' }) as number;
+    if (phase === 0 || phase === 1 || phase === 2) {
+      if (rec.previousBonds?.length) { await recordBond(rec.bond); return true; }
+      throw new Error(`${id} still has an active bond; relaunch requires a closed, matured or cancelled prior bond`);
+    }
+    const oldBond = rec.bond;
+    const oldTerms = rec.terms ?? Object.fromEntries(Object.entries(
+      await publicClient.readContract({ address: oldBond, abi: bondAbi, functionName: 'terms' }) as Record<string, unknown>,
+    ).filter(([key]) => !/^\d+$/.test(key)).map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value as string | number]));
+    const oldBondEvents = await publicClient.getContractEvents({
+      address: d.factory,
+      abi: factoryAbi,
+      eventName: 'BondCreated',
+      args: { bond: oldBond },
+      fromBlock: BigInt(d.startBlock),
+    });
+    const oldStartBlock = rec.startBlock ?? (oldBondEvents[0]?.blockNumber === null || !oldBondEvents[0]?.blockNumber
+      ? undefined : String(oldBondEvents[0].blockNumber));
+    if (!oldStartBlock) throw new Error(`Could not recover the creation block for ${id} bond ${oldBond}`);
+    rec.previousBonds ??= [];
+    rec.previousBonds.push({ bond: oldBond, kuruMarket: rec.kuruMarket, kuruVault: rec.kuruVault, startBlock: oldStartBlock, terms: oldTerms });
+    delete rec.kuruMarket;
+    delete rec.kuruVault;
+    delete rec.startBlock;
+    delete rec.terms;
+    delete rec.bond;
+    saveDeployment(d);
+  }
   if (!(await historyReady(id))) return false;
   const issuer = account(`${id}-issuer`);
   const now = (await publicClient.getBlock()).timestamp;
@@ -216,6 +252,9 @@ async function createBond(
     symbol,
   ]);
   rec.bond = (await eventArgs(r, 'BondCreated')).bond;
+  rec.startBlock = String(r.blockNumber);
+  const issuedTerms = terms(id, now, milestoneMode, minFeeBps);
+  rec.terms = Object.fromEntries(Object.entries(issuedTerms).map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value]));
   saveDeployment(d);
   await recordBond(rec.bond!);
   console.log(`  ${rec.name}: bond ${rec.bond} (${symbol})`);
@@ -310,7 +349,7 @@ async function setupLaunchpad(id: string, name: string, tokenName: string, token
   if (!created) return;
   if (open) {
     console.log(`  ${name}: raise open to anyone until the funding deadline; activate with ACTIVATE=1 once full`);
-    if (process.env.ACTIVATE === '1') await fundAndActivate(id);
+    if (process.env.ACTIVATE === '1' || process.env.OPEN === '1') await fundAndActivate(id);
   } else await fundAndActivate(id);
 }
 
@@ -375,7 +414,7 @@ async function main() {
   const which = process.argv.slice(2).filter((arg) => !arg.startsWith('--'));
   const all = which.length === 0;
   console.log(`Setting up demo businesses on ${readDeployment().network}`);
-  if (all || which.includes('pumplab')) await setupLaunchpad('pumplab', 'PumpLab', 'PumpLab Meme', 'PLMEME', 'PLAB-RC', false);
+  if (all || which.includes('pumplab')) await setupLaunchpad('pumplab', 'PumpLab', 'PumpLab Meme', 'PLMEME', 'PLAB-RC', open);
   // A second issuer on the same reviewed template, raising in the open (e.g. FUNDING_DAYS=17 MATURITY_DAYS=45).
   if (all || which.includes('curvelab')) await setupLaunchpad('curvelab', 'CurveLab', 'CurveLab Meme', 'CLMEME', 'CLAB-RC', true);
   if (all || which.includes('agent')) await setupAgent();

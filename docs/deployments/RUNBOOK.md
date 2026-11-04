@@ -315,6 +315,38 @@ Current transcripts/results are under `.data/e2e-local/`, including `vault-brows
 archived Task 23b evidence under `docs/ux/phase-c/` is not overwritten.
 
 
+## Relaunching a demo issuer
+
+`RELAUNCH=1` issues another bond for the existing issuer, account and reviewed native project.
+The prior bond, Kuru market/vault (when present), start block and issued terms are appended to
+`previousBonds[]` before the issuer's current `bond` pointer changes. Old bond URLs remain valid;
+the app's `NEXT_PUBLIC_PUMPLAB_BOND_ADDRESS` resolves from the current pointer. The factory requires
+the prior bond to be Closed or Cancelled and the account's `activeBond` to be clear. The account's
+original first-payment history is retained and must still meet `minHistory`.
+
+Use the same manifest, account roles and deployment as the existing demo. The relaunch defaults to
+`MATURITY_DAYS=90`, `FUNDING_DAYS=3`, and the usual 2 USDC raise / 2.4 USDC cap. Set explicit values
+when needed. To leave 1 USDC for a person to fund in the app, run:
+
+```sh
+export BONDRAIL_CHAIN_ID=10143
+export BONDRAIL_DEPLOYMENT=main
+export BONDRAIL_RPC_URL=https://testnet-rpc.monad.xyz
+export BONDRAIL_KEY_DIR=/absolute/operator/key-directory
+export BONDRAIL_KEY_PREFIX=''
+export RAISE_USDC=2 CAP_USDC=2.4 MATURITY_DAYS=90 FUNDING_DAYS=3
+RELAUNCH=1 OPEN=1 pnpm tsx demo/scripts/setup-demo.ts --force pumplab
+```
+
+Then complete the workflow in this order:
+
+1. A human connects an investor wallet in the app and funds the remaining 1 USDC on the new bond.
+2. Run `RELAUNCH=1 OPEN=1 ACTIVATE=1 pnpm tsx demo/scripts/setup-demo.ts --force pumplab`. This is resumable: it fills any remaining amount from the configured demo investor and activates only when the raise is full.
+3. Send traffic to the retained PumpLab project so its original account continues to accrue revenue history.
+4. List the new bond on Kuru with `pnpm tsx demo/scripts/kuru-market.ts pumplab 1`. The configured `investor` role must hold claim tokens; the setup script's investor receives them when funding. Kuru uses Monad testnet and is not part of local Anvil acceptance.
+
+Do not issue while the old bond is Funding, Active or Closing. A closed or cancelled bond is required. The local e2e matures and closes its original PumpLab bond before exercising this flow, then verifies the old and new bonds both remain indexed and the web environment points at the new address.
+
 ## Event-only indexer recovery (Task 23d)
 
 The `envio-next` incident at block **71,191,661** was caused by vault handlers awaiting historical

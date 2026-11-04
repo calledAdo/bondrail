@@ -40,7 +40,7 @@ async function freePort() {
 function start(label: string, command: string, args: string[], extra: NodeJS.ProcessEnv = {}) {
   const file = path.join(logs, `${label}.log`);
   const fd = fs.openSync(file, 'w');
-  const child = spawn(command, args, { cwd: label === 'web-build' || label === 'web' ? path.join(root, 'apps/web') : root, env: { ...process.env, ...extra }, stdio: ['ignore', fd, fd] });
+  const child = spawn(command, args, { cwd: label === 'web-build' || label === 'web' ? path.join(root, 'apps/web') : root, env: { ...process.env, NODE_NO_WARNINGS: '1', ...extra }, stdio: ['ignore', fd, fd] });
   fs.closeSync(fd);
   children.push(child);
   child.on('error', error => console.error(`${label}: ${error.message}`));
@@ -366,6 +366,45 @@ async function main() {
     throw error;
   } finally { await browser.close(); }
   pass('Web production build: bonds, multi-vault directory, deposit/withdraw previews and local transactions, curator allocation, Portfolio and 10 responsive screenshots');
+  const oldPumpBond = pump.bond!;
+  await client.request({ method: 'evm_increaseTime' as never, params: [10 * 24 * 60 * 60] as never });
+  await client.request({ method: 'evm_mine' as never });
+  await write(account('deployer'), pump.account, artifact('BondrailAccount').abi, 'closeBondAtMaturity', [oldPumpBond]);
+  assert.equal(await read(oldPumpBond, 'BondrailBond', 'phase'), 3);
+  await script('pumplab-relaunch-open', 'demo/scripts/setup-demo.ts', ['--force', 'pumplab'], {
+    RELAUNCH: '1', OPEN: '1', FUNDING_DAYS: '3', MATURITY_DAYS: '90', VAULT_ALLOCATE_USDC: '0',
+  });
+  d = readDeployment();
+  const relaunched = d.issuers.pumplab!;
+  assert.equal(relaunched.previousBonds?.length, 1);
+  assert.equal(relaunched.previousBonds![0].bond, oldPumpBond);
+  assert.equal(relaunched.previousBonds![0].startBlock, pump.startBlock);
+  assert.equal(relaunched.previousBonds![0].terms?.maturity, pump.terms?.maturity);
+  assert.notEqual(relaunched.bond, oldPumpBond);
+  assert.equal(relaunched.account, pump.account);
+  assert.equal(relaunched.source, pump.source);
+  assert.equal(await read(relaunched.bond!, 'BondrailBond', 'phase'), 0);
+  assert.equal(await read(relaunched.bond!, 'BondrailBond', 'fundingEscrow'), 1_000_000n);
+  assert.equal(relaunched.terms?.maturity && Number(relaunched.terms.maturity) - Number(relaunched.terms.fundingDeadline), 87 * 24 * 60 * 60);
+  const relaunchEnv = webEnvironment(d, rpc, indexer);
+  assert.equal(relaunchEnv.NEXT_PUBLIC_PUMPLAB_BOND_ADDRESS, relaunched.bond);
+  const priorUrl = `http://127.0.0.1:${webPort}/bonds/${oldPumpBond}`;
+  const currentUrl = `http://127.0.0.1:${webPort}/bonds/${relaunched.bond}`;
+  assert.equal((await fetch(priorUrl)).status, 200);
+  assert.equal((await fetch(currentUrl)).status, 200);
+  await write(account('deployer'), d.asset, artifact('MockERC3009').abi, 'mint', [account('investor').address, 1_000_000n]);
+  await write(account('investor'), d.asset, artifact('MockERC3009').abi, 'approve', [relaunched.bond!, 1_000_000n]);
+  await write(account('investor'), relaunched.bond!, artifact('BondrailBond').abi, 'deposit', [1_000_000n]);
+  await script('pumplab-relaunch-activate', 'demo/scripts/setup-demo.ts', ['--force', 'pumplab'], {
+    RELAUNCH: '1', OPEN: '1', ACTIVATE: '1', FUNDING_DAYS: '3', MATURITY_DAYS: '90', VAULT_ALLOCATE_USDC: '0',
+  });
+  d = readDeployment();
+  assert.equal(await read(relaunched.bond!, 'BondrailBond', 'phase'), 1);
+  assert.equal(await read(relaunched.bond!, 'BondrailBond', 'fundingEscrow'), 0n);
+  const indexedRelaunch = await (await fetch(indexer)).json() as { data: { Bond: { id: string }[] } };
+  assert(indexedRelaunch.data.Bond.some(b => b.id.toLowerCase() === relaunched.bond!.toLowerCase()));
+  assert(indexedRelaunch.data.Bond.some(b => b.id.toLowerCase() === oldPumpBond.toLowerCase()));
+  pass('Relaunch retains issuer/account/project/history, archives old terms, leaves 1 USDC open, activates when full, indexes both bonds and exports the new bond');
   for (const { file, bytes } of protectedFiles) assert.deepEqual(fs.readFileSync(file), bytes);
   pass('Current and judged deployment manifests unchanged; only isolated anvil used');
   const addresses = Object.entries({ USDC: d.asset, factory: d.factory, covenant: d.covenant, registry: d.creditRegistry, vault: d.vault,

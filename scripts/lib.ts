@@ -130,6 +130,15 @@ export type IssuerRecord = {
   agentId?: string;
   kuruMarket?: Address;
   kuruVault?: Address;
+  startBlock?: string;
+  terms?: Record<string, string | number>;
+  previousBonds?: {
+    bond: Address;
+    kuruMarket?: Address;
+    kuruVault?: Address;
+    startBlock?: string;
+    terms?: Record<string, string | number>;
+  }[];
 };
 export type DeploymentFile = {
   schemaVersion: 1;
