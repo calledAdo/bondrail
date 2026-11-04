@@ -53,7 +53,7 @@ const ZERO = '0x0000000000000000000000000000000000000000' as Address;
 
 type Quote = { side: 'buy' | 'sell'; amount: string; out: bigint; at: number };
 
-export function Trade({ b, initialSide = 'buy' }: { b: BondView; initialSide?: 'buy' | 'sell' }) {
+export function Trade({ b, initialSide = 'buy', onDone = () => undefined }: { b: BondView; initialSide?: 'buy' | 'sell'; onDone?: () => void }) {
   const market = b.kuru!.market as Address;
   const prices = useKuruPrice(market);
   const { address, chainId } = useAccount();
@@ -163,6 +163,7 @@ export function Trade({ b, initialSide = 'buy' }: { b: BondView; initialSide?: '
       if (label !== 'Approve') setAmount('');
       setStatus({ text: `${label}: ${confirmedIn(ms)}.`, hash });
       await Promise.all([reads.refetch(), prices.refetch()]);
+      onDone();
     } catch (e) {
       setStatus({ text: reason(e), error: true });
     } finally {

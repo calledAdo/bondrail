@@ -33,13 +33,13 @@ export function DecisionLinks({ b, now, onSelect, primary = true }: { b: BondVie
     {shared && <p role="status" className="text-xs text-foreground/70">{shared}</p>}
   </div>;
 }
-export function DecisionPanel({ b, account, now, intent, onSelect }: { b: BondView; account?: AccountView; now: number; intent: BondIntent | null; onSelect: (intent: BondIntent) => void }) {
+export function DecisionPanel({ b, account, now, intent, onSelect, onDone = () => undefined }: { b: BondView; account?: AccountView; now: number; intent: BondIntent | null; onSelect: (intent: BondIntent) => void; onDone?: () => void }) {
   return <div id="bond-actions" className="scroll-mt-24">
     <Panel compact title="What you can do now" className="p-4 sm:p-6">
       <DecisionLinks b={b} now={now} onSelect={onSelect} primary={false} />
       {intent && b.phase !== 'Closing' && <div className="mt-4 max-w-lg border-t border-foreground/10 pt-4">
         <h3 className="mb-4 font-medium">{intent === 'redeem' && b.phase === 'Active' ? 'Review early redemption' : `${intent[0].toUpperCase()}${intent.slice(1)}`}</h3>
-        {b.kuru && b.phase === 'Active' && (intent === 'buy' || intent === 'sell') ? <Trade key={intent} b={b} initialSide={intent} /> : <BondActions key={intent} b={b} account={account} onDone={() => undefined} mode="investor" intent={intent} />}
+        {b.kuru && b.phase === 'Active' && (intent === 'buy' || intent === 'sell') ? <Trade key={intent} b={b} initialSide={intent} onDone={onDone} /> : <BondActions key={intent} b={b} account={account} onDone={onDone} mode="investor" intent={intent} />}
       </div>}
     </Panel>
   </div>;

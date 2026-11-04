@@ -242,11 +242,11 @@ export function BondPage({ address, initialData, indexedAt }: { address: string;
     <IndexedBondSummary b={row} account={account} asset={account?.asset ?? [...assets.values()][0]} />
     <BondPlaceholders omitSummary evidence={account && <section aria-label="Evidence" className="space-y-3"><h2 className="text-xl font-semibold">Evidence</h2><History a={account} compact /><Payers a={account} compact /><RegistryCreditProfile account={row.account} compact estimate={account} /></section>} error={error ? 'The account data could not be read.' : termsError ? 'The bond terms could not be read.' : undefined} retry={() => void refetch()} />
   </div>;
-  return <BondDetailView key={b.address} b={b} a={account} refreshError={!!error} evidenceLoading={evidenceLoading} liveLoading={liveLoading} checksLoading={checksLoading} checksError={!!checksError} />;
+  return <BondDetailView key={b.address} b={b} a={account} onDone={() => void refetch()} refreshError={!!error} evidenceLoading={evidenceLoading} liveLoading={liveLoading} checksLoading={checksLoading} checksError={!!checksError} />;
 }
 
 /** Shared by the live route and development-only deterministic review fixtures. */
-export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = false, evidenceLoading = false, liveLoading = false, checksLoading = false, checksError = false }: { b: BondView; a?: AccountView; now?: number; refreshError?: boolean; evidenceLoading?: boolean; liveLoading?: boolean; checksLoading?: boolean; checksError?: boolean }) {
+export function BondDetailView({ b, a, now = Date.now() / 1000, onDone = () => undefined, refreshError = false, evidenceLoading = false, liveLoading = false, checksLoading = false, checksError = false }: { b: BondView; a?: AccountView; now?: number; onDone?: () => void; refreshError?: boolean; evidenceLoading?: boolean; liveLoading?: boolean; checksLoading?: boolean; checksError?: boolean }) {
   const [intent, setIntent] = useState<BondIntent | null>(null);
   function select(value: BondIntent) {
     setIntent(value);
@@ -268,8 +268,8 @@ export function BondDetailView({ b, a, now = Date.now() / 1000, refreshError = f
     <BondSection title="How you could lose money"><Panel compact title="How you could lose money" className="p-4 sm:p-6">
       <ul className="list-disc space-y-2 pl-5 text-sm leading-[1.5] sm:space-y-3 sm:leading-relaxed">{bondRisks(b, now).map(risk => <li key={risk}><TermsText>{risk}</TermsText></li>)}</ul>
     </Panel></BondSection>
-    <BondSection title="What you can do now"><DecisionPanel b={b} account={a} now={now} intent={intent} onSelect={select} /></BondSection>
-    <BondSection title="Maintenance"><BondActions b={b} account={a} mode="maintenance" onDone={() => undefined} /></BondSection>
+    <BondSection title="What you can do now"><DecisionPanel b={b} account={a} now={now} intent={intent} onSelect={select} onDone={onDone} /></BondSection>
+    <BondSection title="Maintenance"><BondActions b={b} account={a} mode="maintenance" onDone={onDone} /></BondSection>
     <BondSection title="Full terms & technical details"><details className="rounded-xl border border-foreground/10 p-4 sm:p-6">
       <summary className="min-h-11 cursor-pointer py-2 font-semibold">Full terms &amp; technical details</summary>
       <div className="mt-5 space-y-6">

@@ -89,6 +89,7 @@ export function BondActions({ b, account, onDone, mode = 'all', intent }: { b: B
       setStatus({ text: `${label}: ${confirmedIn(ms)}.`, hash });
       await reads.refetch();
       setConfirming(false);
+      if (label !== 'Approve') setAmount('');
       onDone();
     } catch (e) {
       // viem puts the decoded contract error (e.g. "Error: InvalidTerms()") in metaMessages.

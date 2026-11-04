@@ -4,7 +4,22 @@ import type { Hash, PublicClient, TransactionReceipt } from 'viem';
  * measures broadcast → receipt as seen from this browser. */
 export async function receiptTimed(client: PublicClient, hash: Hash): Promise<{ receipt: TransactionReceipt; ms: number }> {
   const start = performance.now();
-  const receipt = await client.waitForTransactionReceipt({ hash, pollingInterval: 100 });
+  // Some injected providers resolve the broadcast hash independently from wagmi's waiter.
+  // Poll by that hash directly so a provider-specific waiter cannot leave the UI pending.
+  let finished = false;
+  const direct = (async () => {
+    while (!finished) {
+      try { return await client.getTransactionReceipt({ hash }); }
+      catch { await new Promise((resolve) => setTimeout(resolve, 250)); }
+    }
+    return new Promise<TransactionReceipt>(() => {});
+  })();
+  let receipt: TransactionReceipt;
+  try {
+    receipt = await Promise.race([client.waitForTransactionReceipt({ hash, pollingInterval: 100 }), direct]);
+  } finally {
+    finished = true;
+  }
   return { receipt, ms: Math.round(performance.now() - start) };
 }
 
