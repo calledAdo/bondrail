@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { useAccount, useReadContract } from 'wagmi';
 import { erc20Abi, formatUnits } from 'viem';
 import { chain } from '@/lib/wallet';
-import { claimEstimate, purchaseEstimate } from '@/lib/bond-decision';
+import { calculatorDefault, claimEstimate, purchaseEstimate } from '@/lib/bond-decision';
 import { Term, TermsText } from './term';
 import { Panel } from './ui';
 
@@ -46,7 +46,7 @@ export function ImpliedYieldPanel({ b, account }: { b: BondView; account?: Accou
 
 /** Purchase scenarios when entry exists; otherwise value the claims already outstanding. */
 export function WhatYouGet({ b, account, now }: { b: BondView; account?: AccountView; now: number }) {
-  const [amount, setAmount] = useState('10');
+  const [amount, setAmount] = useState(() => calculatorDefault(b));
   const prices = useKuruPrice(b.kuru?.market);
   const { address } = useAccount();
   const holdingMode = b.phase !== 'Funding' && (b.phase !== 'Active' || !b.kuru);

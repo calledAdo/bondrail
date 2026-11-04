@@ -135,3 +135,7 @@ export function purchaseEstimate(b: BondView, account: Pick<AccountView, 'verifi
 export function vaultHoldsBond(bond: string, holdings?: readonly string[]) {
   return holdings?.some(held => held.toLowerCase() === bond.toLowerCase()) === true;
 }
+export function calculatorDefault(b: Pick<BondView, 'phase' | 'raise' | 'raised'>): string {
+  if (b.phase === 'Funding') return String(Math.max(0, Math.min(10, b.raise - b.raised)));
+  return '10';
+}

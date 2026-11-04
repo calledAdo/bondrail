@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, claimEstimate, purchaseEstimate, vaultHoldsBond } from './bond-decision';
+import { bondAction, bondRisks, bondSummary, bondTimeline, depositPauseReason, claimEstimate, purchaseEstimate, vaultHoldsBond, calculatorDefault } from './bond-decision';
 import { bondFixtures, fixtureAccount, FIXTURE_NOW, marketFixture } from './bond-fixtures';
 
 const activeSentence = 'Fixture Studio raised $1,000.00 of $1,000.00. Claim holders receive 25% of its revenue (rising to 50% if revenue falls below $100.00 over 7 days) until up to $1,500.00 has been repaid (currently up to $750.00, rising as more capital is released) or Jan 14, 2027. $200.00 repaid so far.';
@@ -15,6 +15,12 @@ const expected = {
   Closed: [activeSentence.replace(', rising as more capital is released', '').replace('$200.00 repaid', '$750.00 repaid'), 'Settled', 'Redeem'],
   Cancelled: ["This raise didn't complete. Every deposit can be refunded in full.", 'Raise cancelled', 'Refund'],
 } as const;
+
+test('calculator defaults to the smaller of ten and the remaining raise', () => {
+  assert.equal(calculatorDefault({ phase: 'Funding', raise: 20, raised: 19 }), '1');
+  assert.equal(calculatorDefault({ phase: 'Funding', raise: 4, raised: 0 }), '4');
+  assert.equal(calculatorDefault({ phase: 'Active', raise: 20, raised: 20 }), '10');
+});
 for (const [phase, b] of Object.entries(bondFixtures)) {
   test(`${phase}: exact sentence, one current timeline step and phase action`, () => {
     const [sentence, current, primary] = expected[phase as keyof typeof expected];
