@@ -32,7 +32,11 @@ import { bondrailBondAbi as bondAbi } from '../packages/sdk/src/abis.ts';
 const root = path.resolve(import.meta.dirname, '..');
 const bond = deployment.issuers.pumplab.bond;
 const asset = deployment.asset;
-const amount = 1_000_000n;
+const kuruMarket = deployment.issuers.pumplab.kuruMarket;
+const kuruVault = deployment.issuers.pumplab.kuruVault;
+const kuruRouter = '0x7EFbE105Ca7415dE98F96622173458ac1c054630';
+const scenario = process.argv.includes('--scenario=kuru') ? 'kuru' : 'deposit';
+const amount = scenario === 'kuru' ? 100_000n : 1_000_000n;
 const outDir = path.join(root, 'docs/ux/smoke-2026-11');
 const logPath = path.join(outDir, 'run.json');
 const verifyOnly = process.argv.includes('--verify-completed');
@@ -44,17 +48,25 @@ const bondReadAbi = parseAbi([
   'function balanceOf(address) view returns (uint256)',
 ]);
 const factoryReadAbi = parseAbi(['function depositAllowed(address bond) view returns (bool)']);
+const kuruReadAbi = parseAbi([
+  'function getMarketParams() view returns (uint32 pricePrecision,uint96 sizePrecision,address baseAsset,uint256 baseAssetDecimals,address quoteAsset,uint256 quoteAssetDecimals,uint32 tickSize,uint96 minSize,uint96 maxSize,uint256 takerFeeBps,uint256 makerFeeBps)',
+]);
+const kuruTradeAbi = parseAbi([
+  'function placeAndExecuteMarketBuy(uint96 size,uint256 minAmountOut,bool isMargin,bool isFillOrKill) payable returns (uint256)',
+]);
 
 fs.mkdirSync(outDir, { recursive: true });
 const run = {
-  task: 27,
+  task: scenario === 'kuru' ? 28 : 27,
+  scenario,
+  runId: `${scenario}-${new Date().toISOString()}`,
   startedAt: new Date().toISOString(),
   chainId: 10143,
   rpc: RPC,
   appOrigin: null,
   wallet: ADDRESS,
   bond,
-  amount: '1.000000 USDC',
+  amount: scenario === 'kuru' ? '0.100000 USDC' : '1.000000 USDC',
   preflight: null,
   steps: [],
   transactions: [],
@@ -66,7 +78,10 @@ const run = {
   final: null,
 };
 const persist = () => {
-  fs.writeFileSync(`${logPath}.tmp`, JSON.stringify(run, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2) + '\n');
+  const output = scenario === 'kuru'
+    ? { ...(previousRun ?? {}), taskRuns: [...(previousRun?.taskRuns ?? []).filter(item => item.runId !== run.runId), run] }
+    : run;
+  fs.writeFileSync(`${logPath}.tmp`, JSON.stringify(output, (_, v) => typeof v === 'bigint' ? v.toString() : v, 2) + '\n');
   fs.renameSync(`${logPath}.tmp`, logPath);
 };
 const elapsed = () => Math.round(performance.now() - run.startedMonotonicMs);
@@ -81,6 +96,7 @@ let origin;
 let stepIndex = 0;
 const acceptedWrites = new Set();
 const txByKind = {};
+let writesThisInvocation = 0;
 
 function assert(condition, message) {
   if (!condition) throw new Error(message);
@@ -100,6 +116,8 @@ async function freePort() {
 function webEnv() {
   return {
     ...process.env,
+    KV_REST_API_URL: '',
+    KV_REST_API_TOKEN: '',
     BONDRAIL_DEPLOYMENT: deployment.deployment,
     NEXT_PUBLIC_CHAIN_ID: '10143',
     NEXT_PUBLIC_RPC_URL: rpcProxyUrl,
@@ -202,6 +220,37 @@ async function startWeb() {
   throw new Error('Timed out waiting for local web app');
 }
 
+async function seedLocalKuruRegistry() {
+  const query = new URLSearchParams({
+    accounts: deployment.issuers.pumplab.account,
+    bonds: bond,
+  });
+  const response = await fetch(`https://bondrail.vercel.app/api/registry?${query}`, { signal: AbortSignal.timeout(15_000), cache: 'no-store' });
+  assert(response.ok, `Local registry seed refused: published registry returned ${response.status}`);
+  const published = await response.json();
+  const profileRecord = published.profiles?.[deployment.issuers.pumplab.account.toLowerCase()];
+  const kuruRecord = published.kuru?.[bond.toLowerCase()];
+  assert(profileRecord?.profile && profileRecord.signature, 'Local registry seed refused: published PumpLab profile is missing');
+  assert(kuruRecord?.market?.toLowerCase() === kuruMarket.toLowerCase(), 'Local registry seed refused: published PumpLab Kuru market differs from the manifest');
+  assert(kuruRecord?.vault?.toLowerCase() === kuruVault.toLowerCase(), 'Local registry seed refused: published PumpLab Kuru vault differs from the manifest');
+  const seed = async body => {
+    const result = await fetch(`${origin}/api/registry`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body),
+    });
+    const data = await result.json();
+    assert(result.ok, `Local registry seed failed: ${data.error ?? result.status}`);
+    return data;
+  };
+  await seed({ type: 'profile', profile: profileRecord.profile, signature: profileRecord.signature });
+  await seed({ type: 'kuru', tx: kuruRecord.tx });
+  const check = await fetch(`${origin}/api/registry?${query}`, { signal: AbortSignal.timeout(10_000), cache: 'no-store' });
+  assert(check.ok, 'Local registry seed verification request failed');
+  const local = await check.json();
+  assert(local.kuru?.[bond.toLowerCase()]?.market?.toLowerCase() === kuruMarket.toLowerCase(), 'Local registry seed verification did not return the Kuru market');
+  assert(local.profiles?.[deployment.issuers.pumplab.account.toLowerCase()]?.profile?.name === profileRecord.profile.name, 'Local registry seed verification did not return the PumpLab profile');
+  run.localRegistrySeed = { source: 'published registry, read-only fetch', profile: profileRecord.profile.name, market: kuruRecord.market, vault: kuruRecord.vault, verifiedLocally: true };
+}
+
 async function chainSnapshot() {
   const chainId = await client.getChainId();
   assert(chainId === 10143, `RPC returned chain ${chainId}, expected 10143`);
@@ -231,11 +280,63 @@ async function chainSnapshot() {
   };
 }
 
+async function kuruSnapshot() {
+  const chainId = await client.getChainId();
+  assert(chainId === 10143, `RPC returned chain ${chainId}, expected 10143`);
+  const blockNumber = await client.getBlockNumber({ cacheTime: 0 });
+  const [mon, usdc, allowance, claims, phase, params, vaultCode] = await Promise.all([
+    client.getBalance({ address: ADDRESS, blockNumber }),
+    client.readContract({ address: asset, abi: erc20Abi, functionName: 'balanceOf', args: [ADDRESS], blockNumber }),
+    client.readContract({ address: asset, abi: erc20Abi, functionName: 'allowance', args: [ADDRESS, kuruMarket], blockNumber }),
+    client.readContract({ address: bond, abi: erc20Abi, functionName: 'balanceOf', args: [ADDRESS], blockNumber }),
+    client.readContract({ address: bond, abi: bondReadAbi, functionName: 'phase', blockNumber }),
+    client.readContract({ address: kuruMarket, abi: kuruReadAbi, functionName: 'getMarketParams', blockNumber }),
+    client.getCode({ address: kuruVault, blockNumber }),
+  ]);
+  assert(vaultCode && vaultCode !== '0x', 'Abort: configured Kuru vault has no deployed code');
+  assert(params[2].toLowerCase() === bond.toLowerCase(), 'Abort: Kuru base asset is not the PumpLab claim token');
+  assert(params[4].toLowerCase() === asset.toLowerCase(), 'Abort: Kuru quote asset is not USDC');
+  return {
+    at: new Date().toISOString(), blockNumber, chainId,
+    mon: formatUnits(mon, 18), usdc: formatUnits(usdc, 6), usdcRaw: usdc.toString(),
+    allowance: formatUnits(allowance, 6), allowanceRaw: allowance.toString(),
+    claims: formatUnits(claims, 6), claimsRaw: claims.toString(), phase: Number(phase),
+    market: kuruMarket, vault: kuruVault,
+    pricePrecision: params[0], sizePrecision: params[1].toString(),
+    baseAsset: params[2], quoteAsset: params[4], minSize: params[7].toString(),
+  };
+}
+
 function validateWalletRequest(tx) {
   assert(tx?.from?.toLowerCase() === ADDRESS.toLowerCase(), 'Wallet rejected: unauthorized sender');
   assert(BigInt(tx.value ?? 0) === 0n, 'Wallet rejected: nonzero native value');
   if (tx.chainId !== undefined) assert(BigInt(tx.chainId) === 10143n, 'Wallet rejected: wrong transaction chain');
   assert(acceptedWrites.size < 2, 'Wallet rejected: transaction budget exhausted');
+
+  if (scenario === 'kuru') {
+    const allowedContracts = new Set([kuruMarket, kuruVault, kuruRouter].map(address => address.toLowerCase()));
+    if (acceptedWrites.size === 0) {
+      assert(tx.to?.toLowerCase() === asset.toLowerCase(), 'Wallet rejected: first Kuru transaction must target USDC');
+      const call = decodeFunctionData({ abi: erc20Abi, data: tx.data });
+      assert(call.functionName === 'approve', 'Wallet rejected: first Kuru transaction must be approve');
+      assert(allowedContracts.has(call.args[0].toLowerCase()), 'Wallet rejected: Kuru approval spender is not an allowed Kuru contract');
+      assert(call.args[0].toLowerCase() === kuruMarket.toLowerCase(), 'Wallet rejected: approval spender differs from the app configured Kuru market');
+      assert(call.args[1] === amount, 'Wallet rejected: approval must be exactly 0.1 USDC');
+      run.approvalSpender = call.args[0];
+      return 'kuru-approve';
+    }
+    assert(allowedContracts.has(tx.to?.toLowerCase()), 'Wallet rejected: Kuru buy destination is not an allowed Kuru contract');
+    assert(tx.to?.toLowerCase() === kuruMarket.toLowerCase(), 'Wallet rejected: buy destination differs from the app configured Kuru market');
+    const call = decodeFunctionData({ abi: kuruTradeAbi, data: tx.data });
+    const decimals = String(run.preflight.pricePrecision).length - 1;
+    const expectedSize = BigInt(amount) * (10n ** BigInt(decimals)) / 1_000_000n;
+    assert(call.functionName === 'placeAndExecuteMarketBuy', 'Wallet rejected: second Kuru transaction must be a market buy');
+    assert(call.args[0] === expectedSize, 'Wallet rejected: Kuru order size differs from exactly 0.1 USDC');
+    assert(call.args[1] > 0n && call.args[2] === false && call.args[3] === false, 'Wallet rejected: unexpected Kuru minimum output or order flags');
+    run.buySize = call.args[0].toString();
+    run.minimumClaims = call.args[1].toString();
+    return 'kuru-buy';
+  }
 
   if (acceptedWrites.size === 0) {
     assert(tx.to?.toLowerCase() === asset.toLowerCase(), 'Wallet rejected: first transaction must target USDC');
@@ -265,6 +366,12 @@ async function submitGuarded(tx) {
       assert(snapshot.remainingRaise === amount.toString(), 'Deposit refused: remaining raise changed from exactly 1 USDC');
       assert(snapshot.phase === 0 && snapshot.depositAllowed, 'Deposit refused: raise is not open and eligible');
       assert(snapshot.allowanceRaw === amount.toString(), 'Deposit refused: allowance is not exactly 1 USDC');
+    } else if (kind === 'kuru-buy') {
+      stage = 'Kuru buy preflight';
+      const snapshot = await kuruSnapshot();
+      assert(snapshot.phase === 1, 'Buy refused: PumpLab is no longer Active');
+      assert(snapshot.allowanceRaw === amount.toString(), 'Buy refused: Kuru allowance is not exactly 0.1 USDC');
+      assert(BigInt(snapshot.usdcRaw) >= amount, 'Buy refused: USDC balance is below 0.1');
     }
     stage = 'gas reserve';
     await gasCheck();
@@ -293,6 +400,7 @@ async function submitGuarded(tx) {
     stage = 'broadcast transaction';
     await broadcastAndConfirm(serialized, hash, journalId);
     acceptedWrites.add(kind);
+    writesThisInvocation++;
     txByKind[kind] = hash;
     return hash;
   } catch (error) {
@@ -304,7 +412,7 @@ async function submitGuarded(tx) {
 }
 
 async function takeStep(name, details = {}) {
-  const screenshot = `${String(++stepIndex).padStart(2, '0')}-${name}.png`;
+  const screenshot = `${scenario === 'kuru' ? 'kuru-' : ''}${String(++stepIndex).padStart(2, '0')}-${name}.png`;
   const text = await page.locator('body').innerText().catch(() => '');
   await page.screenshot({ path: path.join(outDir, screenshot), fullPage: false, animations: 'disabled' });
   run.steps.push({ name, elapsedMs: elapsed(), at: new Date().toISOString(), url: page.url(), screenshot, observedText: text, ...details });
@@ -380,6 +488,7 @@ async function broadcastAndConfirm(serialized, hash, journalId) {
 }
 
 async function main() {
+  if (scenario === 'kuru') return mainKuru();
   run.startedMonotonicMs = performance.now();
   if (verifyOnly && previousRun) {
     run.priorAttempt = { earlier: previousRun.priorAttempt ?? null, preflight: previousRun.priorAttempt?.preflight ?? previousRun.preflight, final: previousRun.final, steps: previousRun.steps.map(step => step.name), consoleErrors: previousRun.consoleErrors };
@@ -639,6 +748,381 @@ async function main() {
   await takeStep('portfolio-position', { position: 'PumpLab · 1 claim', statusText: portfolioText });
   const uiFailures = (run.uiAssertions ?? []).filter(assertion => !assertion.passed);
   run.final = { result: uiFailures.length ? 'completed_with_findings' : 'passed', verificationOnly: verifyOnly, after, approveHash: approval.hash, depositHash: deposit.hash, acceptedWrites: [...acceptedWrites], writesThisInvocation: verifyOnly ? 0 : acceptedWrites.size, uiFailureCount: uiFailures.length, findingCount: run.findings.length };
+}
+
+async function mainKuru() {
+  run.startedMonotonicMs = performance.now();
+  assert(kuruMarket && kuruVault, 'Abort: PumpLab deployment manifest is missing its Kuru market or vault');
+  assert(kuruMarket.toLowerCase() === '0xebb8acc3b3c56b1707fd1b477a087afa196de92d', 'Abort: unexpected PumpLab Kuru market in manifest');
+  assert(kuruVault.toLowerCase() === '0xc164269235beb2140ede1dc452c4de1f581d64ac', 'Abort: unexpected PumpLab Kuru vault in manifest');
+  releaseLock = lock();
+  const journal = ledger();
+  const kuruActions = journal.actions.filter(action => ['ui-kuru-approve', 'ui-kuru-buy'].includes(action.kind));
+  const completedBuy = kuruActions.find(action => action.kind === 'ui-kuru-buy' && action.hash);
+  if (completedBuy) {
+    assert(process.argv.includes('--verify-kuru-completed'), 'Abort: a Kuru buy already exists; use --verify-kuru-completed for read-only verification');
+    return verifyKuruCompleted(kuruActions, completedBuy);
+  }
+  assert(!kuruActions.some(action => action.kind === 'ui-kuru-buy' && action.status !== 'reserved'), 'Abort: Kuru journal contains an incomplete or unrecognized buy action');
+  const before = await kuruSnapshot();
+  run.preflight = before;
+  const approvalAction = kuruActions.find(action => action.kind === 'ui-kuru-approve');
+  let reconciledApproval;
+  if (approvalAction?.hash) {
+    const [transaction, receipt] = await Promise.all([
+      client.getTransaction({ hash: approvalAction.hash }).catch(() => null),
+      client.getTransactionReceipt({ hash: approvalAction.hash }).catch(() => null),
+    ]);
+    assert(transaction && receipt?.status === 'success', 'Abort: prior Kuru approval hash has no successful receipt');
+    assert(transaction.from.toLowerCase() === ADDRESS.toLowerCase() && transaction.to?.toLowerCase() === asset.toLowerCase() && transaction.value === 0n && transaction.chainId === 10143, 'Abort: prior Kuru approval sender, destination, value, or chain is wrong');
+    const call = decodeFunctionData({ abi: erc20Abi, data: transaction.input });
+    assert(call.functionName === 'approve' && call.args[0].toLowerCase() === kuruMarket.toLowerCase() && call.args[1] === amount, 'Abort: prior Kuru approval calldata does not match exact market and 0.1 USDC');
+    assert(before.allowanceRaw === amount.toString(), 'Abort: prior Kuru approval succeeded but exact allowance is not present');
+    run.approvalSpender = call.args[0];
+    update(approvalAction.id, { status: 'success', receipt, receiptReadAt: new Date().toISOString() });
+    reconciledApproval = { hash: approvalAction.hash, journalId: approvalAction.id, receiptStatus: receipt.status, blockNumber: receipt.blockNumber, receipt, reconciled: true };
+    run.transactions.push({ kind: 'kuru-approve', ...reconciledApproval, status: receipt.status });
+    acceptedWrites.add('kuru-approve');
+    txByKind['kuru-approve'] = approvalAction.hash;
+  } else {
+    assert(!approvalAction || (approvalAction.status === 'reserved' && !approvalAction.hash), 'Abort: prior Kuru approval journal state is not recoverable');
+    assert(before.allowanceRaw === '0', `Abort: existing Kuru allowance is ${before.allowance} USDC without a matching journaled approval`);
+  }
+  run.journalRecovery = kuruActions.map(action => ({ id: action.id, kind: action.kind, status: action.status, hash: action.hash ?? null, resume: action === approvalAction && reconciledApproval ? 'verified exact approval receipt and allowance' : 'reuse unsigned reservation' }));
+  persist();
+  assert(Number(before.mon) >= 0.03, `Abort: MON balance ${before.mon} is below 0.03`);
+  assert(before.phase === 1, `Abort: PumpLab phase is ${before.phase}, expected Active (1)`);
+  assert(before.allowanceRaw === (reconciledApproval ? amount.toString() : '0'), `Abort: Kuru allowance ${before.allowance} USDC does not match its journaled approval state`);
+  assert(BigInt(before.usdcRaw) >= amount, `Abort: USDC balance ${before.usdc} is below 0.1`);
+  assert(BigInt(before.pricePrecision) > 0n && BigInt(before.minSize) > 0n, 'Abort: Kuru market parameters are invalid');
+
+  await startWeb();
+  await seedLocalKuruRegistry();
+  browser = await chromium.launch({
+    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    headless: process.env.HEADLESS === '1',
+    args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding'],
+  });
+  context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1, colorScheme: 'dark' });
+  await context.exposeBinding('__smokeWallet', async ({ frame }, request) => {
+    if (new URL(frame.url()).origin !== origin) throw new Error('Wallet origin refused');
+    const { method, params = [] } = request;
+    if (method === 'eth_accounts' || method === 'eth_requestAccounts') return [ADDRESS];
+    if (method === 'eth_chainId') return '0x279f';
+    if (method === 'net_version') return '10143';
+    if (method === 'wallet_switchEthereumChain') {
+      assert(params[0]?.chainId === '0x279f', 'Wallet rejected chain switch');
+      return null;
+    }
+    if (method === 'wallet_getCapabilities') return {};
+    if (method === 'eth_sendTransaction') {
+      try { return await submitGuarded(params[0]); }
+      catch (error) {
+        run.walletRequests.push({ at: new Date().toISOString(), method, error: error instanceof Error ? error.message : String(error) });
+        persist();
+        throw error;
+      }
+    }
+    const readOnlyMethods = new Set([
+      'eth_call', 'eth_estimateGas', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_getBlockByNumber',
+      'eth_getTransactionCount', 'eth_getTransactionReceipt', 'eth_getTransactionByHash', 'eth_getBalance',
+      'eth_blockNumber', 'eth_feeHistory', 'eth_getCode', 'eth_getLogs',
+    ]);
+    if (!readOnlyMethods.has(method)) throw new Error(`Wallet rejected unsupported RPC method ${method}`);
+    return client.request({ method, params });
+  });
+  await context.addInitScript(() => {
+    const listeners = new Map();
+    window.ethereum = {
+      isBondrailDemo: true,
+      isMetaMask: true,
+      request: request => window.__smokeWallet(request),
+      on: (event, listener) => listeners.set(event, [...(listeners.get(event) ?? []), listener]),
+      removeListener: (event, listener) => listeners.set(event, (listeners.get(event) ?? []).filter(fn => fn !== listener)),
+    };
+  });
+  page = await context.newPage();
+  page.on('console', message => { if (message.type() === 'error') run.consoleErrors.push({ at: new Date().toISOString(), text: message.text() }); });
+  page.on('pageerror', error => run.consoleErrors.push({ at: new Date().toISOString(), text: error.message }));
+  page.on('requestfailed', request => run.failedRequests.push({ at: new Date().toISOString(), url: request.url(), error: request.failure()?.errorText }));
+  page.on('response', response => { if (response.status() >= 400) run.failedRequests.push({ at: new Date().toISOString(), url: response.url(), status: response.status() }); });
+
+  await page.goto(origin, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(1800);
+  await takeStep('landing');
+  await humanClick(page.getByRole('link', { name: 'Open app', exact: true }));
+  await page.waitForURL('**/markets', { timeout: 30_000 });
+  await page.waitForTimeout(2500);
+  await takeStep('markets-raising');
+  run.marketsObservation = { raisingTab: await page.locator('body').innerText() };
+  await humanClick(page.getByRole('button', { name: 'Connect', exact: true }));
+  await takeStep('wallet-menu');
+  await humanClick(page.getByRole('menuitem', { name: 'Browser wallet', exact: true }));
+  await page.getByRole('button', { name: 'Disconnect wallet' }).waitFor({ timeout: 30_000 });
+  const connectedLabel = `0x${ADDRESS.slice(2, 6).toLowerCase()}…${ADDRESS.slice(-4).toLowerCase()}`;
+  await page.getByRole('button').filter({ hasText: connectedLabel }).waitFor({ timeout: 15_000 });
+  await page.waitForTimeout(1200);
+  await humanClick(page.getByRole('tab', { name: 'Trading', exact: true }));
+  await page.waitForTimeout(4000);
+  const tradingText = await page.locator('body').innerText();
+  run.marketsObservation.tradingTab = tradingText;
+  run.marketsObservation.pumpLabListed = tradingText.includes('PumpLab');
+  await takeStep('markets-trading', { pumpLabListed: run.marketsObservation.pumpLabListed });
+  if (!run.marketsObservation.pumpLabListed) {
+    const showAll = page.getByRole('button', { name: /Show all \(1 hidden/ });
+    await showAll.waitFor({ state: 'visible', timeout: 10_000 });
+    run.findings.push({
+      severity: 'medium',
+      title: 'Active PumpLab market is hidden from the Trading list by default',
+      detail: 'Markets → Trading showed “No live bonds” and one hidden item with generic possible causes, despite PumpLab being Active with its configured Kuru market. “Show all” exposed the PumpLab card.',
+      screenshot: run.steps.find(step => step.name === 'markets-trading')?.screenshot,
+    });
+    await humanClick(showAll);
+    await page.waitForTimeout(1200);
+    run.marketsObservation.pumpLabRevealedByShowAll = (await page.locator('body').innerText()).includes('PumpLab');
+    await takeStep('markets-trading-expanded', { pumpLabRevealedByShowAll: run.marketsObservation.pumpLabRevealedByShowAll });
+  }
+  const pumpCard = page.getByRole('link', { name: /PumpLab/ }).first();
+  await pumpCard.waitFor({ state: 'visible', timeout: 30_000 });
+  await humanClick(pumpCard);
+  await page.waitForURL(url => url.pathname.toLowerCase() === `/bonds/${bond}`.toLowerCase(), { timeout: 30_000 });
+  await page.waitForTimeout(7000);
+  await page.getByRole('heading', { name: 'PumpLab', exact: true }).waitFor({ timeout: 45_000 });
+  const detailText = await page.locator('body').innerText();
+  assert(before.phase === 1 && /Repaying/i.test(detailText), 'PumpLab detail page does not represent the on-chain Active phase as Repaying');
+  await takeStep('bond-active', { onChainPhase: 'Active', phaseLabel: 'Repaying', market: kuruMarket });
+  const primaryBuy = page.getByRole('button', { name: 'Buy claims', exact: true }).first();
+  await primaryBuy.waitFor({ state: 'visible', timeout: 20_000 });
+  await humanClick(primaryBuy);
+  await page.getByText('Best ask', { exact: true }).waitFor({ state: 'visible', timeout: 20_000 });
+  const tradePanelText = await page.locator('body').innerText();
+  assert(tradePanelText.toLowerCase().includes(kuruMarket.slice(2, 6).toLowerCase()) && tradePanelText.toLowerCase().includes(kuruMarket.slice(-4).toLowerCase()), 'Kuru trade panel does not identify the configured market');
+  const amountInput = page.getByLabel(/Spend \(USDC\)/i);
+  await amountInput.waitFor({ state: 'visible', timeout: 15_000 });
+  const askText = await page.locator('body').innerText();
+  const ask = askText.match(/Best ask\s*\n\s*([0-9]+(?:\.[0-9]+)?)/)?.[1];
+  assert(ask, 'Kuru market price (Best ask) is not shown');
+  await takeStep('buy-panel', { primaryAction: 'Buy claims', bestAsk: ask });
+  await amountInput.fill('0.1');
+  await page.waitForTimeout(2500);
+  const previewBeforeApproval = await page.locator('body').innerText();
+  const earlyClaims = previewBeforeApproval.match(/You receive\s*\n\s*([0-9,.]+) claims/i)?.[1];
+  run.previewBeforeApproval = { available: !!earlyClaims, observed: earlyClaims ?? null };
+  if (!earlyClaims) {
+    run.findings.push({
+      severity: 'medium',
+      title: 'Kuru buy quote is hidden until after USDC approval',
+      detail: 'After entering 0.1 USDC, the trade panel did not show expected claims or minimum received until allowance was approved. The requested preview-before-approval sequence was unavailable.',
+      screenshot: null,
+    });
+    await takeStep('preview-awaits-approval', { spend: '0.1 USDC', previewVisible: false });
+  }
+  let approvalStatusText = reconciledApproval ? 'Approval receipt verified from durable journal' : '';
+  if (!reconciledApproval) {
+    const approveButton = page.getByRole('button', { name: 'Approve USDC', exact: true });
+    await approveButton.waitFor({ state: 'visible', timeout: 20_000 });
+    await humanClick(approveButton);
+    await takeStep('approval-submitted');
+    try {
+      approvalStatusText = await (await waitForStatus(/Approve: confirmed/i)).innerText();
+    } catch (error) {
+      const pendingApproval = run.transactions.find(tx => tx.kind === 'kuru-approve' && tx.hash);
+      if (!pendingApproval) throw error;
+      run.findings.push({
+        severity: 'medium',
+        title: 'Trade panel did not confirm a successful USDC approval',
+        detail: `The exact approval succeeded on chain, but the trade panel remained in “Confirm in your wallet…” and raised “${error instanceof Error ? error.message : String(error)}”. The durable journal and receipt verified the approval.`,
+        screenshot: run.steps.find(step => step.name === 'approval-submitted')?.screenshot,
+      });
+      approvalStatusText = 'Approval verified on chain; UI confirmation did not render';
+    }
+  }
+  const approval = await inspectReceipt('kuru-approve');
+  await page.getByText('You receive', { exact: true }).waitFor({ state: 'visible', timeout: 30_000 });
+  await page.waitForFunction(() => document.body.innerText.includes('Minimum received'), null, { timeout: 30_000 });
+  await page.waitForTimeout(1000);
+  const previewText = await page.locator('body').innerText();
+  const expectedClaims = previewText.match(/You receive\s*\n\s*([0-9,.]+) claims/i)?.[1];
+  assert(expectedClaims && Number(expectedClaims.replaceAll(',', '')) > 0, 'Kuru preview does not show expected claims greater than zero');
+  run.preview = { spend: '0.1 USDC', expectedClaims, bestAsk: ask, minimumReceived: previewText.match(/Minimum received\s*\n\s*([^\n]+)/)?.[1] ?? null, afterApproval: true };
+  await takeStep('buy-preview', run.preview);
+  await page.waitForFunction(() => Array.from(document.querySelectorAll('button')).some(button => button.textContent?.trim() === 'Buy claims' && !button.disabled), null, { timeout: 30_000 });
+  await takeStep('approval-confirmed', { statusText: approvalStatusText, txHash: approval.hash, receiptStatus: approval.receiptStatus, spender: run.approvalSpender, reconciled: !!reconciledApproval });
+
+  await humanClick(page.getByRole('button', { name: 'Buy claims', exact: true }).last());
+  await takeStep('buy-submitted');
+  let boughtStatusText;
+  try {
+    boughtStatusText = await (await waitForStatus(/Buy: confirmed/i)).innerText();
+  } catch (error) {
+    const pendingBuy = run.transactions.find(tx => tx.kind === 'kuru-buy' && tx.hash);
+    if (!pendingBuy) throw error;
+    const [transaction, receipt] = await Promise.all([
+      client.getTransaction({ hash: pendingBuy.hash }).catch(() => null),
+      client.getTransactionReceipt({ hash: pendingBuy.hash }).catch(() => null),
+    ]);
+    assert(transaction && receipt?.status === 'success', 'Buy UI failed and the journaled Kuru buy has no successful receipt');
+    assert(transaction.from.toLowerCase() === ADDRESS.toLowerCase() && transaction.to?.toLowerCase() === kuruMarket.toLowerCase() && transaction.value === 0n && transaction.chainId === 10143, 'Journaled Kuru buy sender, destination, value, or chain is wrong');
+    const order = decodeFunctionData({ abi: kuruTradeAbi, data: transaction.input });
+    const decimals = String(before.pricePrecision).length - 1;
+    const expectedSize = amount * (10n ** BigInt(decimals)) / 1_000_000n;
+    assert(order.functionName === 'placeAndExecuteMarketBuy' && order.args[0] === expectedSize && order.args[1] > 0n && !order.args[2] && !order.args[3], 'Journaled Kuru buy calldata differs from exactly 0.1 USDC market buy');
+    run.findings.push({
+      severity: 'medium',
+      title: 'Trade panel did not confirm a successful Kuru buy',
+      detail: `The exact Kuru market buy succeeded on chain, but the trade panel raised “${error instanceof Error ? error.message : String(error)}”. The durable journal, decoded transaction, and receipt verified the buy.`,
+      screenshot: run.steps.find(step => step.name === 'buy-submitted')?.screenshot,
+    });
+    update(pendingBuy.journalId, { status: 'success', receipt, receiptReadAt: new Date().toISOString() });
+    pendingBuy.receiptStatus = receipt.status;
+    pendingBuy.receipt = receipt;
+    if (!acceptedWrites.has('kuru-buy')) {
+      acceptedWrites.add('kuru-buy');
+      writesThisInvocation++;
+    }
+    txByKind['kuru-buy'] = pendingBuy.hash;
+    boughtStatusText = 'Buy verified on chain; UI confirmation did not render';
+  }
+  const buy = await inspectReceipt('kuru-buy');
+  await page.waitForTimeout(2500);
+  const after = await kuruSnapshot();
+  assert(BigInt(after.claimsRaw) > BigInt(before.claimsRaw), `Claims did not increase: before ${before.claims}, after ${after.claims}`);
+  assert(BigInt(before.usdcRaw) - BigInt(after.usdcRaw) === amount, `USDC spend was ${formatUnits(BigInt(before.usdcRaw) - BigInt(after.usdcRaw), 6)}, expected exactly 0.1`);
+  assert(acceptedWrites.size === 2, `Expected exactly two guarded transactions, observed ${acceptedWrites.size}`);
+  await takeStep('buy-confirmed', { statusText: boughtStatusText, txHash: buy.hash, receiptStatus: buy.receiptStatus, after });
+
+  await humanClick(page.getByRole('link', { name: 'Portfolio', exact: true }));
+  await page.waitForURL('**/portfolio', { timeout: 30_000 });
+  await page.getByRole('heading', { name: 'Your positions', exact: true }).waitFor({ timeout: 30_000 });
+  await page.getByRole('heading', { name: 'PumpLab', exact: true }).waitFor({ timeout: 60_000 });
+  await page.waitForTimeout(5000);
+  const portfolioText = await page.locator('body').innerText();
+  const positionLine = portfolioText.match(/Claims\s*\n\s*\[?([0-9,.]+)\]?/i)?.[1] ?? '';
+  const uiClaims = Number(positionLine.replaceAll(',', ''));
+  const priorClaims = Number(formatUnits(BigInt(before.claimsRaw), 6));
+  const chainClaims = Number(formatUnits(BigInt(after.claimsRaw), 6));
+  assert(uiClaims > priorClaims, 'Portfolio does not show a larger PumpLab claims position');
+  run.uiAssertions = [
+    { assertion: 'PumpLab Markets card is reachable under Trading', passed: run.marketsObservation.pumpLabListed || run.marketsObservation.pumpLabRevealedByShowAll },
+    { assertion: 'Active detail page exposes Buy claims, market identity, and price', passed: !!ask },
+    { assertion: 'Kuru preview shows expected claims after approval', passed: !!expectedClaims },
+    { assertion: 'portfolio shows a larger PumpLab position', passed: uiClaims > priorClaims, observed: positionLine, chainClaims },
+  ];
+  await takeStep('portfolio-position', { uiClaims: positionLine, chainClaims: after.claims, claimBalanceBefore: before.claims, claimBalanceAfter: after.claims });
+  run.final = {
+    result: 'passed', after, approvalHash: approval.hash, buyHash: buy.hash,
+    acceptedWrites: [...acceptedWrites], writesThisInvocation,
+    approvalSpender: run.approvalSpender, buyDestination: kuruMarket,
+    uiFailureCount: run.uiAssertions.filter(assertion => !assertion.passed).length,
+    findingCount: run.findings.length,
+  };
+  for (const finding of run.findings) {
+    if (finding.title === 'Kuru buy quote is hidden until after USDC approval') finding.screenshot = run.steps.find(step => step.name === 'preview-awaits-approval')?.screenshot;
+  }
+}
+
+async function verifyKuruCompleted(actions, buyAction) {
+  const approvalAction = actions.find(action => action.kind === 'ui-kuru-approve' && action.hash);
+  assert(approvalAction, 'Completed Kuru buy has no journaled approval');
+  const [approvalTx, approvalReceipt, buyTx, buyReceipt] = await Promise.all([
+    client.getTransaction({ hash: approvalAction.hash }).catch(() => null),
+    client.getTransactionReceipt({ hash: approvalAction.hash }).catch(() => null),
+    client.getTransaction({ hash: buyAction.hash }).catch(() => null),
+    client.getTransactionReceipt({ hash: buyAction.hash }).catch(() => null),
+  ]);
+  assert(approvalTx && approvalReceipt?.status === 'success', 'Completed Kuru approval receipt is missing or failed');
+  assert(approvalTx.from.toLowerCase() === ADDRESS.toLowerCase() && approvalTx.to?.toLowerCase() === asset.toLowerCase() && approvalTx.chainId === 10143 && approvalTx.value === 0n, 'Completed Kuru approval sender, destination, chain, or value differs');
+  const approvalCall = decodeFunctionData({ abi: erc20Abi, data: approvalTx.input });
+  assert(approvalCall.functionName === 'approve' && approvalCall.args[0].toLowerCase() === kuruMarket.toLowerCase() && approvalCall.args[1] === amount, 'Completed Kuru approval calldata differs');
+  assert(buyTx && buyReceipt?.status === 'success', 'Completed Kuru buy receipt is missing or failed');
+  assert(buyTx.from.toLowerCase() === ADDRESS.toLowerCase() && buyTx.to?.toLowerCase() === kuruMarket.toLowerCase() && buyTx.chainId === 10143 && buyTx.value === 0n, 'Completed Kuru buy sender, destination, chain, or value differs');
+  const buyCall = decodeFunctionData({ abi: kuruTradeAbi, data: buyTx.input });
+  assert(buyCall.functionName === 'placeAndExecuteMarketBuy' && buyCall.args[0] === 1000n && buyCall.args[1] > 0n && !buyCall.args[2] && !buyCall.args[3], 'Completed Kuru buy calldata is not exactly a 0.1 USDC market order');
+  const priorRun = [...(previousRun?.taskRuns ?? [])].reverse().find(item => item.steps?.some(step => step.name === 'buy-submitted'));
+  const original = priorRun?.preflight;
+  assert(original, 'Completed Kuru run is missing its pre-trade snapshot');
+  const after = await kuruSnapshot();
+  assert(BigInt(after.claimsRaw) > BigInt(original.claimsRaw), 'Completed Kuru buy did not increase the on-chain claim balance');
+  assert(BigInt(original.usdcRaw) - BigInt(after.usdcRaw) === amount, 'Completed Kuru buy did not spend exactly 0.1 USDC');
+  assert(after.allowanceRaw === '0', 'Completed Kuru order did not consume the exact 0.1 USDC allowance');
+  update(approvalAction.id, { status: 'success', receipt: approvalReceipt, receiptReadAt: new Date().toISOString() });
+  update(buyAction.id, { status: 'success', receipt: buyReceipt, receiptReadAt: new Date().toISOString() });
+  run.preflight = original;
+  run.after = after;
+  run.journalRecovery = [approvalAction, buyAction].map(action => ({ kind: action.kind, hash: action.hash, receiptStatus: 'success', verificationOnly: true }));
+  run.transactions = [
+    { kind: 'kuru-approve', hash: approvalAction.hash, receiptStatus: approvalReceipt.status, blockNumber: approvalReceipt.blockNumber, journalId: approvalAction.id },
+    { kind: 'kuru-buy', hash: buyAction.hash, receiptStatus: buyReceipt.status, blockNumber: buyReceipt.blockNumber, journalId: buyAction.id },
+  ];
+  acceptedWrites.add('kuru-approve');
+  acceptedWrites.add('kuru-buy');
+  txByKind['kuru-approve'] = approvalAction.hash;
+  txByKind['kuru-buy'] = buyAction.hash;
+
+  await startWeb();
+  await seedLocalKuruRegistry();
+  browser = await chromium.launch({
+    executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+    headless: process.env.HEADLESS === '1',
+    args: ['--disable-background-timer-throttling', '--disable-renderer-backgrounding'],
+  });
+  context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, deviceScaleFactor: 1, colorScheme: 'dark' });
+  await context.exposeBinding('__smokeWallet', async ({ frame }, request) => {
+    if (new URL(frame.url()).origin !== origin) throw new Error('Wallet origin refused');
+    const { method, params = [] } = request;
+    if (method === 'eth_accounts' || method === 'eth_requestAccounts') return [ADDRESS];
+    if (method === 'eth_chainId') return '0x279f';
+    if (method === 'net_version') return '10143';
+    if (method === 'wallet_switchEthereumChain') {
+      assert(params[0]?.chainId === '0x279f', 'Wallet rejected chain switch');
+      return null;
+    }
+    if (method === 'eth_sendTransaction') throw new Error('Verification-only wallet refused a transaction');
+    const allowed = new Set(['eth_call', 'eth_estimateGas', 'eth_gasPrice', 'eth_maxPriorityFeePerGas', 'eth_getBlockByNumber', 'eth_getTransactionCount', 'eth_getTransactionReceipt', 'eth_getTransactionByHash', 'eth_getBalance', 'eth_blockNumber', 'eth_feeHistory', 'eth_getCode', 'eth_getLogs']);
+    if (!allowed.has(method)) throw new Error(`Verification-only wallet refused ${method}`);
+    return client.request({ method, params });
+  });
+  await context.addInitScript(() => {
+    const listeners = new Map();
+    window.ethereum = { isBondrailDemo: true, isMetaMask: true, request: request => window.__smokeWallet(request), on: (event, listener) => listeners.set(event, [...(listeners.get(event) ?? []), listener]), removeListener: (event, listener) => listeners.set(event, (listeners.get(event) ?? []).filter(fn => fn !== listener)) };
+  });
+  page = await context.newPage();
+  page.on('console', message => { if (message.type() === 'error') run.consoleErrors.push({ at: new Date().toISOString(), text: message.text() }); });
+  page.on('pageerror', error => run.consoleErrors.push({ at: new Date().toISOString(), text: error.message }));
+  page.on('requestfailed', request => run.failedRequests.push({ at: new Date().toISOString(), url: request.url(), error: request.failure()?.errorText }));
+  page.on('response', response => { if (response.status() >= 400) run.failedRequests.push({ at: new Date().toISOString(), url: response.url(), status: response.status() }); });
+  await page.goto(origin, { waitUntil: 'domcontentloaded', timeout: 60_000 });
+  await page.evaluate(() => document.fonts.ready);
+  await page.waitForTimeout(1500);
+  stepIndex = priorRun.steps?.length ?? 10;
+  await takeStep('verification-landing');
+  await humanClick(page.getByRole('link', { name: 'Open app', exact: true }));
+  await page.waitForURL('**/markets', { timeout: 30_000 });
+  await page.waitForTimeout(2000);
+  await humanClick(page.getByRole('button', { name: 'Connect', exact: true }));
+  await humanClick(page.getByRole('menuitem', { name: 'Browser wallet', exact: true }));
+  await page.getByRole('button', { name: 'Disconnect wallet' }).waitFor({ timeout: 30_000 });
+  await page.waitForTimeout(1000);
+  await humanClick(page.getByRole('link', { name: 'Portfolio', exact: true }));
+  await page.waitForURL('**/portfolio', { timeout: 30_000 });
+  await page.getByRole('heading', { name: 'Your positions', exact: true }).waitFor({ timeout: 30_000 });
+  await page.getByRole('heading', { name: 'PumpLab', exact: true }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(previous => {
+    const text = document.body.innerText;
+    const match = text.match(/Claims\s*\n\s*\[?([0-9,.]+)\]?/i);
+    return !!match && Number(match[1].replaceAll(',', '')) > Number(previous);
+  }, formatUnits(BigInt(original.claimsRaw), 6), { timeout: 60_000 });
+  const portfolioText = await page.locator('body').innerText();
+  const position = portfolioText.match(/Claims\s*\n\s*\[?([0-9,.]+)\]?/i)?.[1] ?? '';
+  await takeStep('portfolio-position', { claimBalanceBefore: original.claims, claimBalanceAfter: after.claims, portfolioClaims: position });
+  run.uiAssertions = [{ assertion: 'portfolio shows the larger PumpLab claim position', passed: Number(position.replaceAll(',', '')) > Number(formatUnits(BigInt(original.claimsRaw), 6)), observed: position }];
+  run.findings = [
+    { severity: 'medium', title: 'Kuru buy quote is hidden until after USDC approval', detail: 'The first 0.1 USDC entry showed no expected claims or minimum received until approval. The preview was visible after the approval was confirmed on chain.', screenshot: [...(previousRun?.taskRuns ?? [])].flatMap(item => item.steps ?? []).findLast(step => step.name === 'preview-awaits-approval')?.screenshot ?? null },
+    { severity: 'medium', title: 'Trade panel did not confirm successful approval or buy', detail: 'Both exact transactions succeeded on chain, but the panel stayed at “Confirm in your wallet…” and surfaced “Bond | Bondrail”. Receipts and decoded calldata were verified from the durable journal.', screenshot: priorRun.steps.find(step => step.name === 'failure')?.screenshot ?? null },
+  ];
+  run.marketsObservation = priorRun.marketsObservation;
+  run.final = { result: 'completed_with_findings', verificationOnly: true, after, approvalHash: approvalAction.hash, buyHash: buyAction.hash, acceptedWrites: [...acceptedWrites], writesThisInvocation: 0, uiFailureCount: 0, findingCount: run.findings.length };
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {
