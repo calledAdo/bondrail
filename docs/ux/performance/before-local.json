@@ -856,7 +856,7 @@
         "serverTiming": []
       },
       {
-        "name": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "name": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "entryType": "resource",
         "startTime": 164.40000000596046,
         "duration": 1236.5,
@@ -2692,7 +2692,7 @@
         "serverTiming": []
       },
       {
-        "name": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "name": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "entryType": "resource",
         "startTime": 14712.200000017881,
         "duration": 361.39999997615814,
@@ -2947,7 +2947,7 @@
     "requests": [
       {
         "kind": "GraphQL",
-        "url": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "url": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "startMs": 169,
         "durationMs": 1235,
         "status": 200,
@@ -3165,7 +3165,7 @@
       },
       {
         "kind": "GraphQL",
-        "url": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "url": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "startMs": 14716,
         "durationMs": 362,
         "status": 200,
@@ -4183,7 +4183,7 @@
         "serverTiming": []
       },
       {
-        "name": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "name": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "entryType": "resource",
         "startTime": 32.5,
         "duration": 319,
@@ -6019,7 +6019,7 @@
         "serverTiming": []
       },
       {
-        "name": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "name": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "entryType": "resource",
         "startTime": 12858.799999982119,
         "duration": 366.7000000178814,
@@ -6274,7 +6274,7 @@
     "requests": [
       {
         "kind": "GraphQL",
-        "url": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "url": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "startMs": 35,
         "durationMs": 319,
         "status": 200,
@@ -6492,7 +6492,7 @@
       },
       {
         "kind": "GraphQL",
-        "url": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
+        "url": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
         "startMs": 12860,
         "durationMs": 367,
         "status": 200,
