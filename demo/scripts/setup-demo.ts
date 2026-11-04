@@ -128,6 +128,65 @@ async function eventArgs(receipt: Awaited<ReturnType<typeof write>>, eventName: 
   throw new Error(`${eventName} not found`);
 }
 
+async function recoverBondStartBlock(id: string, bond: Address, factory: Address, rec: IssuerRecord, deploymentStartBlock: string) {
+  if (rec.startBlock) return rec.startBlock;
+
+  const override = process.env.RELAUNCH_OLD_START_BLOCK;
+  if (override && /^\d+$/.test(override)) return override;
+  if (override) console.warn(`  ${id}: ignoring invalid RELAUNCH_OLD_START_BLOCK=${override}`);
+
+  const indexerUrl = process.env.INDEXER_URL || process.env.NEXT_PUBLIC_INDEXER_URL;
+  if (indexerUrl) {
+    try {
+      const response = await fetch(indexerUrl, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          query: `query BondCreation($chain: Int!, $bond: String!) {
+            ChainEvent(where: { chainId: { _eq: $chain }, address: { _eq: $bond }, kind: { _eq: "Created" } }, limit: 1) {
+              block
+              txHash
+            }
+          }`,
+          variables: { chain: chainId, bond: bond.toLowerCase() },
+        }),
+        signal: AbortSignal.timeout(8000),
+      });
+      const result = await response.json() as {
+        data?: { ChainEvent?: Array<{ block?: string | number }> };
+        errors?: Array<{ message: string }>;
+      };
+      const block = result.data?.ChainEvent?.[0]?.block;
+      if (response.ok && !result.errors?.length && block !== undefined && /^\d+$/.test(String(block)))
+        return String(block);
+      console.warn(`  ${id}: indexer did not return a creation block for ${bond}`);
+    } catch (error) {
+      console.warn(`  ${id}: indexer creation-block lookup failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  if (chainId === 31337) {
+    const latest = await publicClient.getBlockNumber();
+    const start = BigInt(deploymentStartBlock);
+    for (let fromBlock = start; fromBlock <= latest; fromBlock += 100n) {
+      const toBlock = fromBlock + 99n < latest ? fromBlock + 99n : latest;
+      const events = await publicClient.getContractEvents({
+        address: factory,
+        abi: factoryAbi,
+        eventName: 'BondCreated',
+        args: { bond },
+        fromBlock,
+        toBlock,
+      });
+      const block = events.find((event) => event.blockNumber !== null)?.blockNumber;
+      if (block !== undefined) return String(block);
+    }
+  }
+
+  console.warn(`  ${id}: creation block for ${bond} is unavailable; continuing without startBlock`);
+  return undefined;
+}
+
 const phase = (bond: Address) =>
   publicClient.readContract({ address: bond, abi: bondAbi, functionName: 'phase' }) as Promise<number>;
 
@@ -221,16 +280,7 @@ async function createBond(
     const oldTerms = rec.terms ?? Object.fromEntries(Object.entries(
       await publicClient.readContract({ address: oldBond, abi: bondAbi, functionName: 'terms' }) as Record<string, unknown>,
     ).filter(([key]) => !/^\d+$/.test(key)).map(([key, value]) => [key, typeof value === 'bigint' ? value.toString() : value as string | number]));
-    const oldBondEvents = await publicClient.getContractEvents({
-      address: d.factory,
-      abi: factoryAbi,
-      eventName: 'BondCreated',
-      args: { bond: oldBond },
-      fromBlock: BigInt(d.startBlock),
-    });
-    const oldStartBlock = rec.startBlock ?? (oldBondEvents[0]?.blockNumber === null || !oldBondEvents[0]?.blockNumber
-      ? undefined : String(oldBondEvents[0].blockNumber));
-    if (!oldStartBlock) throw new Error(`Could not recover the creation block for ${id} bond ${oldBond}`);
+    const oldStartBlock = await recoverBondStartBlock(id, oldBond, d.factory, rec, d.startBlock);
     rec.previousBonds ??= [];
     rec.previousBonds.push({ bond: oldBond, kuruMarket: rec.kuruMarket, kuruVault: rec.kuruVault, startBlock: oldStartBlock, terms: oldTerms });
     delete rec.kuruMarket;
