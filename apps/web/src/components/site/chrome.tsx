@@ -2,6 +2,7 @@ import { brandMessaging } from '@/lib/brand';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import { ThemeToggle } from '@/components/theme';
+import { WalletButton } from '@/components/app/shell';
 
 const LINKS = [
   ['How it works', '/#how'],
@@ -26,6 +27,7 @@ export function SiteNav() {
         </nav>
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <WalletButton />
           <Link
             href="/markets"
             className="inline-flex h-9 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors duration-300 hover:bg-primary/90"

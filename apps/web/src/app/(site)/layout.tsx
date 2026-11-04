@@ -2,6 +2,7 @@ import { brandMetadata, brandMessaging } from '@/lib/brand';
 // Root layout for the public site and docs: static pages, no wallet code.
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme';
+import { Providers } from '@/components/providers';
 import { geistMono, geistSans } from '@/lib/fonts';
 import '@/styles/site.css';
 
@@ -16,7 +17,7 @@ export default function SiteLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`dark ${geistSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
       <body className="min-h-dvh">
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider><Providers>{children}</Providers></ThemeProvider>
       </body>
     </html>
   );
