@@ -31,7 +31,50 @@
       "account": "0x0c58cE2d764C089AEfe8dA8cA27C2E521BDC31F5",
       "source": "0x158B28949fDd1bC4Bb21B851dF28Eaad434dAeeD",
       "token": "0x41EE28EbdD499c00bFEBa81885CC14C65bE166E8",
-      "bond": "0xb6f44e47C7468c42A32d9679170cC3C4B145099B"
+      "previousBonds": [
+        {
+          "bond": "0xb6f44e47C7468c42A32d9679170cC3C4B145099B",
+          "startBlock": "71191662",
+          "terms": {
+            "raiseAmount": "2000000",
+            "repayCap": "2400000",
+            "stake": "500000",
+            "minRevenue": "10000",
+            "fundingDeadline": "1792394534",
+            "maturity": "1792826534",
+            "secondReleaseNotBefore": "1792398134",
+            "secondReleaseDeadline": "1792653734",
+            "minOperatingPeriod": 3600,
+            "revenueBps": 2500,
+            "firstReleaseBps": 5000,
+            "milestoneMode": 0,
+            "minFeeBps": 100,
+            "triggerWindowDays": 1,
+            "stepUpBps": 4000,
+            "triggerRevenue": "10000"
+          }
+        }
+      ],
+      "bond": "0x48e18e23eD4a121A17C96b21Ba15C42171f4146b",
+      "startBlock": "76868899",
+      "terms": {
+        "raiseAmount": "2000000",
+        "repayCap": "2400000",
+        "stake": "500000",
+        "minRevenue": "10000",
+        "fundingDeadline": "1794040181",
+        "maturity": "1801556981",
+        "secondReleaseNotBefore": "1794043781",
+        "secondReleaseDeadline": "1801384181",
+        "minOperatingPeriod": 3600,
+        "revenueBps": 2500,
+        "firstReleaseBps": 5000,
+        "milestoneMode": 0,
+        "minFeeBps": 100,
+        "triggerRevenue": "0",
+        "triggerWindowDays": 0,
+        "stepUpBps": 0
+      }
     },
     "curvelab": {
       "name": "CurveLab",
