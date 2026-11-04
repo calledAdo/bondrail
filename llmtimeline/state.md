@@ -14,7 +14,7 @@ Fix Task 29 real-wallet smoke findings across transaction confirmation, Kuru quo
 Task 29 fixes are committed locally on `next` as `ea6c284`, `ed5f340`, `56261a4`, `59dfed9`, and `5ad10dc`, with screenshots committed separately. Web tests, typecheck, and `pnpm build:apps` pass. `pnpm check:all` cannot proceed because `forge` is not installed; no testnet or remote actions occurred.
 
 ## Next
-Complete. Review `docs/ux/smoke-2026-11/fixed/` for the two headless captures. Populated Markets/Kuru screenshots require the missing local indexer configuration.
+Complete. Review `docs/ux/smoke-2026-11/fixed/` for the landing and Funding calculator captures. The configured public indexer returned no live Markets records in the headless run, so populated Markets/Kuru states could not be captured.
 
 ## Notes
 - Never read `~/.slice`, `~/.bondrail`, `~/.zeitgeist`, or `~/.bondrail-server-backup`.
