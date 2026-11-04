@@ -74,7 +74,9 @@
         "triggerRevenue": "0",
         "triggerWindowDays": 0,
         "stepUpBps": 0
-      }
+      },
+      "kuruMarket": "0xEbB8Acc3B3C56B1707FD1B477a087afA196DE92d",
+      "kuruVault": "0xC164269235BEb2140ede1DC452c4de1F581d64Ac"
     },
     "curvelab": {
       "name": "CurveLab",
