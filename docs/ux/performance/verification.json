@@ -5,7 +5,7 @@
       "ms": 86,
       "navigationRequests": [
         {
-          "url": "https://indexer.dev.hyperindex.xyz/1ac5720/v1/graphql",
+          "url": "https://indexer.dev.hyperindex.xyz/d0d9902/v1/graphql",
           "body": {
             "query": "query AccountBonds($address: String!) {\n  Bond(where: { account: { _eq: $address } }, order_by: { createdAt: desc }) { id account adapter policyHash phase raised released undrawn principalRecovery revenueCollected stakeRecovery pool totalSupply effectiveCap defaulted triggered createdAt }\n}",
             "variables": {
